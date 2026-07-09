@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Data (bulk downloads and local databases stay out of git)
+data/
+*.duckdb
+*.duckdb.wal
+*.zip
+
+# Node / React
+frontend/node_modules/
+frontend/dist/
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
