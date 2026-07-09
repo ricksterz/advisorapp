@@ -19,7 +19,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import io
 import re
 import sys
 import zipfile
@@ -238,7 +237,8 @@ def load(firms: pd.DataFrame, db_path: Path) -> None:
         # Full refresh: each compilation is a complete snapshot of registered firms.
         con.execute("DELETE FROM firms")
         cols = ", ".join(firms.columns)
-        con.execute(f"INSERT INTO firms ({cols}) SELECT {cols} FROM firms_staging")
+        # column names come from FIRM_COLUMNS constants, not external input
+        con.execute(f"INSERT INTO firms ({cols}) SELECT {cols} FROM firms_staging")  # nosec B608
         count = con.execute("SELECT count(*) FROM firms").fetchone()[0]
         print(f"loaded {count} firms into {db_path}")
     finally:

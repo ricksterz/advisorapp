@@ -45,8 +45,9 @@ def export(db_path: Path, out_path: Path) -> int:
         sys.exit(f"error: {db_path} not found — run `python -m etl.ingest_adv` first")
     con = duckdb.connect(str(db_path), read_only=True)
     try:
+        # column names come from the EXPORT_COLUMNS constant, not external input
         result = con.execute(
-            f"SELECT {', '.join(EXPORT_COLUMNS)} FROM firms ORDER BY aum_total DESC NULLS LAST"
+            f"SELECT {', '.join(EXPORT_COLUMNS)} FROM firms ORDER BY aum_total DESC NULLS LAST"  # nosec B608
         )
         firms = [dict(zip(EXPORT_COLUMNS, row)) for row in result.fetchall()]
     finally:
