@@ -6,6 +6,21 @@ on public regulatory data (SEC Form ADV, IAPD/BrokerCheck, EDGAR, DOL 5500).
 
 See [CLAUDE.md](CLAUDE.md) for the project brief, data sources, schema, and build order.
 
+## Live demo (GitHub Pages)
+
+Every push to `main` deploys a static build of the app to
+**https://ricksterz.github.io/advisorapp/** via `.github/workflows/pages.yml`
+(first run requires Pages to be enabled; the workflow attempts to enable it
+automatically). The published site has no backend: the workflow runs the ETL,
+exports the firms table to `firms.json`, and the React app filters it
+client-side.
+
+By default the site is built from the small sample fixture. To publish real
+data, set a repository variable `ADV_COMPILATION_URL` (Settings → Secrets and
+variables → Actions → Variables) pointing at an `IA_ADV_Base` compilation zip
+from https://adviserinfo.sec.gov/compilation — a monthly scheduled run keeps
+the snapshot fresh.
+
 ## Layout
 
 - `etl/` — Python ingestion + normalization (Form ADV bulk data → DuckDB)

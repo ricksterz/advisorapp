@@ -1,0 +1,78 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    # Monthly data refresh (only picks up new data when ADV_COMPILATION_URL is set)
+    - cron: "0 6 5 * *"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build analytics database
+        env:
+          # Optional repository variable: URL of an IA_ADV_Base compilation zip
+          # from https://adviserinfo.sec.gov/compilation. When unset, the site
+          # is built from the small sample fixture so it always deploys.
+          ADV_COMPILATION_URL: ${{ vars.ADV_COMPILATION_URL }}
+        run: |
+          if [ -n "$ADV_COMPILATION_URL" ]; then
+            python -m etl.ingest_adv --url "$ADV_COMPILATION_URL" --db data/advisor.duckdb
+          else
+            echo "ADV_COMPILATION_URL not set - building from sample fixture"
+            python -m etl.ingest_adv --input etl/tests/fixtures/sample_adv_base.csv --db data/advisor.duckdb
+          fi
+
+      - name: Export static data for the frontend
+        run: python -m etl.export_json --db data/advisor.duckdb --out frontend/public/firms.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
