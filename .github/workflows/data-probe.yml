@@ -6,6 +6,8 @@ name: ADV data probe
 
 on:
   workflow_dispatch:
+  push:
+    branches: [claude/advisor-analytics-setup-v4erb8]
 
 permissions:
   contents: read
