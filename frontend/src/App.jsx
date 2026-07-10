@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { computeRankings, normalizedWeights } from './benchmarking/engine.js'
+import { FACTOR_BY_ID, staffOf } from './benchmarking/factors.js'
+import { RISK_PARAM_DEFAULTS } from './benchmarking/screens.js'
+import { DIMENSION_ORDER, MIN_COHORT_SIZE } from './benchmarking/cohort.js'
+import { PRESETS, defaultConfig } from './benchmarking/presets.js'
+import { configFromLocation, urlForConfig } from './benchmarking/url.js'
+import MethodologyPanel from './components/MethodologyPanel.jsx'
+
 const compactUsd = (v) => {
   if (v == null || Number.isNaN(v)) return '—'
   if (v >= 1e12) return `$${(v / 1e12).toFixed(v >= 1e13 ? 0 : 1)}T`
@@ -49,76 +57,29 @@ function useTheme() {
   return [theme, setTheme]
 }
 
-// Rank-based percentile function over a numeric sample.
-function percentiler(values) {
-  const s = values.filter(Number.isFinite).sort((a, b) => a - b)
-  return (v) => {
-    if (!Number.isFinite(v) || s.length < 2) return 0
-    let lo = 0
-    let hi = s.length
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1
-      if (s[mid] <= v) lo = mid + 1
-      else hi = mid
-    }
-    return lo / s.length
-  }
+// Screen/cohort summaries for the rank-card subtitles and methodology prose.
+function topScreenSummary(config) {
+  const parts = [
+    config.top.maxDisclosures === 0
+      ? 'Clean record required'
+      : `≤ ${config.top.maxDisclosures} disclosure${config.top.maxDisclosures > 1 ? 's' : ''}`,
+    `≥ ${compactUsd(config.top.minAum)} AUM`,
+    `≥ ${config.top.minStaff} advisory professional${config.top.minStaff === 1 ? '' : 's'}`,
+  ]
+  return parts.join(' · ')
 }
 
-const staffOf = (f) => f.employees_advisory ?? f.employees_total ?? null
+function cohortSummary(config) {
+  const dims = DIMENSION_ORDER.filter((d) => config.cohorts[d.id]).map((d) => d.label)
+  return dims.length ? `peers grouped by ${dims.join(' × ')}` : null
+}
 
-/**
- * Composite standing/risk scores from Form ADV fields, modeled on how the
- * major third-party rankings screen firms (see the on-page methodology).
- */
-function computeRankings(firms) {
-  const universe = firms.filter((f) => (f.aum_total ?? 0) >= 1e8)
-  const pAum = percentiler(universe.map((f) => f.aum_total))
-  const pProd = percentiler(
-    universe.map((f) => (staffOf(f) > 0 ? f.aum_total / staffOf(f) : NaN)),
-  )
-  const loads = universe.map((f) => (staffOf(f) > 0 ? (f.accounts_total ?? NaN) / staffOf(f) : NaN))
-  const pLoad = percentiler(loads)
-
-  const top = universe
-    .filter((f) => f.disciplinary_flag_count === 0 && staffOf(f) >= 3)
-    .map((f) => {
-      const feeAlign = f.fee_pct_of_aum ? (f.fee_commissions ? 0.5 : 1) : 0
-      const score =
-        100 * (0.4 * pAum(f.aum_total) + 0.25 * pProd(f.aum_total / staffOf(f)) + 0.2 + 0.15 * feeAlign)
-      return { firm: f, score }
-    })
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 10)
-
-  const atRisk = universe
-    .map((f) => {
-      const signals = []
-      let score = 0
-      if (f.disciplinary_flag_count > 0) {
-        score += Math.min(f.disciplinary_flag_count, 4) * 15
-        signals.push(`${f.disciplinary_flag_count} disclosure${f.disciplinary_flag_count > 1 ? 's' : ''}`)
-      }
-      if (f.fee_commissions && f.fee_performance_based) {
-        score += 15
-        signals.push('Commissions + performance fees')
-      }
-      if ((f.affil_count ?? 0) >= 3) {
-        score += 10
-        signals.push('Dense affiliations')
-      }
-      const load = staffOf(f) > 0 ? (f.accounts_total ?? 0) / staffOf(f) : null
-      if (load != null && pLoad(load) >= 0.95) {
-        score += 15
-        signals.push('High client load')
-      }
-      return { firm: f, score, signals }
-    })
-    .filter((r) => r.score >= 40)
-    .sort((a, b) => b.score - a.score || (b.firm.aum_total ?? 0) - (a.firm.aum_total ?? 0))
-    .slice(0, 10)
-
-  return { top, atRisk }
+function weightSummary(config) {
+  const weights = normalizedWeights(config.weights)
+  return Object.entries(weights)
+    .sort(([, a], [, b]) => b - a)
+    .map(([id, w]) => `${Math.round(w * 100)}% ${FACTOR_BY_ID[id].label.toLowerCase()}`)
+    .join(', ')
 }
 
 function StatTile({ label, value, sub }) {
@@ -187,6 +148,14 @@ export default function App() {
   const [flaggedOnly, setFlaggedOnly] = useState(false)
   const [sort, setSort] = useState('aum')
   const [limit, setLimit] = useState(PAGE)
+  // Methodology config: seeded from the ?m= URL param so a shared link
+  // reproduces the exact same ranking view on a cold load.
+  const [config, setConfig] = useState(() => configFromLocation() ?? defaultConfig())
+
+  useEffect(() => {
+    // Keep the address bar shareable/bookmarkable without polluting history.
+    window.history.replaceState(null, '', urlForConfig(config))
+  }, [config])
 
   useEffect(() => {
     // Static snapshot exported by the ETL; all filtering happens client-side.
@@ -206,7 +175,7 @@ export default function App() {
     return { totalAum, median, perfShare, flagged }
   }, [data])
 
-  const rankings = useMemo(() => (data ? computeRankings(data.firms) : null), [data])
+  const rankings = useMemo(() => (data ? computeRankings(data.firms, config) : null), [data, config])
 
   const firms = useMemo(() => {
     if (!data) return []
@@ -289,36 +258,45 @@ export default function App() {
               <p>
                 A transparent, purely quantitative read on firm standing — modeled on how Barron’s,
                 CNBC’s FA 100, and Forbes/SHOOK screen advisors, but computed only from public
-                Form ADV data.
+                Form ADV data. Unlike those lists, every weight, screen, and peer group below is
+                yours to change — and to share as a link.
               </p>
             </div>
+
+            <MethodologyPanel config={config} onChange={setConfig} />
 
             <div className="rank-grid">
               <RankCard
                 title="Top advisory firms"
-                sub="Clean record required · ≥ $100M AUM · ≥ 3 advisory professionals"
+                sub={[topScreenSummary(config), cohortSummary(config)].filter(Boolean).join(' · ')}
               >
-                <ol className="rank-list">
-                  {rankings.top.map(({ firm, score }, i) => (
-                    <li key={firm.crd}>
-                      <span className="rank-n">{i + 1}</span>
-                      <span className="rank-firm">
-                        <FirmLink firm={firm} />
-                        <span className="firm-sub">
-                          {compactUsd(firm.aum_total)} AUM · {staffOf(firm)} advisory staff
+                {rankings.top.length === 0 ? (
+                  <div className="state">No firms pass the current eligibility screens.</div>
+                ) : (
+                  <ol className="rank-list">
+                    {rankings.top.map(({ firm, score, cohort }, i) => (
+                      <li key={firm.crd}>
+                        <span className="rank-n">{i + 1}</span>
+                        <span className="rank-firm">
+                          <FirmLink firm={firm} />
+                          <span className="firm-sub">
+                            {compactUsd(firm.aum_total)} AUM · {staffOf(firm)} advisory staff
+                            {cohortSummary(config) && <> · vs {cohort.label}</>}
+                          </span>
+                          {cohort.note && <span className="cohort-note">{cohort.note}</span>}
                         </span>
-                      </span>
-                      <span className="score-badge" title="Composite standing score (0–100)">
-                        {score.toFixed(1)}
-                      </span>
-                    </li>
-                  ))}
-                </ol>
+                        <span className="score-badge" title="Composite standing score (0–100)">
+                          {score.toFixed(1)}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
               </RankCard>
 
               <RankCard
                 title="Elevated-risk signals"
-                sub="Firms ≥ $100M AUM tripping two or more risk screens"
+                sub={`Firms ≥ ${compactUsd(config.risk.minAum)} AUM scoring ${config.risk.threshold}+ across the risk screens`}
               >
                 {rankings.atRisk.length === 0 ? (
                   <div className="state">No firms currently trip the risk threshold.</div>
@@ -349,25 +327,50 @@ export default function App() {
               <summary>Methodology &amp; how it compares to third-party rankings</summary>
               <div className="method-body">
                 <p>
-                  <strong>Standing score (0–100).</strong> Firms must first pass the screens the
-                  major rankings apply: a clean Item 11 record (no disciplinary disclosures — the
-                  same hard compliance screen Forbes/SHOOK and CNBC’s FA 100 apply), at least $100M
-                  in regulatory AUM, and at least three advisory professionals. Eligible firms are
-                  then scored: <em>40% scale</em> (percentile of total regulatory AUM),{' '}
-                  <em>25% productivity</em> (percentile of AUM per advisory professional — akin to
-                  the assets-and-revenue weighting in Barron’s rankings), <em>20% clean record</em>{' '}
-                  (earned by passing the screen), and <em>15% fee alignment</em> (asset-based fees,
-                  reduced when commission compensation is also reported).
+                  <strong>Standing score (0–100).</strong> Firms must first pass the active
+                  eligibility screens:{' '}
+                  {config.top.maxDisclosures === 0
+                    ? 'a clean Item 11 record (no disciplinary disclosures — the same hard compliance screen Forbes/SHOOK and CNBC’s FA 100 apply)'
+                    : `no more than ${config.top.maxDisclosures} Item 11 disciplinary disclosure${config.top.maxDisclosures > 1 ? 's' : ''}`}
+                  , at least {compactUsd(config.top.minAum)} in regulatory AUM, and at least{' '}
+                  {config.top.minStaff} advisory professional{config.top.minStaff === 1 ? '' : 's'}.
+                  Eligible firms are then scored on the active weights:{' '}
+                  <em>{weightSummary(config)}</em>.{' '}
+                  {cohortSummary(config) ? (
+                    <>
+                      Percentile factors rank each firm within its peer cohort ({cohortSummary(config)});
+                      a cohort with fewer than {MIN_COHORT_SIZE} firms falls back to the
+                      next-broadest pool, and affected entries say so.
+                    </>
+                  ) : (
+                    <>Percentile factors rank each firm against all eligible firms.</>
+                  )}
                 </p>
                 <p>
                   <strong>Risk signals (0–100).</strong> Inspired by the regulatory-record and
                   practice-quality factors those rankings penalize: Item 11 disciplinary
-                  disclosures (15 points each, capped at four), commission <em>and</em>{' '}
-                  performance-fee compensation together (15 — stacked conflict exposure), three or
-                  more financial-industry affiliations (10 — larger conflict surface), and an
-                  accounts-per-professional ratio in the top 5% (15 — service-capacity strain, the
-                  inverse of the advisor-to-client ratios CNBC’s methodology rewards). Firms
-                  scoring 40+ are listed.
+                  disclosures ({config.risk.points.disclosures} points each, capped at{' '}
+                  {RISK_PARAM_DEFAULTS.disclosureCap}), commission <em>and</em> performance-fee
+                  compensation together ({config.risk.points.commissionsPlusPerf} — stacked
+                  conflict exposure), {RISK_PARAM_DEFAULTS.minAffiliations} or more
+                  financial-industry affiliations ({config.risk.points.denseAffiliations} — larger
+                  conflict surface), and an accounts-per-professional ratio in the top{' '}
+                  {Math.round((1 - RISK_PARAM_DEFAULTS.loadPercentile) * 100)}% (
+                  {config.risk.points.highClientLoad} — service-capacity strain, the inverse of the
+                  advisor-to-client ratios CNBC’s methodology rewards). Firms at or above{' '}
+                  {compactUsd(config.risk.minAum)} AUM scoring {config.risk.threshold}+ are listed.
+                </p>
+                <p>
+                  <strong>Presets.</strong>{' '}
+                  {PRESETS.map((p, i) => (
+                    <span key={p.id}>
+                      <em>{p.label}</em> — {p.description}
+                      {i < PRESETS.length - 1 ? ' ' : ''}
+                    </span>
+                  ))}{' '}
+                  Any control you change becomes a “Custom” methodology you can share with the
+                  copy-link button — the URL encodes the full configuration, so the same link
+                  always reproduces the same ranking.
                 </p>
                 <p>
                   <strong>Where it differs.</strong> Barron’s, CNBC (with AccuPoint Solutions), and
