@@ -188,9 +188,13 @@ export default function App() {
     const aums = data.firms.map((f) => f.aum_total).filter((v) => v > 0).sort((a, b) => a - b)
     const totalAum = aums.reduce((s, v) => s + v, 0)
     const median = aums.length ? aums[Math.floor(aums.length / 2)] : null
+    // Concentration beats a gross aggregate as a headline: summed regulatory
+    // AUM double-counts fund complexes and sub-advised assets (see About).
+    const billionAum = aums.filter((v) => v >= 1e9)
+    const billionShare = totalAum ? billionAum.reduce((s, v) => s + v, 0) / totalAum : 0
     const perfShare = data.firms.filter((f) => f.fee_performance_based).length / data.firms.length
     const flagged = data.firms.filter((f) => f.disciplinary_flag_count > 0).length
-    return { totalAum, median, perfShare, flagged }
+    return { median, billionCount: billionAum.length, billionShare, perfShare, flagged }
   }, [data])
 
   const rankings = useMemo(() => (data ? computeRankings(data.firms, config) : null), [data, config])
@@ -260,9 +264,9 @@ export default function App() {
           <section className="tiles" aria-label="Industry totals">
             <StatTile label="Firms tracked" value={compactCount(data.count)} sub="SEC-registered advisers" />
             <StatTile
-              label="Aggregate regulatory AUM"
-              value={compactUsd(stats.totalAum)}
-              sub="gross; overlapping fund complexes — see About"
+              label="Firms managing ≥ $1B"
+              value={compactCount(stats.billionCount)}
+              sub={`hold ${Math.round(stats.billionShare * 100)}% of reported AUM`}
             />
             <StatTile label="Median firm AUM" value={compactUsd(stats.median)} />
             <StatTile
@@ -568,13 +572,14 @@ export default function App() {
                   </dd>
                 </div>
                 <div>
-                  <dt>Why aggregate AUM looks enormous</dt>
+                  <dt>Why regulatory AUM figures look enormous</dt>
                   <dd>
                     Regulatory AUM is not private client wealth. It counts institutional and fund
                     assets (mutual funds, ETFs, pensions) gross of leverage, and related advisers
                     within one complex each file separately — three Vanguard-affiliated advisers
                     alone report roughly $22T combined, and sub-advised assets can appear at both
-                    the adviser and the sub-adviser. For scale:{' '}
+                    the adviser and the sub-adviser. Summing it across firms is therefore
+                    misleading, which is why no aggregate is shown here. For scale:{' '}
                     <a
                       href="https://altrata.com/reports/world-ultra-wealth-report-2025"
                       target="_blank"
@@ -583,8 +588,9 @@ export default function App() {
                       Altrata’s World Ultra Wealth Report 2025
                     </a>{' '}
                     puts the combined net worth of all 510,810 ultra-high-net-worth individuals
-                    worldwide at $59.8T — a third of the aggregate RAUM shown here. Exempt
-                    reporting advisers (which file no RAUM) are excluded from this dataset.
+                    worldwide at $59.8T — roughly a third of what these firms report in RAUM
+                    combined. Exempt reporting advisers (which file no RAUM) are excluded from
+                    this dataset.
                   </dd>
                 </div>
                 <div>
