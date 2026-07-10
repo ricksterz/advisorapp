@@ -1,0 +1,443 @@
+/* Design tokens — dark is the default theme; light is the alternate.
+   Values follow the validated reference palette (surfaces, ink, status). */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --surface-2: #222221;
+  --ink: #ffffff;
+  --ink-2: #c3c2b7;
+  --ink-3: #898781;
+  --hairline: rgba(255, 255, 255, 0.1);
+  --grid: #2c2c2a;
+  --accent: #3987e5;
+  --accent-track: rgba(57, 135, 229, 0.22);
+  --good: #0ca30c;
+  --critical: #d03b3b;
+  --critical-wash: rgba(208, 59, 59, 0.14);
+  --hover-wash: rgba(255, 255, 255, 0.04);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --surface-2: #f0efec;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --ink-3: #898781;
+  --hairline: rgba(11, 11, 11, 0.1);
+  --grid: #e1e0d9;
+  --accent: #2a78d6;
+  --accent-track: rgba(42, 120, 214, 0.18);
+  --good: #006300;
+  --critical: #d03b3b;
+  --critical-wash: rgba(208, 59, 59, 0.1);
+  --hover-wash: rgba(11, 11, 11, 0.035);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+}
+
+body {
+  background: var(--page);
+  color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+/* ---------- top bar ---------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  border-bottom: 1px solid var(--hairline);
+  position: sticky;
+  top: 0;
+  background: color-mix(in srgb, var(--page) 88%, transparent);
+  backdrop-filter: blur(10px);
+  z-index: 10;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.brand-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--accent), #1c5cab);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.topbar .spacer {
+  flex: 1;
+}
+
+.snapshot {
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+
+.icon-btn {
+  border: 1px solid var(--hairline);
+  background: transparent;
+  border-radius: 8px;
+  padding: 5px 10px;
+  cursor: pointer;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.icon-btn:hover {
+  background: var(--hover-wash);
+}
+
+/* ---------- layout ---------- */
+.shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 36px 28px 64px;
+}
+
+.page-head h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.page-head p {
+  margin: 6px 0 0;
+  color: var(--ink-2);
+  font-size: 14px;
+  max-width: 62ch;
+}
+
+/* ---------- stat tiles ---------- */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin: 28px 0;
+}
+
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+
+.tile .label {
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+
+.tile .value {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-top: 4px;
+}
+
+.tile .sub {
+  color: var(--ink-3);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* ---------- controls ---------- */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.search {
+  flex: 1 1 260px;
+  max-width: 380px;
+  position: relative;
+}
+
+.search input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 9px;
+  padding: 8px 12px 8px 32px;
+  outline: none;
+}
+
+.search input:focus {
+  border-color: var(--accent);
+}
+
+.search input::placeholder {
+  color: var(--ink-3);
+}
+
+.search .glyph {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-3);
+  pointer-events: none;
+}
+
+.controls select {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 9px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.chip {
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 7px 14px;
+  cursor: pointer;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.chip:hover {
+  background: var(--hover-wash);
+}
+
+.chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--ink);
+  background: var(--accent-track);
+}
+
+.result-count {
+  margin-left: auto;
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+
+/* ---------- table ---------- */
+.table-card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 860px;
+}
+
+thead th {
+  text-align: left;
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--grid);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+}
+
+th.num,
+td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+th button {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+th button:hover {
+  color: var(--ink-2);
+}
+
+th .arrow {
+  font-size: 10px;
+}
+
+th[aria-sort] button {
+  color: var(--ink);
+}
+
+tbody td {
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--grid);
+  vertical-align: middle;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+tbody tr:hover {
+  background: var(--hover-wash);
+}
+
+.firm-name {
+  font-weight: 550;
+  letter-spacing: -0.005em;
+}
+
+.firm-sub {
+  color: var(--ink-3);
+  font-size: 12px;
+  margin-top: 1px;
+}
+
+/* discretionary meter: accent fill on a lighter step of the same ramp */
+.meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.meter .track {
+  width: 64px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--accent-track);
+  overflow: hidden;
+}
+
+.meter .fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.meter .pct {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  width: 34px;
+  text-align: right;
+}
+
+.fee-chips {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.fee-chip {
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: 1px 7px;
+  font-size: 11.5px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.flag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  background: var(--critical-wash);
+  color: var(--critical);
+}
+
+.flag-none {
+  color: var(--ink-3);
+}
+
+.table-foot {
+  display: flex;
+  justify-content: center;
+  padding: 14px;
+  border-top: 1px solid var(--grid);
+}
+
+.show-more {
+  border: 1px solid var(--hairline);
+  background: transparent;
+  border-radius: 9px;
+  padding: 8px 18px;
+  cursor: pointer;
+  color: var(--ink-2);
+}
+
+.show-more:hover {
+  background: var(--hover-wash);
+}
+
+/* ---------- states & footer ---------- */
+.state {
+  padding: 48px;
+  text-align: center;
+  color: var(--ink-3);
+}
+
+.state.error {
+  color: var(--critical);
+}
+
+.foot-note {
+  color: var(--ink-3);
+  font-size: 12.5px;
+  margin-top: 18px;
+}
+
+.foot-note a {
+  color: var(--ink-2);
+}
+
+@media (max-width: 640px) {
+  .shell {
+    padding: 24px 16px 48px;
+  }
+
+  .topbar {
+    padding: 12px 16px;
+  }
+
+  .result-count {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+}
