@@ -33,8 +33,10 @@ EXPORT_COLUMNS = [
     "aum_non_discretionary",
     "employees_total",
     "employees_advisory",
+    "accounts_total",
     "fee_pct_of_aum",
     "fee_performance_based",
+    "fee_commissions",
     "affil_count",
     "disciplinary_flag_count",
 ]
