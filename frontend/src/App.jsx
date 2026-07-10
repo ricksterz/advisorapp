@@ -36,6 +36,7 @@ const SOURCES = [
   { name: 'CNBC FA 100', url: 'https://www.cnbc.com/fa-100/' },
   { name: 'Forbes / SHOOK Top Wealth Advisors', url: 'https://www.forbes.com/top-wealth-advisors/' },
   { name: 'UBS Global Family Office Report', url: 'https://www.ubs.com/global/en/family-office-uhnw.html' },
+  { name: 'Altrata World Ultra Wealth Report', url: 'https://altrata.com/reports/world-ultra-wealth-report-2025' },
   { name: 'Visual Capitalist — wealth management', url: 'https://www.visualcapitalist.com/' },
 ]
 
@@ -262,7 +263,11 @@ export default function App() {
         {stats && (
           <section className="tiles" aria-label="Industry totals">
             <StatTile label="Firms tracked" value={compactCount(data.count)} sub="SEC-registered advisers" />
-            <StatTile label="Regulatory AUM" value={compactUsd(stats.totalAum)} sub="sum of reported RAUM" />
+            <StatTile
+              label="Aggregate regulatory AUM"
+              value={compactUsd(stats.totalAum)}
+              sub="gross; overlapping fund complexes — see About"
+            />
             <StatTile label="Median firm AUM" value={compactUsd(stats.median)} />
             <StatTile
               label="Performance-based fees"
@@ -518,6 +523,26 @@ export default function App() {
                     be stale between amendments, and regulatory AUM is defined by SEC rules — it is
                     not the same as advisory assets marketed elsewhere. Always verify a firm
                     directly on its IAPD page (linked from every CRD number here).
+                  </dd>
+                </div>
+                <div>
+                  <dt>Why aggregate AUM looks enormous</dt>
+                  <dd>
+                    Regulatory AUM is not private client wealth. It counts institutional and fund
+                    assets (mutual funds, ETFs, pensions) gross of leverage, and related advisers
+                    within one complex each file separately — three Vanguard-affiliated advisers
+                    alone report roughly $22T combined, and sub-advised assets can appear at both
+                    the adviser and the sub-adviser. For scale:{' '}
+                    <a
+                      href="https://altrata.com/reports/world-ultra-wealth-report-2025"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Altrata’s World Ultra Wealth Report 2025
+                    </a>{' '}
+                    puts the combined net worth of all 510,810 ultra-high-net-worth individuals
+                    worldwide at $59.8T — a third of the aggregate RAUM shown here. Exempt
+                    reporting advisers (which file no RAUM) are excluded from this dataset.
                   </dd>
                 </div>
                 <div>
