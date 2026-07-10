@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<IAPDFirmSECReport GenOn="2026-07-09">
+  <Firms>
+    <Firm>
+      <Info SECRgnCD="NYRO" FirmCrdNb="900001" SECNb="801-99991" BusNm="CREST FEED ADVISORS" LegalNm="CREST FEED ADVISORS LLC" UmbrRgstn="N"/>
+      <MainAddr Strt1="1 MAIN ST" City="NEW YORK" State="NY" Cntry="United States" PostlCd="10001"/>
+      <Rgstn FirmType="Registered" St="APPROVED" Dt="2020-01-15"/>
+      <Filing Dt="2026-03-04" FormVrsn="10/2021"/>
+      <FormInfo>
+        <Part1A>
+          <Item5A TtlEmp="40"/>
+          <Item5B Q5B1="25" Q5B2="10"/>
+          <Item5D Q5DA1="60" Q5DA3="500000000" Q5DB1="30" Q5DB3="1200000000" Q5DG1="10" Q5DG3="300000000"/>
+          <Item5E Q5E1="Y" Q5E2="N" Q5E3="N" Q5E4="Y" Q5E5="N" Q5E6="Y" Q5E7="N"/>
+          <Item5F Q5F1="Y" Q5F2A="1800000000" Q5F2B="200000000" Q5F2C="2000000000" Q5F2D="900" Q5F2E="100" Q5F2F="1000"/>
+          <Item7A Q7A1="Y" Q7A2="N" Q7A10="Y" Q7A16="Y"/>
+          <Item11 Q11="Y"/>
+          <Item11A Q11A1="Y" Q11A2="N"/>
+          <Item11B Q11B1="N" Q11B2="N"/>
+          <Item11C Q11C1="N" Q11C2="Y" Q11C3="N" Q11C4="N" Q11C5="N"/>
+        </Part1A>
+      </FormInfo>
+    </Firm>
+    <Firm>
+      <Info FirmCrdNb="900002" SECNb="801-99992" LegalNm="PLAINS FEED PLANNING INC"/>
+      <Filing Dt="2026-02-11" FormVrsn="10/2021"/>
+      <FormInfo>
+        <Part1A>
+          <Item5A TtlEmp="3"/>
+          <Item5B Q5B1="2"/>
+          <Item5D Q5DA1="150" Q5DA3="90000000"/>
+          <Item5E Q5E1="Y" Q5E2="Y" Q5E3="N" Q5E4="N" Q5E5="N" Q5E6="N" Q5E7="N"/>
+          <Item5F Q5F1="Y" Q5F2A="90000000" Q5F2B="0" Q5F2C="90000000" Q5F2D="180" Q5F2E="0" Q5F2F="180"/>
+          <Item7A/>
+          <Item11 Q11="N"/>
+          <Item11A Q11A1="N" Q11A2="N"/>
+        </Part1A>
+      </FormInfo>
+    </Firm>
+    <Firm>
+      <Info FirmCrdNb="" LegalNm="NO CRD SHOULD BE SKIPPED"/>
+    </Firm>
+  </Firms>
+</IAPDFirmSECReport>

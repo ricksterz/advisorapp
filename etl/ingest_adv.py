@@ -146,6 +146,108 @@ def pct_range_midpoint(value) -> float | None:
     return to_number(value)
 
 
+# ---------------------------------------------------------------------------
+# IAPD firm feed (XML): reports.adviserinfo.sec.gov IA_FIRM_SEC_Feed_*.xml.gz.
+# Attribute-based: <Firm><Info FirmCrdNb= LegalNm= .../><FormInfo><Part1A>
+# <Item5F Q5F2A= .../>...</Part1A></FormInfo></Firm>
+# ---------------------------------------------------------------------------
+
+# Item 5.D rows by letter (10/2021 form): client counts live in Q5D<letter>1.
+CLIENT_TYPE_LETTERS = {
+    "pct_clients_individuals": "A",       # individuals (non-high-net-worth)
+    "pct_clients_hnw_individuals": "B",
+    "pct_clients_pooled_vehicles": "F",
+    "pct_clients_pension_plans": "G",
+    "pct_clients_corporations": "M",
+    "pct_clients_other": "N",
+}
+ALL_CLIENT_LETTERS = [chr(c) for c in range(ord("A"), ord("N") + 1)]
+
+FEED_FEE_ATTRS = {f"fee_{name}": f"Q5E{i}" for i, name in enumerate(
+    ["pct_of_aum", "hourly", "subscription", "fixed", "commissions", "performance_based", "other"], start=1
+)}
+
+# Item 7.A checkbox positions (10/2021 form)
+FEED_AFFIL_ATTRS = {
+    "affil_broker_dealer": "Q7A1",
+    "affil_other_adviser": "Q7A2",
+    "affil_pooled_vehicle_sponsor": "Q7A16",  # sponsor/GP of pooled investment vehicles
+}
+
+
+def read_firm_feed(path: Path) -> pd.DataFrame:
+    """Parse an IAPD IA_FIRM_SEC_Feed XML(.gz) into the firms schema."""
+    import gzip
+
+    from lxml import etree
+
+    opener = gzip.open(str(path), "rb") if str(path).endswith(".gz") else open(path, "rb")
+    rows: list[dict] = []
+    with opener as fh:
+        for _, firm in etree.iterparse(fh, events=("end",), tag="Firm", recover=True):
+            def attrs(tag: str) -> dict:
+                el = firm.find(f".//{tag}")
+                return dict(el.attrib) if el is not None else {}
+
+            info = attrs("Info")
+            crd = to_number(info.get("FirmCrdNb"))
+            legal_name = (info.get("LegalNm") or "").strip()
+            if crd is None or not legal_name:
+                firm.clear()
+                continue
+
+            i5a, i5b, i5d = attrs("Item5A"), attrs("Item5B"), attrs("Item5D")
+            i5e, i5f, i7a = attrs("Item5E"), attrs("Item5F"), attrs("Item7A")
+
+            row: dict = {
+                "crd": int(crd),
+                "sec_number": info.get("SECNb"),
+                "legal_name": legal_name,
+                "business_name": info.get("BusNm"),
+                "filing_date": attrs("Filing").get("Dt"),
+                "aum_discretionary": to_number(i5f.get("Q5F2A")),
+                "aum_non_discretionary": to_number(i5f.get("Q5F2B")),
+                "aum_total": to_number(i5f.get("Q5F2C")),
+                "accounts_discretionary": to_number(i5f.get("Q5F2D")),
+                "accounts_non_discretionary": to_number(i5f.get("Q5F2E")),
+                "accounts_total": to_number(i5f.get("Q5F2F")),
+                "employees_total": to_number(i5a.get("TtlEmp")),
+                "employees_advisory": to_number(i5b.get("Q5B1")),
+            }
+
+            # Client mix: the feed reports client counts per type, not the
+            # form's percentage ranges — derive percentages from the counts.
+            counts = {L: to_number(i5d.get(f"Q5D{L}1")) or 0 for L in ALL_CLIENT_LETTERS}
+            total_clients = sum(counts.values())
+            for field, letter in CLIENT_TYPE_LETTERS.items():
+                row[field] = round(counts[letter] / total_clients * 100, 1) if total_clients else None
+
+            for field, attr in FEED_FEE_ATTRS.items():
+                row[field] = to_bool(i5e.get(attr))
+            for field, attr in FEED_AFFIL_ATTRS.items():
+                row[field] = to_bool(i7a.get(attr))
+            row["affil_count"] = sum(
+                1 for k, v in i7a.items() if k.startswith("Q7A") and to_bool(v)
+            )
+
+            # Item 11 sub-items (Item11A..Item11H); Q11 itself is the summary.
+            row["disciplinary_flag_count"] = sum(
+                1
+                for el in firm.iter()
+                if isinstance(el.tag, str) and el.tag.startswith("Item11") and el.tag != "Item11"
+                for v in el.attrib.values()
+                if to_bool(v)
+            )
+
+            rows.append(row)
+            firm.clear()
+
+    firms = pd.DataFrame(rows)
+    if firms.empty:
+        sys.exit(f"error: no firms parsed from feed {path}")
+    return firms.drop_duplicates(subset="crd", keep="last")
+
+
 def read_source(path: Path) -> pd.DataFrame:
     """Read the compilation CSV, transparently unwrapping a zip."""
     if path.suffix.lower() == ".zip":
@@ -254,10 +356,14 @@ def main() -> None:
     args = parser.parse_args()
 
     path = args.input if args.input else download(args.url)
-    raw = read_source(path)
-    print(f"read {len(raw)} rows, {len(raw.columns)} columns from {path.name}")
-    firms = extract_firms(raw)
-    print(f"normalized {len(firms)} firms")
+    if path.name.lower().endswith((".xml", ".xml.gz")):
+        firms = read_firm_feed(path)
+        print(f"parsed {len(firms)} firms from feed {path.name}")
+    else:
+        raw = read_source(path)
+        print(f"read {len(raw)} rows, {len(raw.columns)} columns from {path.name}")
+        firms = extract_firms(raw)
+        print(f"normalized {len(firms)} firms")
     load(firms, args.db)
 
 
