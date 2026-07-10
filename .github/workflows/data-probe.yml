@@ -1,0 +1,22 @@
+# Diagnostics: resolve + download the latest ADV bulk file and print a content
+# sample. Manual dispatch only; used to inspect the real feed structure from a
+# runner with open network access (SEC hosts are unreachable from some dev
+# environments).
+name: ADV data probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install requests
+      - run: python -m etl.fetch_latest --dest data/raw/probe.bin --probe-only
