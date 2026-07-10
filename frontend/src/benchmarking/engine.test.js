@@ -265,7 +265,10 @@ describe('URL state', () => {
 })
 
 describe('performance', () => {
-  it('recomputes a 40K-firm universe with combined cohorts well under 200ms', () => {
+  // ~30ms on a dev machine; the bound is loose because shared CI runners are
+  // slow and variable — this guards against algorithmic blowups (an O(n²)
+  // regression lands in the seconds), not exact wall-clock.
+  it('recomputes a 40K-firm universe with combined cohorts without blowing up', () => {
     const states = ['NY', 'CA', 'TX', 'IL', 'MA', 'FL', 'WA', 'PA', 'PR']
     const firms = Array.from({ length: 40000 }, (_, i) =>
       firm({
@@ -284,6 +287,6 @@ describe('performance', () => {
     const elapsed = performance.now() - start
     expect(top.length).toBe(10)
     expect(atRisk.length).toBeGreaterThan(0)
-    expect(elapsed).toBeLessThan(200)
+    expect(elapsed).toBeLessThan(500)
   })
 })
