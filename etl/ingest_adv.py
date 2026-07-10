@@ -41,6 +41,8 @@ FIRM_COLUMNS: dict[str, list[str]] = {
     "sec_number": ["1D", "SECNB"],
     "legal_name": ["1A", "FIRMLEGALNAME", "LEGALNAME"],
     "business_name": ["1B1", "1B", "BUSINESSNAME"],
+    # Item 1.F: principal office address (state only; needed for region cohorts)
+    "state": ["1F1-STATE", "1F-STATE", "MAINOFFICESTATE"],
     # Item 5.F(2): regulatory AUM and account counts
     "aum_discretionary": ["5F(2)(A)", "5F2A"],
     "aum_non_discretionary": ["5F(2)(B)", "5F2B"],
@@ -215,6 +217,8 @@ def read_firm_feed(path: Path) -> pd.DataFrame:
                 "legal_name": legal_name,
                 "business_name": info.get("BusNm"),
                 "filing_date": attrs("Filing").get("Dt"),
+                # Item 1.F principal office state; None for non-US / missing
+                "state": (attrs("MainAddr").get("State") or "").strip().upper() or None,
                 "aum_discretionary": to_number(i5f.get("Q5F2A")),
                 "aum_non_discretionary": to_number(i5f.get("Q5F2B")),
                 "aum_total": to_number(i5f.get("Q5F2C")),
