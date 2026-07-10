@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import duckdb
+import pandas as pd
 
 from etl.ingest_adv import extract_firms, load, read_firm_feed, read_source
 
@@ -14,6 +15,7 @@ def test_extract_and_load(tmp_path):
 
     acme = firms.set_index("crd").loc[100001]
     assert acme["legal_name"] == "ACME WEALTH ADVISORS LLC"
+    assert acme["state"] == "NY"
     assert acme["aum_discretionary"] == 1_500_000_000
     assert acme["aum_total"] == 1_750_000_000
     assert acme["pct_clients_individuals"] == 38.0  # midpoint of 26-50%
@@ -43,6 +45,7 @@ def test_read_firm_feed(tmp_path):
 
     crest = firms.set_index("crd").loc[900001]
     assert crest["legal_name"] == "CREST FEED ADVISORS LLC"
+    assert crest["state"] == "NY"  # Item 1.F via MainAddr@State
     assert crest["business_name"] == "CREST FEED ADVISORS"
     assert crest["sec_number"] == "801-99991"
     assert crest["aum_discretionary"] == 1_800_000_000
@@ -61,6 +64,7 @@ def test_read_firm_feed(tmp_path):
     assert crest["disciplinary_flag_count"] == 2  # Q11A1 + Q11C2 (summary Q11 excluded)
 
     plains = firms.set_index("crd").loc[900002]
+    assert pd.isna(plains["state"])  # no MainAddr in the feed for this firm
     assert plains["pct_clients_individuals"] == 100.0
     assert plains["affil_count"] == 0
     assert plains["disciplinary_flag_count"] == 0

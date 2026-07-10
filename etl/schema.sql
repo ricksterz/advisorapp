@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS firms (
     legal_name              VARCHAR NOT NULL,
     business_name           VARCHAR,              -- "doing business as" name
     filing_date             DATE,                 -- date of the ADV filing this row came from
+    state                   VARCHAR,              -- Item 1.F: principal office state (2-letter)
 
     -- Item 5.F: regulatory assets under management (USD)
     aum_total               DOUBLE,
