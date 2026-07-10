@@ -183,6 +183,7 @@ def read_firm_feed(path: Path) -> pd.DataFrame:
 
     opener = gzip.open(str(path), "rb") if str(path).endswith(".gz") else open(path, "rb")
     rows: list[dict] = []
+    skipped_unregistered = 0
     with opener as fh:
         for _, firm in etree.iterparse(fh, events=("end",), tag="Firm", recover=True):
             def attrs(tag: str) -> dict:
@@ -193,6 +194,15 @@ def read_firm_feed(path: Path) -> pd.DataFrame:
             crd = to_number(info.get("FirmCrdNb"))
             legal_name = (info.get("LegalNm") or "").strip()
             if crd is None or not legal_name:
+                firm.clear()
+                continue
+
+            # The feed also carries exempt reporting advisers (FirmType="ERA"),
+            # which don't complete Item 5.F and would pollute firm counts with
+            # zero-AUM rows — keep SEC-registered advisers only.
+            firm_type = attrs("Rgstn").get("FirmType")
+            if firm_type is not None and firm_type != "Registered":
+                skipped_unregistered += 1
                 firm.clear()
                 continue
 
@@ -242,6 +252,8 @@ def read_firm_feed(path: Path) -> pd.DataFrame:
             rows.append(row)
             firm.clear()
 
+    if skipped_unregistered:
+        print(f"skipped {skipped_unregistered} non-registered (exempt reporting) advisers")
     firms = pd.DataFrame(rows)
     if firms.empty:
         sys.exit(f"error: no firms parsed from feed {path}")

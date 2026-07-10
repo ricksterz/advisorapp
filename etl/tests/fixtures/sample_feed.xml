@@ -40,5 +40,10 @@
     <Firm>
       <Info FirmCrdNb="" LegalNm="NO CRD SHOULD BE SKIPPED"/>
     </Firm>
+    <Firm>
+      <Info FirmCrdNb="900003" LegalNm="EXEMPT FUND ADVISER LP"/>
+      <Rgstn FirmType="ERA" St="ACTIVE" Dt="2023-05-01"/>
+      <Filing Dt="2026-01-20" FormVrsn="10/2021"/>
+    </Firm>
   </Firms>
 </IAPDFirmSECReport>

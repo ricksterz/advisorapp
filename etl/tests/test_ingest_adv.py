@@ -37,7 +37,9 @@ def test_extract_and_load(tmp_path):
 
 def test_read_firm_feed(tmp_path):
     firms = read_firm_feed(FEED_FIXTURE)
-    assert len(firms) == 2  # firm without a CRD is skipped
+    # the firm without a CRD and the exempt reporting adviser are skipped
+    assert len(firms) == 2
+    assert 900003 not in firms["crd"].values
 
     crest = firms.set_index("crd").loc[900001]
     assert crest["legal_name"] == "CREST FEED ADVISORS LLC"

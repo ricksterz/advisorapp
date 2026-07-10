@@ -172,6 +172,210 @@ select {
   margin-top: 4px;
 }
 
+/* ---------- section heads ---------- */
+.section-head {
+  margin: 34px 0 14px;
+}
+
+.section-head h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 620;
+  letter-spacing: -0.015em;
+}
+
+.section-head p {
+  margin: 5px 0 0;
+  color: var(--ink-2);
+  font-size: 13.5px;
+  max-width: 78ch;
+}
+
+/* ---------- rankings ---------- */
+.rank-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 14px;
+}
+
+.rank-card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.rank-head {
+  padding: 14px 18px 10px;
+  border-bottom: 1px solid var(--grid);
+}
+
+.rank-head h3 {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.rank-head p {
+  margin: 3px 0 0;
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.rank-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+
+.rank-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 18px;
+}
+
+.rank-list li + li {
+  border-top: 1px solid var(--grid);
+}
+
+.rank-n {
+  width: 22px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  text-align: right;
+  flex: none;
+}
+
+.rank-n.risk {
+  color: var(--critical);
+  text-align: center;
+}
+
+.rank-firm {
+  min-width: 0;
+  flex: 1;
+}
+
+.rank-firm .firm-sub {
+  display: block;
+}
+
+.firm-link {
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 550;
+  font-size: 13.5px;
+  letter-spacing: -0.005em;
+}
+
+.firm-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.score-badge {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-track);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+.score-badge.risk {
+  color: var(--critical);
+  background: var(--critical-wash);
+}
+
+.signal-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.signal-chip {
+  border: 1px solid var(--hairline);
+  border-radius: 5px;
+  padding: 0 6px;
+  font-size: 11px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.methodology {
+  margin-top: 14px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+}
+
+.methodology summary {
+  cursor: pointer;
+  padding: 13px 18px;
+  font-weight: 550;
+  font-size: 13.5px;
+  color: var(--ink-2);
+  list-style: none;
+}
+
+.methodology summary::-webkit-details-marker {
+  display: none;
+}
+
+.methodology summary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 8px;
+  color: var(--ink-3);
+  transition: transform 0.15s;
+}
+
+.methodology[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.methodology summary:hover {
+  color: var(--ink);
+}
+
+.method-body {
+  padding: 2px 18px 16px;
+  border-top: 1px solid var(--grid);
+  color: var(--ink-2);
+  font-size: 13.5px;
+}
+
+.method-body p {
+  margin: 12px 0 0;
+  max-width: 90ch;
+}
+
+.method-body strong {
+  color: var(--ink);
+}
+
+.method-body a,
+.crd-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.method-body a:hover,
+.crd-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.method-sources {
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+
 /* ---------- controls ---------- */
 .controls {
   display: flex;
@@ -417,13 +621,42 @@ tbody tr:hover {
   color: var(--critical);
 }
 
-.foot-note {
-  color: var(--ink-3);
-  font-size: 12.5px;
-  margin-top: 18px;
+/* ---------- about / disclaimer ---------- */
+.about {
+  margin-top: 40px;
+  padding-top: 26px;
+  border-top: 1px solid var(--hairline);
 }
 
-.foot-note a {
+.about h2 {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px 28px;
+  margin: 0;
+}
+
+.about-grid dt {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+  margin-bottom: 4px;
+}
+
+.about-grid dd {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.about-grid a {
   color: var(--ink-2);
 }
 
