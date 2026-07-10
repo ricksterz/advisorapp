@@ -506,7 +506,7 @@ export default function App() {
                     <a href="https://adviserinfo.sec.gov/" target="_blank" rel="noreferrer">
                       Investment Adviser Public Disclosure (IAPD)
                     </a>{' '}
-                    Form ADV bulk feed{data ? `, snapshot dated ${data.generated_at.slice(0, 10)}` : ''}, and
+                    Form ADV bulk feed, snapshot dated {data.generated_at.slice(0, 10)}, and
                     refreshed automatically. Regulatory AUM, headcount, fee structure, and client
                     figures are as reported by each firm in Form ADV Part 1A (Items 5 and 7).
                   </dd>
