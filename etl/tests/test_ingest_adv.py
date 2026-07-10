@@ -16,6 +16,11 @@ def test_extract_and_load(tmp_path):
     acme = firms.set_index("crd").loc[100001]
     assert acme["legal_name"] == "ACME WEALTH ADVISORS LLC"
     assert acme["state"] == "NY"
+    assert acme["website_url"] == "http://WWW.ACMEWEALTH.COM"  # scheme added
+
+    # a social-only WebAddr cell nulls out rather than exporting a profile link
+    blue_site = firms.set_index("crd").loc[100002, "website_url"]
+    assert blue_site is None or pd.isna(blue_site)
     assert acme["aum_discretionary"] == 1_500_000_000
     assert acme["aum_total"] == 1_750_000_000
     assert acme["pct_clients_individuals"] == 38.0  # midpoint of 26-50%
@@ -46,6 +51,8 @@ def test_read_firm_feed(tmp_path):
     crest = firms.set_index("crd").loc[900001]
     assert crest["legal_name"] == "CREST FEED ADVISORS LLC"
     assert crest["state"] == "NY"  # Item 1.F via MainAddr@State
+    # Item 1.I: first non-social address wins even when socials are listed first
+    assert crest["website_url"] == "HTTP://WWW.CRESTFEED.COM"
     assert crest["business_name"] == "CREST FEED ADVISORS"
     assert crest["sec_number"] == "801-99991"
     assert crest["aum_discretionary"] == 1_800_000_000
@@ -65,6 +72,7 @@ def test_read_firm_feed(tmp_path):
 
     plains = firms.set_index("crd").loc[900002]
     assert pd.isna(plains["state"])  # no MainAddr in the feed for this firm
+    assert pd.isna(plains["website_url"])  # no Item 1.I websites listed
     assert plains["pct_clients_individuals"] == 100.0
     assert plains["affil_count"] == 0
     assert plains["disciplinary_flag_count"] == 0

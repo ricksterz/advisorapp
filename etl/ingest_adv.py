@@ -43,6 +43,8 @@ FIRM_COLUMNS: dict[str, list[str]] = {
     "business_name": ["1B1", "1B", "BUSINESSNAME"],
     # Item 1.F: principal office address (state only; needed for region cohorts)
     "state": ["1F1-STATE", "1F-STATE", "MAINOFFICESTATE"],
+    # Item 1.I: firm website (social-media addresses are filtered out)
+    "website_url": ["1I-WEBADDR", "WEBADDR", "WEBSITEADDRESS", "WEBSITE"],
     # Item 5.F(2): regulatory AUM and account counts
     "aum_discretionary": ["5F(2)(A)", "5F2A"],
     "aum_non_discretionary": ["5F(2)(B)", "5F2B"],
@@ -137,6 +139,48 @@ def to_bool(value) -> bool | None:
     return None
 
 
+# Item 1.I lists a firm's website *and* its social-media addresses in one
+# repeating field; only the website is worth a schema column.
+SOCIAL_HOST_TOKENS = (
+    "linkedin.",
+    "facebook.",
+    "instagram.",
+    "twitter.",
+    "youtube.",
+    "youtu.be",
+    "tiktok.",
+    "vimeo.",
+    "spotify.",
+    "pinterest.",
+    "threads.",
+)
+
+
+def pick_website(addresses) -> str | None:
+    """First address that isn't a social-media profile, normalized to have a
+    scheme; None when a firm only lists social profiles. Some filers cram
+    several URLs into one entry ("site.com; linkedin.com/…"), so entries are
+    split on whitespace and ;/& separators first."""
+    candidates = (
+        part
+        for addr in addresses
+        for part in re.split(r"[;\s&]+", (addr or "").strip())
+    )
+    for addr in candidates:
+        if not addr:
+            continue
+        host = re.sub(r"^https?://", "", addr, flags=re.I).split("/")[0].lower()
+        host = host.removeprefix("www.")
+        if not host or "." not in host:
+            continue
+        if host == "x.com" or host.endswith(".x.com"):
+            continue
+        if any(token in host for token in SOCIAL_HOST_TOKENS):
+            continue
+        return addr if re.match(r"https?://", addr, flags=re.I) else f"http://{addr}"
+    return None
+
+
 def pct_range_midpoint(value) -> float | None:
     """Map an Item 5.D percentage-range answer to a midpoint, or pass
     through an already-numeric percentage."""
@@ -219,6 +263,10 @@ def read_firm_feed(path: Path) -> pd.DataFrame:
                 "filing_date": attrs("Filing").get("Dt"),
                 # Item 1.F principal office state; None for non-US / missing
                 "state": (attrs("MainAddr").get("State") or "").strip().upper() or None,
+                # Item 1.I: websites + social profiles in one repeating element
+                "website_url": pick_website(
+                    el.text for el in firm.findall(".//Item1/WebAddrs/WebAddr")
+                ),
                 "aum_discretionary": to_number(i5f.get("Q5F2A")),
                 "aum_non_discretionary": to_number(i5f.get("Q5F2B")),
                 "aum_total": to_number(i5f.get("Q5F2C")),
@@ -335,6 +383,13 @@ def extract_firms(raw: pd.DataFrame) -> pd.DataFrame:
         )
     else:
         firms["disciplinary_flag_count"] = 0
+
+    # CSV vintages carry a single website cell; run it through the same
+    # social filter so a social-only value nulls out instead of exporting.
+    if "website_url" in firms:
+        firms["website_url"] = firms["website_url"].map(
+            lambda v: pick_website([v]) if isinstance(v, str) else None
+        )
 
     affil_fields = [f for f in BOOLEAN_FIELDS if f.startswith("affil_") and f in firms]
     firms["affil_count"] = firms[affil_fields].fillna(False).sum(axis=1).astype(int) if affil_fields else 0
