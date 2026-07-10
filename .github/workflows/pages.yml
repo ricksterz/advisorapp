@@ -32,15 +32,26 @@ jobs:
 
       - name: Build analytics database
         env:
-          # Optional repository variable: URL of an IA_ADV_Base compilation zip
-          # from https://adviserinfo.sec.gov/compilation. When unset, the site
-          # is built from the small sample fixture so it always deploys.
+          # Optional repository variable pinning an exact IA_ADV_Base
+          # compilation zip URL. When unset, the latest bulk file is resolved
+          # automatically from the SEC's Form ADV data index; the sample
+          # fixture is the last resort so the site always deploys.
           ADV_COMPILATION_URL: ${{ vars.ADV_COMPILATION_URL }}
         run: |
           if [ -n "$ADV_COMPILATION_URL" ]; then
             python -m etl.ingest_adv --url "$ADV_COMPILATION_URL" --db data/advisor.duckdb
+          elif python -m etl.fetch_latest --dest data/raw/latest_adv.zip; then
+            python -m etl.ingest_adv --input data/raw/latest_adv.zip --db data/advisor.duckdb
+            # Real bulk data means thousands of firms; a tiny count signals a
+            # broken column mapping or a wrong file, so fail loudly.
+            python -c "
+          import duckdb, sys
+          n = duckdb.connect('data/advisor.duckdb', read_only=True).execute('SELECT count(*) FROM firms').fetchone()[0]
+          print(f'{n} firms loaded from bulk data')
+          sys.exit(0 if n >= 1000 else f'error: only {n} firms parsed from real bulk data')
+          "
           else
-            echo "ADV_COMPILATION_URL not set - building from sample fixture"
+            echo "Could not resolve bulk data - building from sample fixture"
             python -m etl.ingest_adv --input etl/tests/fixtures/sample_adv_base.csv --db data/advisor.duckdb
           fi
 

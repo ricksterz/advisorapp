@@ -17,5 +17,5 @@ ADV_BULK_INDEX_URL = "https://adviserinfo.sec.gov/compilation"
 
 # Identify ourselves to SEC servers (required by SEC fair-access policy).
 HTTP_HEADERS = {
-    "User-Agent": "advisorapp research tool (contact: set-me@example.com)"
+    "User-Agent": "advisorapp research tool (github.com/ricksterz/advisorapp)"
 }
