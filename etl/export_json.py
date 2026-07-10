@@ -29,6 +29,7 @@ EXPORT_COLUMNS = [
     "legal_name",
     "business_name",
     "state",
+    "website_url",
     "aum_total",
     "aum_discretionary",
     "aum_non_discretionary",

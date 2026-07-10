@@ -7,6 +7,7 @@ import { DIMENSION_ORDER, MIN_COHORT_SIZE } from './benchmarking/cohort.js'
 import { PRESETS, defaultConfig } from './benchmarking/presets.js'
 import { configFromLocation, urlForConfig } from './benchmarking/url.js'
 import MethodologyPanel from './components/MethodologyPanel.jsx'
+import FirmDetail, { websiteHost } from './components/FirmDetail.jsx'
 
 const compactUsd = (v) => {
   if (v == null || Number.isNaN(v)) return '—'
@@ -47,6 +48,22 @@ const SOURCES = [
   { name: 'Altrata World Ultra Wealth Report', url: 'https://altrata.com/reports/world-ultra-wealth-report-2025' },
   { name: 'Visual Capitalist — wealth management', url: 'https://www.visualcapitalist.com/' },
 ]
+
+// Minimal hash router: '#/firm/:crd' is the only deep route. Hash-based so
+// cold loads work on both static hosts (GitHub Pages has no SPA fallback).
+function useFirmRoute() {
+  const parse = () => {
+    const m = window.location.hash.match(/^#\/firm\/(\d+)/)
+    return m ? Number(m[1]) : null
+  }
+  const [firmCrd, setFirmCrd] = useState(parse)
+  useEffect(() => {
+    const onChange = () => setFirmCrd(parse())
+    window.addEventListener('hashchange', onChange)
+    return () => window.removeEventListener('hashchange', onChange)
+  }, [])
+  return firmCrd
+}
 
 function useTheme() {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
@@ -120,7 +137,7 @@ function SortHeader({ id, children, sort, onSort, className }) {
 
 function FirmLink({ firm }) {
   return (
-    <a className="firm-link" href={iapdUrl(firm.crd)} target="_blank" rel="noreferrer">
+    <a className="firm-link" href={`#/firm/${firm.crd}`}>
       {firm.business_name || firm.legal_name}
     </a>
   )
@@ -140,6 +157,7 @@ function RankCard({ title, sub, children }) {
 
 export default function App() {
   const [theme, setTheme] = useTheme()
+  const firmCrd = useFirmRoute()
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
   const [query, setQuery] = useState('')
@@ -217,6 +235,15 @@ export default function App() {
         </button>
       </header>
 
+      {firmCrd != null ? (
+        <main className="shell">
+          {error && <div className="state error">{error}</div>}
+          {!error && !data && <div className="state">Loading firm data…</div>}
+          {data && (
+            <FirmDetail firm={data.firms.find((f) => f.crd === firmCrd)} crd={firmCrd} />
+          )}
+        </main>
+      ) : (
       <main className="shell">
         <section className="page-head">
           <h1>Investment adviser benchmarking</h1>
@@ -456,11 +483,23 @@ export default function App() {
                   {visible.map((f) => (
                     <tr key={f.crd}>
                       <td>
-                        <div className="firm-name">{f.business_name || f.legal_name}</div>
+                        <div className="firm-name">
+                          <a className="firm-link" href={`#/firm/${f.crd}`}>
+                            {f.business_name || f.legal_name}
+                          </a>
+                        </div>
                         <div className="firm-sub">
                           <a className="crd-link" href={iapdUrl(f.crd)} target="_blank" rel="noreferrer">
                             CRD {f.crd}
                           </a>
+                          {f.website_url && websiteHost(f.website_url) && (
+                            <>
+                              {' · '}
+                              <a className="crd-link" href={f.website_url} target="_blank" rel="noreferrer">
+                                {websiteHost(f.website_url)} ↗
+                              </a>
+                            </>
+                          )}
                         </div>
                       </td>
                       <td className="num">{compactUsd(f.aum_total)}</td>
@@ -582,6 +621,7 @@ export default function App() {
           </>
         )}
       </main>
+      )}
     </>
   )
 }
