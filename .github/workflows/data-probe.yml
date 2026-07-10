@@ -18,5 +18,46 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install requests
+      - run: pip install requests lxml
       - run: python -m etl.fetch_latest --dest data/raw/probe.bin --probe-only
+      - name: Aggregate diagnostics
+        run: |
+          python - <<'EOF'
+          import gzip
+          from collections import Counter, defaultdict
+          from lxml import etree
+
+          count = Counter()
+          aum = defaultdict(float)
+          firms_with_aum = Counter()
+          top = []
+          with gzip.open('data/raw/probe.xml.gz', 'rb') as fh:
+              for _, firm in etree.iterparse(fh, events=('end',), tag='Firm', recover=True):
+                  info = firm.find('.//Info')
+                  rgstn = firm.find('.//Rgstn')
+                  i5f = firm.find('.//Item5F')
+                  ftype = rgstn.get('FirmType') if rgstn is not None else '?'
+                  status = rgstn.get('St') if rgstn is not None else '?'
+                  raum = float(i5f.get('Q5F2C') or 0) if i5f is not None else 0.0
+                  key = (ftype, status)
+                  count[key] += 1
+                  aum[key] += raum
+                  if raum > 0:
+                      firms_with_aum[key] += 1
+                      name = (info.get('BusNm') or info.get('LegalNm') or '?') if info is not None else '?'
+                      top.append((raum, name))
+                  firm.clear()
+
+          print('=== firms by (FirmType, registration status) ===')
+          for key, n in count.most_common():
+              print(f'{key}: {n} firms, {firms_with_aum[key]} with RAUM, total RAUM ${aum[key]/1e12:.2f}T')
+          total = sum(aum.values())
+          print(f'=== grand total RAUM: ${total/1e12:.2f}T across {sum(count.values())} firms ===')
+          top.sort(reverse=True)
+          print('=== top 25 firms by RAUM ===')
+          for raum, name in top[:25]:
+              print(f'${raum/1e12:.2f}T  {name}')
+          top10 = sum(v for v, _ in top[:10]); top100 = sum(v for v, _ in top[:100])
+          print(f'top 10 share: {top10/total*100:.1f}%  top 100 share: {top100/total*100:.1f}%')
+          print(f'firms over $1T: {sum(1 for v,_ in top if v>=1e12)}')
+          EOF
