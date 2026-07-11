@@ -198,7 +198,8 @@ export default function MethodologyPanel({ config, onChange }) {
           <p className="mp-hint">
             Percentiles rank each firm within its peer cohort. Dimensions combine; a cohort with
             fewer than {MIN_COHORT_SIZE} firms falls back to the next-broadest pool (noted on the
-            affected entries).
+            affected entries). With cohorts on, scores compare firms <em>within</em> their cohort —
+            a 99 in one cohort doesn’t outrank a 98 in another.
           </p>
         </fieldset>
       </div>
