@@ -68,5 +68,18 @@ CREATE TABLE IF NOT EXISTS deal_structuring (
     proprietary_funds   BOOLEAN,                  -- firm places clients in its own funds
     revenue_sharing     BOOLEAN,
     affiliated_gp_lp    BOOLEAN,                  -- affiliated GP/LP fund structures
+    evidence            VARCHAR,                  -- JSON: flag -> matched brochure snippet (audit trail)
     extracted_at        TIMESTAMP
+);
+
+-- Part 2A brochure inventory per firm, from the IAPD firm API. version_id +
+-- date_submitted make monthly refreshes incremental: only changed brochures
+-- get re-fetched and re-extracted.
+CREATE TABLE IF NOT EXISTS brochures (
+    version_id          BIGINT PRIMARY KEY,       -- IAPD brochureVersionID
+    firm_crd            BIGINT,                   -- FK -> firms.crd
+    name                VARCHAR,
+    date_submitted      VARCHAR,                  -- as reported (M/D/YYYY)
+    fetched_at          TIMESTAMP,                -- PDF downloaded
+    text_chars          BIGINT                    -- extracted text size (null = not extracted)
 );
