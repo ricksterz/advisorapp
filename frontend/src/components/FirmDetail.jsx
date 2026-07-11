@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { staffOf } from '../benchmarking/factors.js'
+import { BASE, navigate } from '../router.js'
 
 // Public IAPD document endpoints (all CORS-enabled, no key required).
 const firmApiUrl = (crd) => `https://api.adviserinfo.sec.gov/search/firm/${crd}`
@@ -88,6 +89,37 @@ function useFirmDocs(crd) {
 const fmtUsd = (v) =>
   v == null ? '—' : `$${Math.round(v).toLocaleString()}`
 
+const DEFAULT_TITLE = 'Advisor Analytics — SEC Form ADV benchmarking'
+
+// Per-firm title + meta description: crawlers render JS, so this is what a
+// firm's search result shows.
+function usePageMeta(firm) {
+  useEffect(() => {
+    if (!firm) return undefined
+    const name = firm.business_name || firm.legal_name
+    document.title = `${name} — Form ADV profile · Advisor Analytics`
+    const meta = document.querySelector('meta[name="description"]')
+    const prev = meta?.getAttribute('content')
+    meta?.setAttribute(
+      'content',
+      `${name} (CRD ${firm.crd}${firm.state ? `, ${firm.state}` : ''}): regulatory AUM, ` +
+        'client mix, fee structure, and disciplinary history from SEC Form ADV filings.',
+    )
+    return () => {
+      document.title = DEFAULT_TITLE
+      if (prev != null) meta?.setAttribute('content', prev)
+    }
+  }, [firm])
+}
+
+function BackLink() {
+  return (
+    <a className="back-link" href={BASE} onClick={(e) => navigate(e, BASE)}>
+      ← All firms
+    </a>
+  )
+}
+
 function OutboundLink({ href, children, sub }) {
   return (
     <a className="doc-link" href={href} target="_blank" rel="noreferrer">
@@ -99,11 +131,12 @@ function OutboundLink({ href, children, sub }) {
 
 export default function FirmDetail({ firm, crd }) {
   const docs = useFirmDocs(crd)
+  usePageMeta(firm)
 
   if (!firm) {
     return (
       <section className="firm-detail">
-        <a className="back-link" href="#/">← All firms</a>
+        <BackLink />
         <div className="state">No firm with CRD {crd} in this snapshot.</div>
       </section>
     )
@@ -117,7 +150,7 @@ export default function FirmDetail({ firm, crd }) {
 
   return (
     <section className="firm-detail">
-      <a className="back-link" href="#/">← All firms</a>
+      <BackLink />
 
       <div className="detail-head">
         <h1>{firm.business_name || firm.legal_name}</h1>

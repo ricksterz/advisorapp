@@ -66,9 +66,20 @@ jobs:
 
       - name: Build frontend
         working-directory: frontend
+        env:
+          # GitHub Pages serves from a subpath; history-API routes need it baked in.
+          BASE_PATH: /advisorapp/
         run: |
           npm ci
           npm run build
+
+      - name: SPA fallback, sitemap, robots.txt
+        run: |
+          # Pages has no SPA rewrite; a 404.html copy of index.html makes
+          # cold loads of /firm/:crd work.
+          cp frontend/dist/index.html frontend/dist/404.html
+          python -m etl.gen_sitemap --data frontend/public/firms.json \
+            --site https://ricksterz.github.io/advisorapp --out frontend/dist
 
       - uses: actions/configure-pages@v6
         with:
