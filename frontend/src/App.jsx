@@ -8,6 +8,7 @@ import { PRESETS, defaultConfig } from './benchmarking/presets.js'
 import { configFromLocation, urlForConfig } from './benchmarking/url.js'
 import MethodologyPanel from './components/MethodologyPanel.jsx'
 import FirmDetail, { websiteHost } from './components/FirmDetail.jsx'
+import { firmPath, navigate, useFirmRoute } from './router.js'
 
 const compactUsd = (v) => {
   if (v == null || Number.isNaN(v)) return '—'
@@ -48,22 +49,6 @@ const SOURCES = [
   { name: 'Altrata World Ultra Wealth Report', url: 'https://altrata.com/reports/world-ultra-wealth-report-2025' },
   { name: 'Visual Capitalist — wealth management', url: 'https://www.visualcapitalist.com/' },
 ]
-
-// Minimal hash router: '#/firm/:crd' is the only deep route. Hash-based so
-// cold loads work on both static hosts (GitHub Pages has no SPA fallback).
-function useFirmRoute() {
-  const parse = () => {
-    const m = window.location.hash.match(/^#\/firm\/(\d+)/)
-    return m ? Number(m[1]) : null
-  }
-  const [firmCrd, setFirmCrd] = useState(parse)
-  useEffect(() => {
-    const onChange = () => setFirmCrd(parse())
-    window.addEventListener('hashchange', onChange)
-    return () => window.removeEventListener('hashchange', onChange)
-  }, [])
-  return firmCrd
-}
 
 function useTheme() {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
@@ -136,8 +121,9 @@ function SortHeader({ id, children, sort, onSort, className }) {
 }
 
 function FirmLink({ firm }) {
+  const path = firmPath(firm.crd)
   return (
-    <a className="firm-link" href={`#/firm/${firm.crd}`}>
+    <a className="firm-link" href={path} onClick={(e) => navigate(e, path)}>
       {firm.business_name || firm.legal_name}
     </a>
   )
@@ -490,7 +476,7 @@ export default function App() {
                     <tr key={f.crd}>
                       <td>
                         <div className="firm-name">
-                          <a className="firm-link" href={`#/firm/${f.crd}`}>
+                          <a className="firm-link" href={firmPath(f.crd)} onClick={(e) => navigate(e, firmPath(f.crd))}>
                             {f.business_name || f.legal_name}
                           </a>
                         </div>

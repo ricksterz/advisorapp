@@ -2,9 +2,11 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-  // Relative base so the build works at https://<user>.github.io/advisorapp/
-  // (or any subpath) without configuration.
-  base: './',
+  // Absolute base so history-API routes (/firm/:crd) resolve assets and
+  // firms.json correctly from nested paths. Root-relative by default
+  // (Cloudflare Workers, local dev); the GitHub Pages workflow sets
+  // BASE_PATH=/advisorapp/ for the subpath deploy.
+  base: process.env.BASE_PATH || '/',
   plugins: [react()],
   server: {
     proxy: {
