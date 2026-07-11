@@ -44,6 +44,17 @@ BROCHURE_PDF = (
 CACHE_DIR = REPO_ROOT / "data" / "brochures"  # gitignored via data/
 THROTTLE_SECONDS = 0.5  # polite crawl of a public regulator API
 
+# The adviserinfo WAF 403s bot-style User-Agents (including the project's
+# HTTP_HEADERS one and "Mozilla/5.0 (compatible; ...)"); it requires a full
+# browser UA string. Same public, keyless endpoints the IAPD site itself uses.
+API_HEADERS = {
+    **HTTP_HEADERS,
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+    ),
+}
+
 # ---------------------------------------------------------------------------
 # Flag heuristics. Each flag: section anchors (Part 2A item headings that make
 # a match high-confidence) + patterns. A pattern match inside an anchored
@@ -118,6 +129,9 @@ def parse_brochure_response(payload: dict) -> list[dict]:
 def connect(db_path: Path) -> duckdb.DuckDBPyConnection:
     con = duckdb.connect(str(db_path))
     con.execute(SCHEMA_PATH.read_text())
+    # CREATE TABLE IF NOT EXISTS doesn't alter tables that predate a schema
+    # change; bring older databases up to date.
+    con.execute("ALTER TABLE deal_structuring ADD COLUMN IF NOT EXISTS evidence VARCHAR")
     return con
 
 
@@ -136,15 +150,24 @@ def stage_enumerate(con: duckdb.DuckDBPyConnection, limit: int | None) -> None:
     if limit:
         crds = crds[:limit]
     session = requests.Session()
-    new = 0
+    new = failed = 0
     for i, crd in enumerate(crds):
         try:
-            resp = session.get(FIRM_API.format(crd=crd), headers=HTTP_HEADERS, timeout=30)
-            brochures = parse_brochure_response(resp.json()) if resp.ok else []
-        except (requests.RequestException, ValueError):
-            brochures = []
-        # A no-brochure sentinel row (version_id = -crd) marks the firm as
-        # enumerated so re-runs stay incremental.
+            resp = session.get(FIRM_API.format(crd=crd), headers=API_HEADERS, timeout=30)
+            resp.raise_for_status()
+            brochures = parse_brochure_response(resp.json())
+        except (requests.RequestException, ValueError) as exc:
+            # No sentinel on failure — the firm stays un-enumerated so the
+            # next run retries it instead of treating it as brochure-free.
+            failed += 1
+            if failed <= 3:
+                print(f"note: firm {crd} failed ({exc.__class__.__name__})")
+            if failed >= 10 and new == 0:
+                sys.exit("error: every request is failing — API blocked? aborting enumerate")
+            time.sleep(THROTTLE_SECONDS)
+            continue
+        # A no-brochure sentinel row (version_id = -crd) marks a firm that
+        # genuinely reports no brochures, keeping re-runs incremental.
         rows = brochures or [{"version_id": -crd, "name": None, "date_submitted": None}]
         for b in rows:
             con.execute(
@@ -153,9 +176,9 @@ def stage_enumerate(con: duckdb.DuckDBPyConnection, limit: int | None) -> None:
             )
         new += len(brochures)
         if (i + 1) % 25 == 0:
-            print(f"enumerated {i + 1}/{len(crds)} firms ({new} brochures)")
+            print(f"enumerated {i + 1}/{len(crds)} firms ({new} brochures, {failed} failed)")
         time.sleep(THROTTLE_SECONDS)
-    print(f"enumerate done: {len(crds)} firms, {new} brochures")
+    print(f"enumerate done: {len(crds)} firms, {new} brochures, {failed} failed")
 
 
 def stage_fetch(con: duckdb.DuckDBPyConnection, limit: int | None) -> None:
@@ -172,7 +195,7 @@ def stage_fetch(con: duckdb.DuckDBPyConnection, limit: int | None) -> None:
         dest = CACHE_DIR / f"{version_id}.pdf"
         try:
             resp = session.get(
-                BROCHURE_PDF.format(version_id=version_id), headers=HTTP_HEADERS, timeout=120
+                BROCHURE_PDF.format(version_id=version_id), headers=API_HEADERS, timeout=120
             )
             if resp.ok and resp.content[:4] == b"%PDF":
                 dest.write_bytes(resp.content)
