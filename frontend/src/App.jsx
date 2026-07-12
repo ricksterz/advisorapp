@@ -236,7 +236,8 @@ export default function App() {
       ) : (
       <main className="shell">
         <section className="page-head">
-          <h1>Investment adviser benchmarking</h1>
+          <h1>Open Filings</h1>
+          <p className="page-tagline">Investment adviser benchmarking, from the public record.</p>
           <p>
             Every SEC-registered advisory firm — assets under management, compensation structure,
             and disciplinary history — built from public Form ADV filings.
