@@ -210,8 +210,8 @@ export default function App() {
     <>
       <header className="topbar">
         <span className="brand">
-          <span className="brand-mark">A</span>
-          Advisor Analytics
+          <span className="brand-mark">OF</span>
+          Open Filings
         </span>
         <span className="spacer" />
         {data && <span className="snapshot">SEC Form ADV · snapshot {data.generated_at.slice(0, 10)}</span>}
