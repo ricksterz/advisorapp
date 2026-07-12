@@ -91,6 +91,33 @@ FLAG_PATTERNS: dict[str, re.Pattern] = {
 SNIPPET_CHARS = 160
 
 
+def extract_pdf_text(pdf_path: Path) -> str | None:
+    """Text of a brochure PDF, or None when extraction fails."""
+    from pypdf import PdfReader
+
+    try:
+        reader = PdfReader(str(pdf_path))
+        return "\n".join((page.extract_text() or "") for page in reader.pages)
+    except Exception:  # damaged/encrypted PDFs happen in the wild
+        return None
+
+
+def textify(pdf_path: Path) -> Path | None:
+    """Convert a cached PDF to its .txt sidecar and delete the PDF.
+
+    Extracted text is what the flags stage reads and is ~50-100x smaller than
+    the PDF, which keeps the full-universe corpus in low single-digit GB.
+    On extraction failure the PDF is kept so a later pass can retry.
+    """
+    text = extract_pdf_text(pdf_path)
+    if text is None:
+        return None
+    txt_path = pdf_path.with_suffix(".txt")
+    txt_path.write_text(text, encoding="utf-8", errors="replace")
+    pdf_path.unlink()
+    return txt_path
+
+
 def find_flags(text: str) -> dict[str, str]:
     """Return {flag: snippet} for each pattern that matches the brochure text."""
     flat = re.sub(r"\s+", " ", text)
@@ -199,6 +226,7 @@ def stage_fetch(con: duckdb.DuckDBPyConnection, limit: int | None) -> None:
             )
             if resp.ok and resp.content[:4] == b"%PDF":
                 dest.write_bytes(resp.content)
+                textify(dest)  # keep text, drop the PDF (disk budget)
                 con.execute(
                     "UPDATE brochures SET fetched_at = ? WHERE version_id = ?",
                     [datetime.now(timezone.utc), version_id],
@@ -213,9 +241,7 @@ def stage_fetch(con: duckdb.DuckDBPyConnection, limit: int | None) -> None:
 
 
 def stage_flags(con: duckdb.DuckDBPyConnection, limit: int | None) -> None:
-    """Extract text from fetched PDFs and write deal_structuring flags."""
-    from pypdf import PdfReader
-
+    """Flag brochures from their cached text (extracting stragglers from PDF)."""
     rows = con.execute(
         """
         SELECT b.version_id, b.firm_crd, b.name FROM brochures b
@@ -227,15 +253,17 @@ def stage_flags(con: duckdb.DuckDBPyConnection, limit: int | None) -> None:
         rows = rows[:limit]
     done = flagged = 0
     for version_id, crd, name in rows:
+        txt = CACHE_DIR / f"{version_id}.txt"
         pdf = CACHE_DIR / f"{version_id}.pdf"
-        if not pdf.exists():
+        if txt.exists():
+            text = txt.read_text(encoding="utf-8", errors="replace")
+        elif pdf.exists():
+            textified = textify(pdf)
+            if textified is None:
+                print(f"note: extraction failed for {version_id}")
+            text = textified.read_text(encoding="utf-8", errors="replace") if textified else ""
+        else:
             continue
-        try:
-            reader = PdfReader(str(pdf))
-            text = "\n".join((page.extract_text() or "") for page in reader.pages)
-        except Exception as exc:  # damaged/encrypted PDFs happen in the wild
-            print(f"note: extraction failed for {version_id} ({exc.__class__.__name__})")
-            text = ""
         con.execute(
             "UPDATE brochures SET text_chars = ? WHERE version_id = ?", [len(text), version_id]
         )
