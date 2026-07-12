@@ -89,7 +89,7 @@ function useFirmDocs(crd) {
 const fmtUsd = (v) =>
   v == null ? '—' : `$${Math.round(v).toLocaleString()}`
 
-const DEFAULT_TITLE = 'Advisor Analytics — SEC Form ADV benchmarking'
+const DEFAULT_TITLE = 'Open Filings — SEC Form ADV benchmarking'
 
 // Per-firm title + meta description: crawlers render JS, so this is what a
 // firm's search result shows.
@@ -97,7 +97,7 @@ function usePageMeta(firm) {
   useEffect(() => {
     if (!firm) return undefined
     const name = firm.business_name || firm.legal_name
-    document.title = `${name} — Form ADV profile · Advisor Analytics`
+    document.title = `${name} — Form ADV profile · Open Filings`
     const meta = document.querySelector('meta[name="description"]')
     const prev = meta?.getAttribute('content')
     meta?.setAttribute(
