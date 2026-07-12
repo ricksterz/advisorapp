@@ -118,15 +118,36 @@ def textify(pdf_path: Path) -> Path | None:
     return txt_path
 
 
+# Brochures constantly *disclaim* these arrangements ("does not act as the
+# general partner…", "Item 14 …: The Adviser does not compensate for client
+# referrals"), and Item headings repeat the key phrases verbatim. A match is
+# only accepted when no negation token appears nearby on either side; later
+# affirmative matches in the same brochure still count.
+NEGATION_WINDOW = 70
+NEGATION = re.compile(
+    r"\b(?:not|no|none|never|neither|nor|without|prohibits?|prohibited)\b", re.IGNORECASE
+)
+
+
+def _negated(flat: str, start: int, end: int) -> bool:
+    # Windows stop at sentence boundaries so a "not" in an adjacent sentence
+    # doesn't suppress a genuine affirmative match.
+    before = re.split(r"[.;]", flat[max(0, start - NEGATION_WINDOW) : start])[-1]
+    after = re.split(r"[.;]", flat[end : end + NEGATION_WINDOW])[0]
+    return bool(NEGATION.search(before) or NEGATION.search(after))
+
+
 def find_flags(text: str) -> dict[str, str]:
-    """Return {flag: snippet} for each pattern that matches the brochure text."""
+    """Return {flag: snippet} for each pattern affirmatively matched in the text."""
     flat = re.sub(r"\s+", " ", text)
     found: dict[str, str] = {}
     for flag, pattern in FLAG_PATTERNS.items():
-        m = pattern.search(flat)
-        if m:
+        for m in pattern.finditer(flat):
+            if _negated(flat, m.start(), m.end()):
+                continue
             start = max(0, m.start() - SNIPPET_CHARS // 2)
             found[flag] = flat[start : m.end() + SNIPPET_CHARS // 2].strip()
+            break
     return found
 
 

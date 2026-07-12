@@ -46,6 +46,29 @@ def test_find_flags_matches_each_category_with_snippets():
     assert "client assets in funds managed" in flags["proprietary_funds"]
 
 
+def test_find_flags_ignores_negated_disclaimers():
+    # Real false positives from the first full-universe run: disclaimers and
+    # Item 14 headings followed by a negation must not flag.
+    text = """
+    The Adviser does not act as principal in any transactions. In addition,
+    the Adviser does not act as the general partner of a fund, or advise an
+    investment company.
+
+    Compensation for Client Referrals: The Advisor does not compensate,
+    either directly or indirectly, any person for client referrals.
+    """
+    assert find_flags(text) == {}
+
+
+def test_find_flags_affirmative_match_after_a_disclaimer_still_counts():
+    text = """
+    The Adviser does not receive commissions. However, an affiliate of the
+    Adviser serves as the general partner of several private funds organized
+    as limited partnerships.
+    """
+    assert set(find_flags(text)) == {"affiliated_gp_lp"}
+
+
 def test_find_flags_clean_brochure_stays_clean():
     text = """
     The Firm provides discretionary investment management to individuals and
