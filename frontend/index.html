@@ -70,17 +70,35 @@
       document.documentElement.dataset.theme = localStorage.getItem('theme') || 'dark'
     </script>
     <script type="module">
-      // Cloudflare Web Analytics (privacy-friendly, no cookies). Loads only in
-      // production builds and only when the token is configured — see README
-      // "Deployment" for setting VITE_CF_ANALYTICS_TOKEN.
-      if (import.meta.env.PROD && import.meta.env.VITE_CF_ANALYTICS_TOKEN) {
-        const beacon = document.createElement('script')
-        beacon.defer = true
-        beacon.src = 'https://static.cloudflareinsights.com/beacon.min.js'
-        beacon.dataset.cfBeacon = JSON.stringify({
-          token: import.meta.env.VITE_CF_ANALYTICS_TOKEN,
-        })
-        document.head.appendChild(beacon)
+      // Analytics — production builds only; local dev never reports.
+      if (import.meta.env.PROD) {
+        // Cloudflare Web Analytics (privacy-friendly, no cookies), gated on
+        // the token — see README "Deployment" for VITE_CF_ANALYTICS_TOKEN.
+        if (import.meta.env.VITE_CF_ANALYTICS_TOKEN) {
+          const beacon = document.createElement('script')
+          beacon.defer = true
+          beacon.src = 'https://static.cloudflareinsights.com/beacon.min.js'
+          beacon.dataset.cfBeacon = JSON.stringify({
+            token: import.meta.env.VITE_CF_ANALYTICS_TOKEN,
+          })
+          document.head.appendChild(beacon)
+        }
+
+        // Google Analytics 4. The measurement ID is public by nature (it
+        // appears in the served page source regardless), so it lives here
+        // rather than in build config. Enhanced measurement's history-change
+        // detection covers the app's pushState routing automatically.
+        const GA_ID = 'G-GYN9JCX9QR'
+        const gtagScript = document.createElement('script')
+        gtagScript.async = true
+        gtagScript.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`
+        document.head.appendChild(gtagScript)
+        window.dataLayer = window.dataLayer || []
+        window.gtag = function gtag() {
+          window.dataLayer.push(arguments)
+        }
+        window.gtag('js', new Date())
+        window.gtag('config', GA_ID)
       }
     </script>
   </head>
