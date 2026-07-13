@@ -909,6 +909,53 @@ tbody tr:hover {
   margin: 10px 0 0;
 }
 
+.deal-flags {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.deal-flag {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.deal-flag-chip {
+  flex: none;
+  width: 22px;
+  text-align: center;
+  border-radius: 6px;
+  padding: 1px 0;
+  font-size: 12px;
+  color: var(--ink-3);
+  background: var(--surface-2);
+}
+
+.deal-flag-chip.on {
+  color: var(--critical);
+  background: var(--critical-wash);
+}
+
+.deal-flag-body {
+  min-width: 0;
+}
+
+.deal-flag-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 550;
+}
+
+.deal-flag-quote {
+  display: block;
+  margin-top: 2px;
+  color: var(--ink-3);
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.45;
+}
+
 /* ---------- states & footer ---------- */
 .state {
   padding: 48px;

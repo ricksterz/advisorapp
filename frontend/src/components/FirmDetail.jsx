@@ -89,6 +89,69 @@ function useFirmDocs(crd) {
 const fmtUsd = (v) =>
   v == null ? '—' : `$${Math.round(v).toLocaleString()}`
 
+// Deal-structuring flags scanned from Part 2A brochures (etl/brochures.py).
+// One static file for all firms, fetched the first time any detail view
+// needs it and shared across navigations.
+const DEAL_FLAGS = [
+  ['pf', 'Proprietary funds', 'brochure language about placing clients in affiliated funds'],
+  ['rs', 'Revenue sharing / referrals', 'brochure language about referral or revenue-sharing compensation'],
+  ['gp', 'Affiliated GP / LP structures', 'brochure language about affiliates serving as fund general partners'],
+]
+
+let dealFlagsPromise = null
+function useDealFlags(crd) {
+  const [flags, setFlags] = useState(undefined) // undefined = loading, null = not scanned
+  useEffect(() => {
+    let alive = true
+    dealFlagsPromise ??= fetch(`${BASE}deal_flags.json`)
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null)
+    dealFlagsPromise.then((data) => {
+      if (alive) setFlags(data?.firms?.[String(crd)] ?? null)
+    })
+    return () => {
+      alive = false
+    }
+  }, [crd])
+  return flags
+}
+
+function DealStructuringCard({ crd }) {
+  const flags = useDealFlags(crd)
+  if (!flags) return null // still loading, file unavailable, or firm not scanned
+  return (
+    <div className="detail-card">
+      <h2>Deal-structuring signals</h2>
+      <div className="deal-flags">
+        {DEAL_FLAGS.map(([key, label, description]) => (
+          <div key={key} className="deal-flag" title={description}>
+            <span className={flags[key] ? 'deal-flag-chip on' : 'deal-flag-chip'}>
+              {flags[key] ? '⚑' : '—'}
+            </span>
+            <span className="deal-flag-body">
+              <span className="deal-flag-label">{label}</span>
+              {flags[key] && flags.evidence?.[FLAG_EVIDENCE_KEYS[key]] && (
+                <span className="deal-flag-quote">“…{flags.evidence[FLAG_EVIDENCE_KEYS[key]]}…”</span>
+              )}
+            </span>
+          </div>
+        ))}
+      </div>
+      <p className="detail-note">
+        Keyword scan of the firm’s Form ADV Part 2A brochure(s) — a flag means the language
+        appears affirmatively; it is context, not a finding. Read the brochure itself (linked
+        above) before drawing conclusions.
+      </p>
+    </div>
+  )
+}
+
+const FLAG_EVIDENCE_KEYS = {
+  pf: 'proprietary_funds',
+  rs: 'revenue_sharing',
+  gp: 'affiliated_gp_lp',
+}
+
 const DEFAULT_TITLE = 'Open Filings — SEC Form ADV benchmarking'
 
 // Per-firm title + meta description: crawlers render JS, so this is what a
@@ -260,6 +323,8 @@ export default function FirmDetail({ firm, crd }) {
               : 'No financial-industry affiliations reported (Item 7.A).'}
           </p>
         </div>
+
+        <DealStructuringCard crd={firm.crd} />
       </div>
     </section>
   )

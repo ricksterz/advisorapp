@@ -22,6 +22,7 @@ import duckdb
 from etl.config import DB_PATH, REPO_ROOT
 
 DEFAULT_OUT = REPO_ROOT / "frontend" / "public" / "firms.json"
+DEFAULT_FLAGS_OUT = REPO_ROOT / "frontend" / "public" / "deal_flags.json"
 
 # Keep the payload lean: only the columns the UI actually renders/filters on.
 EXPORT_COLUMNS = [
@@ -74,12 +75,57 @@ def export(db_path: Path, out_path: Path) -> int:
     return len(firms)
 
 
+def export_deal_flags(db_path: Path, out_path: Path) -> int:
+    """Per-firm deal-structuring flags + evidence snippets, lazy-loaded by the
+    firm detail view.
+
+    The brochure corpus is produced by etl/brochures.py on a workstation (the
+    CI deploy has no brochure data), so this file is committed and only
+    rewritten when the local database actually has flags — an empty table
+    (e.g. the CI ingest) leaves the committed file untouched.
+    """
+    con = duckdb.connect(str(db_path), read_only=True)
+    try:
+        try:
+            rows = con.execute(
+                """
+                SELECT firm_crd, bool_or(proprietary_funds), bool_or(revenue_sharing),
+                       bool_or(affiliated_gp_lp), max(evidence) FILTER (evidence IS NOT NULL)
+                FROM deal_structuring GROUP BY firm_crd
+                """
+            ).fetchall()
+        except duckdb.CatalogException:
+            rows = []
+    finally:
+        con.close()
+    if not rows:
+        print("no deal_structuring data in this database — deal flags export skipped")
+        return 0
+
+    flags: dict[str, dict] = {}
+    for crd, pf, rs, gp, evidence in rows:
+        entry: dict = {"pf": bool(pf), "rs": bool(rs), "gp": bool(gp)}
+        if evidence:
+            entry["evidence"] = json.loads(evidence)
+        flags[str(crd)] = entry
+    payload = {
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "firms": flags,
+    }
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(payload, separators=(",", ":")))
+    print(f"exported deal flags for {len(flags)} firms to {out_path}")
+    return len(flags)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--db", type=Path, default=DB_PATH)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    parser.add_argument("--flags-out", type=Path, default=DEFAULT_FLAGS_OUT)
     args = parser.parse_args()
     export(args.db, args.out)
+    export_deal_flags(args.db, args.flags_out)
 
 
 if __name__ == "__main__":
