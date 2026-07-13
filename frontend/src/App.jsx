@@ -114,7 +114,7 @@ function SortHeader({ id, children, sort, onSort, className }) {
     <th className={className} aria-sort={active ? 'descending' : undefined}>
       <button type="button" onClick={() => onSort(id)}>
         {children}
-        {active && <span className="arrow">▼</span>}
+        {active && <span className="arrow" aria-hidden="true">▼</span>}
       </button>
     </th>
   )
@@ -210,8 +210,8 @@ export default function App() {
     <>
       <header className="topbar">
         <span className="brand">
-          <span className="brand-mark">OF</span>
-          Open Filings
+          <span className="brand-mark">OD</span>
+          Open Disclosure
         </span>
         <span className="spacer" />
         {data && <span className="snapshot">SEC Form ADV · snapshot {data.generated_at.slice(0, 10)}</span>}
@@ -234,9 +234,10 @@ export default function App() {
           )}
         </main>
       ) : (
+      <>
       <main className="shell">
         <section className="page-head">
-          <h1>Open Filings</h1>
+          <h1>Open Disclosure</h1>
           <p className="page-tagline">Investment adviser benchmarking, from the public record.</p>
           <p>
             Every SEC-registered advisory firm — assets under management, compensation structure,
@@ -535,8 +536,12 @@ export default function App() {
                 </div>
               )}
             </section>
+          </>
+        )}
+      </main>
 
-            <footer className="about">
+      {data && (
+        <footer className="about">
               <h2>About this data</h2>
               <dl className="about-grid">
                 <div>
@@ -611,11 +616,10 @@ export default function App() {
                     capture. Consult a qualified professional before making financial decisions.
                   </dd>
                 </div>
-              </dl>
-            </footer>
-          </>
-        )}
-      </main>
+          </dl>
+        </footer>
+      )}
+      </>
       )}
     </>
   )

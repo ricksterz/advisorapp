@@ -968,9 +968,12 @@ tbody tr:hover {
 }
 
 /* ---------- about / disclaimer ---------- */
+/* The footer sits outside <main> (a proper contentinfo landmark), so it
+   carries the shell's width constraint itself. */
 .about {
-  margin-top: 40px;
-  padding-top: 26px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 26px 28px 64px;
   border-top: 1px solid var(--hairline);
 }
 
@@ -1009,6 +1012,10 @@ tbody tr:hover {
 @media (max-width: 640px) {
   .shell {
     padding: 24px 16px 48px;
+  }
+
+  .about {
+    padding: 20px 16px 48px;
   }
 
   .topbar {
