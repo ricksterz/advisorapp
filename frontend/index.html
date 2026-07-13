@@ -6,12 +6,82 @@
     <meta name="theme-color" content="#0d0d0d" />
     <meta
       name="description"
-      content="Benchmark every SEC-registered investment adviser — AUM, fees, client mix, and disciplinary history — with a fully transparent, customizable methodology built from public Form ADV filings."
+      content="Open Disclosure benchmarks every SEC-registered investment adviser — AUM, fees, client mix, and disciplinary history — with a transparent, customizable methodology built entirely from public Form ADV filings."
     />
-    <title>Open Filings — SEC Form ADV benchmarking</title>
+    <title>Open Disclosure — SEC Form ADV adviser benchmarking</title>
+
+    <link rel="canonical" href="https://open-disclosure.com/" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Open Disclosure — SEC Form ADV adviser benchmarking" />
+    <meta
+      property="og:description"
+      content="Benchmark every SEC-registered investment adviser — AUM, fees, client mix, and disciplinary history — with a transparent, customizable methodology built from public Form ADV filings."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://open-disclosure.com/" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Open Disclosure — SEC Form ADV adviser benchmarking" />
+    <meta
+      name="twitter:description"
+      content="Benchmark every SEC-registered investment adviser — AUM, fees, client mix, and disciplinary history — from public Form ADV filings."
+    />
+
+    <!-- Google Dataset Search: the underlying Form ADV dataset -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Dataset",
+        "name": "Open Disclosure — SEC-registered investment adviser dataset",
+        "description": "Structured data on every SEC-registered investment advisory firm, derived from public Form ADV Part 1A filings: regulatory assets under management (discretionary and non-discretionary), advisory headcount, client type mix, fee and compensation structure, financial-industry affiliations, and Item 11 disciplinary disclosure counts. Refreshed from the SEC's IAPD bulk compilation.",
+        "url": "https://open-disclosure.com/",
+        "keywords": [
+          "SEC Form ADV",
+          "investment adviser",
+          "RIA",
+          "regulatory assets under management",
+          "IAPD",
+          "adviser disciplinary disclosures"
+        ],
+        "license": "https://www.sec.gov/privacy#dissemination",
+        "isAccessibleForFree": true,
+        "creator": {
+          "@type": "Organization",
+          "name": "Open Disclosure",
+          "url": "https://open-disclosure.com/"
+        },
+        "sourceOrganization": {
+          "@type": "GovernmentOrganization",
+          "name": "U.S. Securities and Exchange Commission",
+          "url": "https://www.sec.gov/"
+        },
+        "distribution": {
+          "@type": "DataDownload",
+          "encodingFormat": "application/json",
+          "contentUrl": "https://open-disclosure.com/firms.json"
+        }
+      }
+    </script>
+
     <script>
       // Apply the saved theme before first paint to avoid a flash (dark is default).
       document.documentElement.dataset.theme = localStorage.getItem('theme') || 'dark'
+    </script>
+    <script type="module">
+      // Cloudflare Web Analytics (privacy-friendly, no cookies). Loads only in
+      // production builds and only when the token is configured — see README
+      // "Deployment" for setting VITE_CF_ANALYTICS_TOKEN.
+      if (import.meta.env.PROD && import.meta.env.VITE_CF_ANALYTICS_TOKEN) {
+        const beacon = document.createElement('script')
+        beacon.defer = true
+        beacon.src = 'https://static.cloudflareinsights.com/beacon.min.js'
+        beacon.dataset.cfBeacon = JSON.stringify({
+          token: import.meta.env.VITE_CF_ANALYTICS_TOKEN,
+        })
+        document.head.appendChild(beacon)
+      }
     </script>
   </head>
   <body>

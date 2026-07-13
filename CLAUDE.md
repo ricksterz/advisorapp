@@ -1,4 +1,4 @@
-# Advisor Comp & Structure Analytics App
+# Open Disclosure — Advisor Comp & Structure Analytics
 
 ## Purpose
 Analytics app benchmarking investment advisory firms by AUM, client type mix,

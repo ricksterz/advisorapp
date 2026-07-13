@@ -1,6 +1,6 @@
-# advisorapp
+# Open Disclosure
 
-Analytics app benchmarking investment advisory firms by AUM, client mix,
+**Open Disclosure** benchmarks investment advisory firms by AUM, client mix,
 compensation structure, and affiliated deal-structuring arms — built entirely
 on public regulatory data (SEC Form ADV, IAPD/BrokerCheck, EDGAR, DOL 5500).
 
@@ -47,3 +47,18 @@ cd frontend && npm install && npm run dev   # http://localhost:5173
 ```bash
 pytest etl/tests/
 ```
+
+## Deployment
+
+**Analytics.** The frontend loads the Cloudflare Web Analytics beacon in
+production builds only, and only when a token is configured. After enabling
+Web Analytics in the Cloudflare dashboard, set the token as an environment
+variable in the Cloudflare Pages/Workers build settings (or in the CI build
+environment):
+
+```
+VITE_CF_ANALYTICS_TOKEN=<your Web Analytics token>
+```
+
+Local dev builds never load the beacon, and production builds without the
+variable simply skip it.

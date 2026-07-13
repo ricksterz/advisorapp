@@ -125,7 +125,11 @@ function DealStructuringCard({ crd }) {
       <div className="deal-flags">
         {DEAL_FLAGS.map(([key, label, description]) => (
           <div key={key} className="deal-flag" title={description}>
-            <span className={flags[key] ? 'deal-flag-chip on' : 'deal-flag-chip'}>
+            <span
+              className={flags[key] ? 'deal-flag-chip on' : 'deal-flag-chip'}
+              role="img"
+              aria-label={flags[key] ? 'Flagged' : 'Not flagged'}
+            >
               {flags[key] ? '⚑' : '—'}
             </span>
             <span className="deal-flag-body">
@@ -152,7 +156,8 @@ const FLAG_EVIDENCE_KEYS = {
   gp: 'affiliated_gp_lp',
 }
 
-const DEFAULT_TITLE = 'Open Filings — SEC Form ADV benchmarking'
+const DEFAULT_TITLE = 'Open Disclosure — SEC Form ADV adviser benchmarking'
+const SITE_URL = 'https://open-disclosure.com'
 
 // Per-firm title + meta description: crawlers render JS, so this is what a
 // firm's search result shows.
@@ -160,7 +165,7 @@ function usePageMeta(firm) {
   useEffect(() => {
     if (!firm) return undefined
     const name = firm.business_name || firm.legal_name
-    document.title = `${name} — Form ADV profile · Open Filings`
+    document.title = `${name} — Form ADV profile · Open Disclosure`
     const meta = document.querySelector('meta[name="description"]')
     const prev = meta?.getAttribute('content')
     meta?.setAttribute(
@@ -168,9 +173,15 @@ function usePageMeta(firm) {
       `${name} (CRD ${firm.crd}${firm.state ? `, ${firm.state}` : ''}): regulatory AUM, ` +
         'client mix, fee structure, and disciplinary history from SEC Form ADV filings.',
     )
+    // Without a per-route canonical, every firm page would claim the homepage
+    // as its canonical URL and drop out of the index.
+    const canonical = document.querySelector('link[rel="canonical"]')
+    const prevCanonical = canonical?.getAttribute('href')
+    canonical?.setAttribute('href', `${SITE_URL}/firm/${firm.crd}`)
     return () => {
       document.title = DEFAULT_TITLE
       if (prev != null) meta?.setAttribute('content', prev)
+      if (prevCanonical != null) canonical?.setAttribute('href', prevCanonical)
     }
   }, [firm])
 }

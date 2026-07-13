@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Static fallback sitemap. The GitHub Pages deploy overwrites this in the
+     built output with a full per-firm sitemap generated from the live data
+     (etl/gen_sitemap.py); this file is what ships on hosts where that
+     generation step doesn't run. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://open-disclosure.com/</loc></url>
+</urlset>
