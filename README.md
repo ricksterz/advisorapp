@@ -62,3 +62,7 @@ VITE_CF_ANALYTICS_TOKEN=<your Web Analytics token>
 
 Local dev builds never load the beacon, and production builds without the
 variable simply skip it.
+
+Google Analytics 4 (measurement ID `G-GYN9JCX9QR`) is wired directly in
+`frontend/index.html` — measurement IDs are public, so no build variable is
+needed. Like the Cloudflare beacon, it loads in production builds only.
