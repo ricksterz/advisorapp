@@ -79,7 +79,7 @@ jobs:
           # cold loads of /firm/:crd work.
           cp frontend/dist/index.html frontend/dist/404.html
           python -m etl.gen_sitemap --data frontend/public/firms.json \
-            --site https://ricksterz.github.io/advisorapp --out frontend/dist
+            --site https://open-disclosure.com --out frontend/dist
 
       - uses: actions/configure-pages@v6
         with:
