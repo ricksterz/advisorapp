@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Refreshes the brochure-derived data artifacts that live only on this
+# workstation: the brochure corpus (data/advisor.duckdb + data/brochures/,
+# both gitignored) can't be built in CI — see docs/pdf-pipeline-scope.md —
+# so this is an on-demand, manually-triggered script, not a scheduled job.
+#
+# firms.json itself is NOT regenerated here: the committed copy in
+# frontend/public/ is a small sample fixture, and the real one is built
+# fresh by the Pages deploy on every push (.github/workflows/pages.yml).
+# This script only needs a full firm list to scope the brochure crawl and
+# build the two data files that DO get committed:
+#   - frontend/public/deal_flags.json  (deal-structuring flags + evidence)
+#   - frontend/public/sitemap.xml      (+ robots.txt)
+#
+# Usage: scripts/refresh_deal_flags.sh
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+PY=.venv/bin/python
+SITE="https://open-disclosure.com"
+TMP_FIRMS="$(mktemp -t open-disclosure-firms).json"
+trap 'rm -f "$TMP_FIRMS"' EXIT
+
+echo "== 1/4 fetching the latest ADV feed =="
+$PY -m etl.fetch_latest --dest data/raw/latest_adv.xml.gz
+$PY -m etl.ingest_adv --input data/raw/latest_adv.xml.gz --db data/advisor.duckdb
+
+echo "== 2/4 refreshing the brochure corpus (rescans every firm for new/changed brochures) =="
+$PY -m etl.brochures run --db data/advisor.duckdb --rescan
+
+echo "== 3/4 exporting deal_flags.json =="
+$PY -m etl.export_json --db data/advisor.duckdb --out "$TMP_FIRMS" --flags-out frontend/public/deal_flags.json
+
+echo "== 4/4 regenerating sitemap.xml + robots.txt =="
+$PY -m etl.gen_sitemap --data "$TMP_FIRMS" --site "$SITE" --out /tmp/sitemap_out
+$PY - "$SITE" <<'PYEOF'
+import sys
+from pathlib import Path
+
+site = sys.argv[1]
+src = Path("/tmp/sitemap_out/sitemap.xml").read_text()
+decl, rest = src.split("\n", 1)
+comment = (
+    "<!-- Generated from the live firm dataset (etl/gen_sitemap.py). Served as-is by the\n"
+    "     Cloudflare host; the GitHub Pages deploy regenerates it in its build output.\n"
+    "     Regenerate alongside deal_flags.json when refreshing data on the workstation. -->\n"
+)
+Path("frontend/public/sitemap.xml").write_text(decl + "\n" + comment + rest)
+Path("frontend/public/robots.txt").write_text(Path("/tmp/sitemap_out/robots.txt").read_text())
+PYEOF
+
+echo
+echo "Done. Review the diff, then:"
+echo "  git add frontend/public/deal_flags.json frontend/public/sitemap.xml frontend/public/robots.txt"
+echo "  git commit -m 'Refresh brochure corpus and sitemap'"

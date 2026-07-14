@@ -183,18 +183,23 @@ def connect(db_path: Path) -> duckdb.DuckDBPyConnection:
     return con
 
 
-def stage_enumerate(con: duckdb.DuckDBPyConnection, limit: int | None) -> None:
-    """Fetch each firm's brochure inventory; skip firms already enumerated."""
-    crds = [
-        r[0]
-        for r in con.execute(
-            """
+def stage_enumerate(con: duckdb.DuckDBPyConnection, limit: int | None, rescan: bool = False) -> None:
+    """Fetch each firm's brochure inventory.
+
+    By default skips firms already enumerated, so an interrupted initial
+    crawl resumes cheaply. Pass rescan=True for a data refresh: brochures get
+    amended over time, so re-checking every firm is the only way to notice a
+    new or replaced version_id for a firm we've already seen. INSERT OR
+    REPLACE keyed on version_id makes this cheap when nothing changed.
+    """
+    query = "SELECT crd FROM firms ORDER BY aum_total DESC NULLS LAST"
+    if not rescan:
+        query = """
             SELECT f.crd FROM firms f
             WHERE f.crd NOT IN (SELECT DISTINCT firm_crd FROM brochures)
             ORDER BY f.aum_total DESC NULLS LAST
-            """
-        ).fetchall()
-    ]
+        """
+    crds = [r[0] for r in con.execute(query).fetchall()]
     if limit:
         crds = crds[:limit]
     session = requests.Session()
@@ -317,6 +322,12 @@ def main() -> None:
     parser.add_argument("stage", choices=["enumerate", "fetch", "flags", "run"])
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
     parser.add_argument("--limit", type=int, default=None, help="max items per stage")
+    parser.add_argument(
+        "--rescan",
+        action="store_true",
+        help="re-check every firm's brochure inventory, not just unenumerated ones "
+        "(use for a data refresh; the initial crawl doesn't need this)",
+    )
     args = parser.parse_args()
 
     if not args.db.exists():
@@ -324,7 +335,7 @@ def main() -> None:
     con = connect(args.db)
     try:
         if args.stage in ("enumerate", "run"):
-            stage_enumerate(con, args.limit)
+            stage_enumerate(con, args.limit, rescan=args.rescan)
         if args.stage in ("fetch", "run"):
             stage_fetch(con, args.limit)
         if args.stage in ("flags", "run"):
