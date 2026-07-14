@@ -4,6 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0d0d0d" />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <meta
       name="description"
       content="Open Disclosure benchmarks every SEC-registered investment adviser — AUM, fees, client mix, and disciplinary history — with a transparent, customizable methodology built entirely from public Form ADV filings."
@@ -20,6 +25,10 @@
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://open-disclosure.com/" />
+    <meta property="og:image" content="https://open-disclosure.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Open Disclosure — SEC Form ADV adviser benchmarking" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
@@ -28,6 +37,7 @@
       name="twitter:description"
       content="Benchmark every SEC-registered investment adviser — AUM, fees, client mix, and disciplinary history — from public Form ADV filings."
     />
+    <meta name="twitter:image" content="https://open-disclosure.com/og-image.png" />
 
     <!-- Google Dataset Search: the underlying Form ADV dataset -->
     <script type="application/ld+json">
@@ -65,6 +75,16 @@
       }
     </script>
 
+    <script>
+      // Consolidate to the canonical domain — old GitHub Pages links (and
+      // the site's own SPA-fallback 404.html) keep working, just redirected.
+      if (window.location.hostname === 'ricksterz.github.io') {
+        var path = window.location.pathname.replace(/^\/advisorapp\/?/, '/')
+        window.location.replace(
+          'https://open-disclosure.com' + path + window.location.search + window.location.hash,
+        )
+      }
+    </script>
     <script>
       // Apply the saved theme before first paint to avoid a flash (dark is default).
       document.documentElement.dataset.theme = localStorage.getItem('theme') || 'dark'

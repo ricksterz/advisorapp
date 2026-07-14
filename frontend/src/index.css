@@ -85,14 +85,8 @@ select {
 .brand-mark {
   width: 22px;
   height: 22px;
-  border-radius: 6px;
-  background: linear-gradient(135deg, var(--accent), #1c5cab);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
+  flex: none;
+  display: block;
 }
 
 .topbar .spacer {

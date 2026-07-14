@@ -1,4 +1,10 @@
-from etl.brochures import find_flags, parse_brochure_response
+import json
+from unittest.mock import patch
+
+import duckdb
+
+from etl.brochures import find_flags, parse_brochure_response, stage_enumerate
+from etl.config import SCHEMA_PATH
 
 
 def test_parse_brochure_response():
@@ -77,3 +83,84 @@ def test_find_flags_clean_brochure_stays_clean():
     affiliations. Brokerage is directed to an unaffiliated custodian.
     """
     assert find_flags(text) == {}
+
+
+def _db_with_firms(tmp_path, crds):
+    db = tmp_path / "t.duckdb"
+    con = duckdb.connect(str(db))
+    con.execute(SCHEMA_PATH.read_text())
+    for crd in crds:
+        con.execute("INSERT INTO firms (crd, legal_name) VALUES (?, ?)", [crd, f"FIRM {crd}"])
+    return con
+
+
+class _FakeResponse:
+    def __init__(self, payload):
+        self._payload = payload
+
+    def raise_for_status(self):
+        pass
+
+    def json(self):
+        return self._payload
+
+
+def _payload_with_brochure(version_id):
+    return {
+        "hits": {
+            "hits": [
+                {
+                    "_source": {
+                        "iacontent": json.dumps(
+                            {
+                                "brochures": {
+                                    "brochuredetails": [
+                                        {
+                                            "brochureVersionID": version_id,
+                                            "brochureName": "ADV 2A",
+                                            "dateSubmitted": "1/1/2026",
+                                        }
+                                    ]
+                                }
+                            }
+                        )
+                    }
+                }
+            ]
+        }
+    }
+
+
+def test_stage_enumerate_default_skips_already_known_firms(tmp_path):
+    con = _db_with_firms(tmp_path, [1, 2])
+    con.execute("INSERT INTO brochures (version_id, firm_crd) VALUES (100, 1)")  # firm 1 already seen
+    calls = []
+
+    def fake_get(self, url, headers=None, timeout=None):
+        calls.append(url)
+        return _FakeResponse(_payload_with_brochure(999))
+
+    with patch("etl.brochures.requests.Session.get", fake_get):
+        stage_enumerate(con, limit=None)
+
+    assert len(calls) == 1  # only the unenumerated firm (2) was queried
+    assert calls[0].endswith("/2")
+
+
+def test_stage_enumerate_rescan_rechecks_every_firm(tmp_path):
+    # A firm's brochure inventory changes over time (amendments, new filings);
+    # the default incremental behavior would never notice, since it only
+    # queries firms with zero rows in `brochures`. --rescan exists to fix
+    # exactly this staleness on a periodic data refresh.
+    con = _db_with_firms(tmp_path, [1, 2])
+    con.execute("INSERT INTO brochures (version_id, firm_crd) VALUES (100, 1)")
+    calls = []
+
+    def fake_get(self, url, headers=None, timeout=None):
+        calls.append(url)
+        return _FakeResponse(_payload_with_brochure(999))
+
+    with patch("etl.brochures.requests.Session.get", fake_get):
+        stage_enumerate(con, limit=None, rescan=True)
+
+    assert len(calls) == 2  # both firms re-checked, including the known one

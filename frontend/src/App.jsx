@@ -210,7 +210,7 @@ export default function App() {
     <>
       <header className="topbar">
         <span className="brand">
-          <span className="brand-mark">OD</span>
+          <img className="brand-mark" src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" />
           Open Disclosure
         </span>
         <span className="spacer" />
