@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { staffOf } from '../benchmarking/factors.js'
 import { BASE, navigate } from '../router.js'
+import { DEAL_FLAG_DEFS, useDealFlags } from '../dealFlags.js'
 
 // Public IAPD document endpoints (all CORS-enabled, no key required).
 const firmApiUrl = (crd) => `https://api.adviserinfo.sec.gov/search/firm/${crd}`
@@ -89,33 +90,6 @@ function useFirmDocs(crd) {
 const fmtUsd = (v) =>
   v == null ? '—' : `$${Math.round(v).toLocaleString()}`
 
-// Deal-structuring flags scanned from Part 2A brochures (etl/brochures.py).
-// One static file for all firms, fetched the first time any detail view
-// needs it and shared across navigations.
-const DEAL_FLAGS = [
-  ['pf', 'Proprietary funds', 'brochure language about placing clients in affiliated funds'],
-  ['rs', 'Revenue sharing / referrals', 'brochure language about referral or revenue-sharing compensation'],
-  ['gp', 'Affiliated GP / LP structures', 'brochure language about affiliates serving as fund general partners'],
-]
-
-let dealFlagsPromise = null
-function useDealFlags(crd) {
-  const [flags, setFlags] = useState(undefined) // undefined = loading, null = not scanned
-  useEffect(() => {
-    let alive = true
-    dealFlagsPromise ??= fetch(`${BASE}deal_flags.json`)
-      .then((r) => (r.ok ? r.json() : null))
-      .catch(() => null)
-    dealFlagsPromise.then((data) => {
-      if (alive) setFlags(data?.firms?.[String(crd)] ?? null)
-    })
-    return () => {
-      alive = false
-    }
-  }, [crd])
-  return flags
-}
-
 function DealStructuringCard({ crd }) {
   const flags = useDealFlags(crd)
   if (!flags) return null // still loading, file unavailable, or firm not scanned
@@ -123,19 +97,19 @@ function DealStructuringCard({ crd }) {
     <div className="detail-card">
       <h2>Deal-structuring signals</h2>
       <div className="deal-flags">
-        {DEAL_FLAGS.map(([key, label, description]) => (
-          <div key={key} className="deal-flag" title={description}>
+        {DEAL_FLAG_DEFS.map(({ id, label, description, evidenceKey }) => (
+          <div key={id} className="deal-flag" title={description}>
             <span
-              className={flags[key] ? 'deal-flag-chip on' : 'deal-flag-chip'}
+              className={flags[id] ? 'deal-flag-chip on' : 'deal-flag-chip'}
               role="img"
-              aria-label={flags[key] ? 'Flagged' : 'Not flagged'}
+              aria-label={flags[id] ? 'Flagged' : 'Not flagged'}
             >
-              {flags[key] ? '⚑' : '—'}
+              {flags[id] ? '⚑' : '—'}
             </span>
             <span className="deal-flag-body">
               <span className="deal-flag-label">{label}</span>
-              {flags[key] && flags.evidence?.[FLAG_EVIDENCE_KEYS[key]] && (
-                <span className="deal-flag-quote">“…{flags.evidence[FLAG_EVIDENCE_KEYS[key]]}…”</span>
+              {flags[id] && flags.evidence?.[evidenceKey] && (
+                <span className="deal-flag-quote">“…{flags.evidence[evidenceKey]}…”</span>
               )}
             </span>
           </div>
@@ -148,12 +122,6 @@ function DealStructuringCard({ crd }) {
       </p>
     </div>
   )
-}
-
-const FLAG_EVIDENCE_KEYS = {
-  pf: 'proprietary_funds',
-  rs: 'revenue_sharing',
-  gp: 'affiliated_gp_lp',
 }
 
 const DEFAULT_TITLE = 'Open Disclosure — SEC Form ADV adviser benchmarking'

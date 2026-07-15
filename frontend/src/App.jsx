@@ -9,6 +9,7 @@ import { configFromLocation, urlForConfig } from './benchmarking/url.js'
 import MethodologyPanel from './components/MethodologyPanel.jsx'
 import FirmDetail, { websiteHost } from './components/FirmDetail.jsx'
 import { firmPath, navigate, useFirmRoute } from './router.js'
+import { DEAL_FLAG_DEFS, useAllDealFlags } from './dealFlags.js'
 
 const compactUsd = (v) => {
   if (v == null || Number.isNaN(v)) return '—'
@@ -129,6 +130,25 @@ function FirmLink({ firm }) {
   )
 }
 
+// Compact per-row indicator for the deal-structuring flags (etl/brochures.py
+// scan of Part 2A brochures) — "…" while the shared file is still loading,
+// "—" for a firm that was never scanned, otherwise one chip per active flag.
+function DealFlagsCell({ crd, data }) {
+  if (data === undefined) return <span className="flag-none">…</span>
+  const flags = data?.firms?.[String(crd)]
+  const active = flags ? DEAL_FLAG_DEFS.filter((d) => flags[d.id]) : []
+  if (!active.length) return <span className="flag-none">—</span>
+  return (
+    <span className="deal-flag-chips">
+      {active.map((d) => (
+        <span key={d.id} className="deal-flag-mini" title={d.label}>
+          {d.short}
+        </span>
+      ))}
+    </span>
+  )
+}
+
 function RankCard({ title, sub, children }) {
   return (
     <div className="rank-card">
@@ -150,6 +170,7 @@ export default function App() {
   const [minAum, setMinAum] = useState(0)
   const [perfOnly, setPerfOnly] = useState(false)
   const [flaggedOnly, setFlaggedOnly] = useState(false)
+  const [dealFilters, setDealFilters] = useState({})
   const [sort, setSort] = useState('aum')
   const [limit, setLimit] = useState(PAGE)
   // Methodology config: seeded from the ?m= URL param so a shared link
@@ -169,6 +190,10 @@ export default function App() {
       .catch((e) => setError(String(e)))
   }, [])
 
+  // Deal-structuring flags (etl/brochures.py) — a separate committed file,
+  // since the brochure corpus that produces it can't be built in CI.
+  const dealFlagsData = useAllDealFlags()
+
   const stats = useMemo(() => {
     if (!data) return null
     const aums = data.firms.map((f) => f.aum_total).filter((v) => v > 0).sort((a, b) => a - b)
@@ -185,6 +210,11 @@ export default function App() {
 
   const rankings = useMemo(() => (data ? computeRankings(data.firms, config) : null), [data, config])
 
+  const activeDealFilters = useMemo(
+    () => DEAL_FLAG_DEFS.filter((d) => dealFilters[d.id]),
+    [dealFilters],
+  )
+
   const firms = useMemo(() => {
     if (!data) return []
     const q = query.trim().toLowerCase()
@@ -193,6 +223,10 @@ export default function App() {
         if (minAum && (f.aum_total ?? 0) < minAum) return false
         if (perfOnly && !f.fee_performance_based) return false
         if (flaggedOnly && !(f.disciplinary_flag_count > 0)) return false
+        if (activeDealFilters.length) {
+          const flags = dealFlagsData?.firms?.[String(f.crd)]
+          if (!flags || !activeDealFilters.every((d) => flags[d.id])) return false
+        }
         if (!q) return true
         return (
           (f.legal_name || '').toLowerCase().includes(q) ||
@@ -201,7 +235,7 @@ export default function App() {
         )
       })
       .sort(SORTS[sort])
-  }, [data, query, minAum, perfOnly, flaggedOnly, sort])
+  }, [data, query, minAum, perfOnly, flaggedOnly, sort, activeDealFilters, dealFlagsData])
 
   const visible = firms.slice(0, limit)
   const resetPage = () => setLimit(PAGE)
@@ -455,6 +489,23 @@ export default function App() {
               >
                 Has disclosures
               </button>
+              {dealFlagsData !== null &&
+                DEAL_FLAG_DEFS.map((d) => (
+                  <button
+                    key={d.id}
+                    type="button"
+                    className="chip"
+                    aria-pressed={!!dealFilters[d.id]}
+                    disabled={dealFlagsData === undefined}
+                    title={d.description}
+                    onClick={() => {
+                      setDealFilters((prev) => ({ ...prev, [d.id]: !prev[d.id] }))
+                      resetPage()
+                    }}
+                  >
+                    {d.label}
+                  </button>
+                ))}
               <span className="result-count">
                 {firms.length.toLocaleString()} of {data.count.toLocaleString()} firms
               </span>
@@ -471,6 +522,7 @@ export default function App() {
                     <th>Fee structure</th>
                     <th className="num">Affiliations</th>
                     <SortHeader id="flags" sort={sort} onSort={setSort} className="num">Disclosures</SortHeader>
+                    {dealFlagsData !== null && <th>Deal structuring</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -519,11 +571,18 @@ export default function App() {
                           <span className="flag-none">0</span>
                         )}
                       </td>
+                      {dealFlagsData !== null && (
+                        <td>
+                          <DealFlagsCell crd={f.crd} data={dealFlagsData} />
+                        </td>
+                      )}
                     </tr>
                   ))}
                   {visible.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="state">No firms match the current filters.</td>
+                      <td colSpan={dealFlagsData !== null ? 8 : 7} className="state">
+                        No firms match the current filters.
+                      </td>
                     </tr>
                   )}
                 </tbody>
