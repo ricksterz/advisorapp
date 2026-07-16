@@ -66,6 +66,13 @@ def test_find_flags_ignores_negated_disclaimers():
     assert find_flags(text) == {}
 
 
+def test_find_flags_ignores_contraction_negation():
+    # A later full-universe sampling pass found this real false positive:
+    # "don't" (and doesn't/won't/etc.) isn't "not", so it needs its own check.
+    text = "We don't take commission, referral fees, or other remuneration from our partners."
+    assert find_flags(text) == {}
+
+
 def test_find_flags_affirmative_match_after_a_disclaimer_still_counts():
     text = """
     The Adviser does not receive commissions. However, an affiliate of the
@@ -73,6 +80,60 @@ def test_find_flags_affirmative_match_after_a_disclaimer_still_counts():
     as limited partnerships.
     """
     assert set(find_flags(text)) == {"affiliated_gp_lp"}
+
+
+def test_find_flags_ignores_toc_entries():
+    # Real false positives sampled from the full-universe corpus: a brochure's
+    # table of contents repeats section headings as trigger phrases, followed
+    # by a dot leader and page number — pypdf extracts this inline with body
+    # text, so it reads like a real disclosure unless filtered.
+    text = """
+    Table of Contents
+    Item 10 Other Financial Industry Activities and Affiliations..............8
+    12B-1 Fees and Sales Commissions....................................10
+    Compensation for Client Referrals ...............................................24
+    The Firm provides investment management services to individual clients.
+    """
+    assert find_flags(text) == {}
+
+
+def test_find_flags_ignores_underscore_leader_toc_entries():
+    # A second full-universe sampling pass found this: some PDFs render a
+    # table-of-contents dot leader as underscores instead of periods.
+    text = """
+    CLIENT REFERRALS AND OTHER COMPENSATION _______________________________ 70
+    A. Compensation for Client Referrals ________________________________ 70
+    The Firm provides investment management services to individual clients.
+    """
+    assert find_flags(text) == {}
+
+
+def test_find_flags_weak_12b1_trigger_requires_attribution():
+    # Sampled from the corpus: "12b-1 fee" alone matches generic mutual-fund
+    # cost boilerplate that never says the adviser (or a related person)
+    # actually receives anything.
+    boilerplate = """
+    Your mutual fund investments may be subject to early redemption fees,
+    12b-1 fees and mutual fund management fees as well as other mutual fund
+    expenses. These fees, called 12b-1 fees, pay for marketing and
+    distribution expenses, such as brokers' commissions.
+    """
+    assert find_flags(boilerplate) == {}
+
+    genuine = """
+    Associated persons of the Firm can receive revenue sharing or 12b-1
+    distribution fees from the investment companies chosen by the plan
+    sponsor.
+    """
+    assert set(find_flags(genuine)) == {"revenue_sharing"}
+
+
+def test_find_flags_strong_revenue_sharing_triggers_stay_ungated():
+    # The stronger revenue_sharing triggers (referral fee, revenue-shar*,
+    # compensation-for-referrals, solicitation arrangements) don't require
+    # the attribution check — only the weak bare "12b-1 fee" trigger does.
+    text = "Our firm receives referral fees from unaffiliated third-party managers."
+    assert set(find_flags(text)) == {"revenue_sharing"}
 
 
 def test_find_flags_clean_brochure_stays_clean():
