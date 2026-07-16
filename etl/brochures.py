@@ -71,11 +71,11 @@ FLAG_PATTERNS: dict[str, re.Pattern] = {
         r"recommends? (?:its|our) own (?:funds?|products?)",
         re.IGNORECASE,
     ),
-    # Referral / revenue-sharing compensation arrangements.
+    # Referral / revenue-sharing compensation arrangements. "12b-1 fee" is
+    # deliberately not here — see WEAK_REVENUE_SHARING_PATTERN below.
     "revenue_sharing": re.compile(
         r"revenue[- ]shar\w+|referral fee|compensat\w+ for (?:client )?referrals|"
-        r"solicit\w+ arrangement|paid (?:a portion|a percentage) of (?:the )?(?:advisory )?fees?|"
-        r"12b-1 fee",
+        r"solicit\w+ arrangement|paid (?:a portion|a percentage) of (?:the )?(?:advisory )?fees?",
         re.IGNORECASE,
     ),
     # Affiliate serves as GP / managing member of fund structures.
@@ -125,7 +125,9 @@ def textify(pdf_path: Path) -> Path | None:
 # affirmative matches in the same brochure still count.
 NEGATION_WINDOW = 70
 NEGATION = re.compile(
-    r"\b(?:not|no|none|never|neither|nor|without|prohibits?|prohibited)\b", re.IGNORECASE
+    r"\b(?:not|no|none|never|neither|nor|without|prohibits?|prohibited)\b|"
+    r"\w+n['’]t\b",  # don't/doesn't/won't/... — PDFs render the apostrophe either way
+    re.IGNORECASE,
 )
 
 
@@ -137,17 +139,66 @@ def _negated(flat: str, start: int, end: int) -> bool:
     return bool(NEGATION.search(before) or NEGATION.search(after))
 
 
+# Table-of-contents entries repeat a flag's trigger phrase as a heading
+# followed by a dot leader and page number ("12B-1 Fees and Sales
+# Commissions....................10") — pypdf extracts these inline with body
+# text, so they'd otherwise flag like a real disclosure. The same phrase in
+# running prose is never immediately followed by a run of dots + a number.
+TOC_WINDOW = 100
+TOC_LEADER = re.compile(r"[._]{4,}\s*\d{1,4}\b")  # some PDFs render dot leaders as underscores
+
+
+def _looks_like_toc(flat: str, start: int, end: int) -> bool:
+    return bool(TOC_LEADER.search(flat[end : end + TOC_WINDOW]))
+
+
+# "12b-1 fee" is revenue_sharing's weakest trigger: sampled against the live
+# corpus, most matches were brochures describing standard mutual-fund cost
+# structure (a fund-level expense, not necessarily this adviser's
+# compensation), not an actual disclosed arrangement. It's kept as a separate,
+# lower-confidence pattern that only counts when a nearby verb names who
+# actually gets the money — every genuine "12b-1 fee" disclosure in the
+# sample paired it with one; boilerplate never did.
+WEAK_REVENUE_SHARING_PATTERN = re.compile(r"12b-1 fee", re.IGNORECASE)
+ATTRIBUTION_WINDOW = 90
+ATTRIBUTION_VERB = re.compile(
+    r"\b(?:receiv\w+|retain\w+|compensat\w+|collects?|earns?|holds?|owns?|"
+    r"shares? in|entitled to|paid (?:to|solely|from)|pays? (?:us|the firm|the adviser))\b",
+    re.IGNORECASE,
+)
+
+
+def _has_attribution(flat: str, start: int, end: int) -> bool:
+    before = re.split(r"[.;]", flat[max(0, start - ATTRIBUTION_WINDOW) : start])[-1]
+    after = re.split(r"[.;]", flat[end : end + ATTRIBUTION_WINDOW])[0]
+    return bool(ATTRIBUTION_VERB.search(before) or ATTRIBUTION_VERB.search(after))
+
+
+def _snippet(flat: str, start: int, end: int) -> str:
+    lo = max(0, start - SNIPPET_CHARS // 2)
+    return flat[lo : end + SNIPPET_CHARS // 2].strip()
+
+
 def find_flags(text: str) -> dict[str, str]:
     """Return {flag: snippet} for each pattern affirmatively matched in the text."""
     flat = re.sub(r"\s+", " ", text)
     found: dict[str, str] = {}
     for flag, pattern in FLAG_PATTERNS.items():
         for m in pattern.finditer(flat):
-            if _negated(flat, m.start(), m.end()):
+            if _negated(flat, m.start(), m.end()) or _looks_like_toc(flat, m.start(), m.end()):
                 continue
-            start = max(0, m.start() - SNIPPET_CHARS // 2)
-            found[flag] = flat[start : m.end() + SNIPPET_CHARS // 2].strip()
+            found[flag] = _snippet(flat, m.start(), m.end())
             break
+
+    if "revenue_sharing" not in found:
+        for m in WEAK_REVENUE_SHARING_PATTERN.finditer(flat):
+            if _negated(flat, m.start(), m.end()) or _looks_like_toc(flat, m.start(), m.end()):
+                continue
+            if not _has_attribution(flat, m.start(), m.end()):
+                continue
+            found["revenue_sharing"] = _snippet(flat, m.start(), m.end())
+            break
+
     return found
 
 
