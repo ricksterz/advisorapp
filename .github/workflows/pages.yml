@@ -58,7 +58,7 @@ jobs:
       - name: Export static data for the frontend
         run: python -m etl.export_json --db data/advisor.duckdb --out frontend/public/firms.json
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
