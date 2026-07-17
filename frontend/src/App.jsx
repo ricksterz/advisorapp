@@ -8,8 +8,10 @@ import { PRESETS, defaultConfig } from './benchmarking/presets.js'
 import { configFromLocation, urlForConfig } from './benchmarking/url.js'
 import MethodologyPanel from './components/MethodologyPanel.jsx'
 import FirmDetail, { websiteHost } from './components/FirmDetail.jsx'
+import DealPatternsSection from './components/DealPatternsSection.jsx'
 import { firmPath, navigate, useFirmRoute } from './router.js'
 import { DEAL_FLAG_DEFS, useAllDealFlags } from './dealFlags.js'
+import { computeDealPatterns } from './dealPatterns.js'
 
 const compactUsd = (v) => {
   if (v == null || Number.isNaN(v)) return '—'
@@ -213,6 +215,11 @@ export default function App() {
 
   const rankings = useMemo(() => (data ? computeRankings(data.firms, config) : null), [data, config])
 
+  const dealPatterns = useMemo(
+    () => (data ? computeDealPatterns(data.firms, dealFlagsData, DEAL_FLAG_DEFS) : null),
+    [data, dealFlagsData],
+  )
+
   const activeDealFilters = useMemo(
     () => DEAL_FLAG_DEFS.filter((d) => dealFilters[d.id]),
     [dealFilters],
@@ -306,6 +313,8 @@ export default function App() {
             />
           </section>
         )}
+
+        <DealPatternsSection patterns={dealPatterns} />
 
         {rankings && (
           <section className="rankings" aria-label="Rankings">
