@@ -204,7 +204,10 @@ export default function App() {
     const billionAum = aums.filter((v) => v >= 1e9)
     const billionShare = totalAum ? billionAum.reduce((s, v) => s + v, 0) / totalAum : 0
     const perfShare = data.firms.filter((f) => f.fee_performance_based).length / data.firms.length
-    const flagged = data.firms.filter((f) => f.disciplinary_flag_count > 0).length
+    // A single Item 11 disclosure is common enough (~12% of firms) that it
+    // reads as noise rather than signal; a repeated pattern is the more
+    // meaningful headline number.
+    const flagged = data.firms.filter((f) => f.disciplinary_flag_count > 3).length
     return { median, billionCount: billionAum.length, billionShare, perfShare, flagged }
   }, [data])
 
@@ -299,7 +302,7 @@ export default function App() {
             <StatTile
               label="Disciplinary disclosures"
               value={compactCount(stats.flagged)}
-              sub="firms with ≥ 1 flag"
+              sub="firms with > 3 flags"
             />
           </section>
         )}
