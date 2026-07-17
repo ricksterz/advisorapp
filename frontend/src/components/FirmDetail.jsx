@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { staffOf } from '../benchmarking/factors.js'
 import { BASE, navigate } from '../router.js'
 import { DEAL_FLAG_DEFS, useDealFlags } from '../dealFlags.js'
+import { useAdvisorBios } from '../advisorBios.js'
 
 // Public IAPD document endpoints (all CORS-enabled, no key required).
 const firmApiUrl = (crd) => `https://api.adviserinfo.sec.gov/search/firm/${crd}`
@@ -119,6 +120,33 @@ function DealStructuringCard({ crd }) {
         Keyword scan of the firm’s Form ADV Part 2A brochure(s) — a flag means the language
         appears affirmatively; it is context, not a finding. Read the brochure itself (linked
         above) before drawing conclusions.
+      </p>
+    </div>
+  )
+}
+
+function AdvisorBiosCard({ crd }) {
+  const bios = useAdvisorBios(crd)
+  if (!bios || bios.length === 0) return null // loading, unavailable, or no advisors extracted for this firm
+  return (
+    <div className="detail-card advisor-bios-card">
+      <h2>Advisor bios</h2>
+      <div className="advisor-bios">
+        {bios.map((b, i) => (
+          <div key={`${b.source_version_id}-${i}`} className="advisor-bio">
+            <div className="advisor-bio-name">
+              {b.name}
+              {b.crd && <span className="advisor-bio-crd">CRD {b.crd}</span>}
+            </div>
+            <p className="advisor-bio-text">{b.bio}</p>
+          </div>
+        ))}
+      </div>
+      <p className="detail-note">
+        Text extracted from Form ADV Part 2B brochure supplement filings — each advisor’s own
+        regulatory disclosure of their education and business background. Not verified or
+        curated; it is context, not a finding. Read the source brochure (linked above) before
+        drawing conclusions.
       </p>
     </div>
   )
@@ -304,6 +332,7 @@ export default function FirmDetail({ firm, crd }) {
         </div>
 
         <DealStructuringCard crd={firm.crd} />
+        <AdvisorBiosCard crd={firm.crd} />
       </div>
     </section>
   )
