@@ -165,7 +165,9 @@ MIN_BIO_CHARS = 25
 # The fix is per-pattern below: wrap only the literal marker text in a scoped
 # `(?i:...)` group so *that* stays case-insensitive, while NAME_TOKEN itself
 # stays genuinely case-sensitive.
-NAME_TOKEN = r"[A-Z][A-Za-z'’.\-]*(?:\s+[A-Z][A-Za-z'’.\-]*){1,4}"
+# bandit's hardcoded-password heuristic (B105) misfires on this variable name
+# + string-literal pairing; it's a name-matching regex fragment, not a secret.
+NAME_TOKEN = r"[A-Z][A-Za-z'’.\-]*(?:\s+[A-Z][A-Za-z'’.\-]*){1,4}"  # nosec B105
 
 # Explicit label, highest confidence when present (487451: "SUPERVISED
 # PERSON'S NAME: \n Paul F. Nastasi"; 1022919: a shorter "Supervised Person:
@@ -211,6 +213,16 @@ INFO_ABOUT_RE = re.compile(
     r"(?i:information about) (" + NAME_TOKEN + r")\b[^.]{0,60}?(?i:supplement|available|contains)"
 )
 
+# A mini per-person heading used by some multi-person combined documents in
+# place of a cover page or "information about" sentence — "{Name}'s
+# Biographical Information", directly above the bare "Educational Background
+# and Business Experience" heading itself (1046648, "ZIM" — a single document
+# with seven people, each introduced this way: "Atanu Ghosh's Biographical
+# Information \n Educational Background and Business Experience \n Birth
+# date: January 2, 1972..."). As specific and high-confidence as
+# COVER_PAGE_RE's markers, so tried alongside it.
+BIOGRAPHICAL_INFO_RE = re.compile(r"(" + NAME_TOKEN + r")[’']s\s+(?i:biographical\s+information)")
+
 # A "roster" tier — take the nearest capitalized phrase followed shortly by
 # a digit, with no cover-page/label/sentence backing it at all — was tried
 # and removed. It correctly handled its one motivating case (Boulay Wealth,
@@ -251,6 +263,50 @@ BIO_LEAD_RE = re.compile(
     r"\s*[•·]?\s*(?i:[\-–(]|was born|is born|born[: ]|year of birth|date of birth)"
 )
 
+# Same idea, tried unanchored (see the priority loop in _find_name) when a
+# generic policy statement or unfilled SEC template sentence sits between the
+# heading and the real name (1049380: "We generally require that employees
+# involved in making investment decisions... James E. Gasaway        Born
+# 1970..."). Deliberately narrower than BIO_LEAD_RE above — no bare
+# "[-–(]" cue — because that alternative is only safe right at the very
+# start of the section; searched deeper into the text it matches ordinary
+# institution names followed by a parenthetical, not a person (a real
+# regression caught by this module's own tests: "Biola University (La
+# Mirada, CA)" inside a bio would otherwise be mistaken for a name).
+BIO_LEAD_SEARCH_RE = re.compile(
+    r"(" + NAME_TOKEN + r")"
+    r"(?:,?\s*[A-Za-z®.,&\s]{0,40})?"
+    r"\s*[•·]?\s*(?i:was born|is born|born[: ]|year of birth|date of birth)"
+)
+
+# Sometimes the bio opens with the person's TITLE first, then a dash, then
+# their name (the reverse order of BIO_LEAD_RE above): "Executive Officer –
+# Yu-Dong Chen Mr. Yu-Dong Chen was born on June 9, 1978..." (969340),
+# "Managing Partner – Michael Silane, CFA • Year of birth: 1969..." (1050203).
+# Without this, NAME_TOKEN's own match on the title words themselves
+# ("Executive Officer", "Managing Partner") was mistaken for the name.
+# Restricted to a small closed set of real ADV job-title words rather than
+# "any capitalized phrase before a dash", to keep this from misfiring on
+# ordinary bio prose that happens to contain a dash.
+_TITLE_WORD = (
+    r"(?:executive|managing|chief|senior|vice|president|director|officer|"
+    r"manager|partner|principal|chairman|chairwoman|associate|founder|"
+    r"ceo|coo|cfo|cco)"
+)
+TITLE_LEAD_RE = re.compile(
+    r"^\s*(?i:" + _TITLE_WORD + r")(?:\s+(?i:" + _TITLE_WORD + r"))*\s*[-–]\s*(" + NAME_TOKEN + r")"
+)
+
+# Another bio-opening variant: an explicit "Name:" label, same idea as
+# SUPERVISED_LABEL_RE but inside the Item 2 body rather than on the cover
+# page (1010905: "Name: Ryan Turbyfill Born: 1978..."; 1011897: "Name: Kyle
+# David Appelbaum Born: ..."). Common in documents that split one shared
+# "Item 2" section into several people with no other per-person marker at
+# all — real multi-person documents where every other tier came up empty
+# before this was added, each producing a document-structure fragment
+# ("ADV Part") as the name instead of the real one.
+NAME_LABEL_LEAD_RE = re.compile(r"(?i:name)\s*:\s*(" + NAME_TOKEN + r")")
+
 # Words that mean a NAME_TOKEN match is actually an organization/section
 # fragment, not a person (e.g. a cover-page name running straight into the
 # firm's own name with nothing but whitespace between them).
@@ -262,22 +318,86 @@ ORG_WORDS = {
     "item", "cover", "page", "form", "brochure", "supplement", "educational",
     "business", "experience", "background", "table", "contents", "exhibit",
     "supervised", "person", "name",
-    # Street-address words. Real false positive (1030143): "Item 1 – Cover
-    # Page \n \n 100 Park Avenue, Suite 1600..." — the firm's street address,
-    # not the supervised person's name, sits directly under the cover-page
-    # marker in this filer's layout (the person's name is only mentioned
-    # later, in an "information about X and Y that supplements..." sentence
-    # naming two people at once). The optional page-number sub-pattern in
-    # COVER_PAGE_RE consumed "100" as if it were a page number, leaving
-    # NAME_TOKEN to capture "Park Avenue" as a bogus name.
-    "avenue", "street", "boulevard", "blvd", "drive", "road", "lane", "way",
-    "plaza", "court", "circle", "suite", "floor", "highway", "parkway",
-    "place",
     # Real false positive (1022364): a per-page footer/watermark
     # ("© 38 Compliance jointly with eAdvisor Compliance, Inc. — Disclosure
     # Brochure Design Layout.") repeated near a "Cover Page" marker on every
     # page of the document, captured as a bogus name ("Design Layout").
     "design", "layout", "disclosure", "compliance",
+    # Document-structure fragments, same "digit consumed as a fake page
+    # number" family as the street-address bug below, but without a street
+    # suffix to catch it: "ADV Part" / "FOR PART" (1034007, 1013676, and
+    # others) — a "Form ADV Part 2B" running header sitting where a name was
+    # expected, with the "2B" or a page number absorbed elsewhere.
+    "adv", "part",
+    # Real false positive (1009636, "Compass Financial Advisory Services"):
+    # the FIRM's own cover page ("Item 1 – Cover Page  Registered As: Compass
+    # Financial Advisory Services, LLC | CRD No. 316843") is repeated as a
+    # running header before every person's own Item 2 section in this filer's
+    # layout, and "Registered As:" — a label for the firm's registered legal
+    # name, not a person — was close enough to each person's own heading to
+    # win over their real "Name: {name}" label deeper in the boilerplate
+    # (fixed separately by widening the NAME_LABEL_LEAD_RE search window, but
+    # kept here too as a backstop against the same words winning elsewhere).
+    # "advisor"/"information" cover the same running-header family found in
+    # other documents ("ADVISOR INFORMATION", 1041064) and the generic
+    # "Required/Additional ... Information" phrases that show up when no
+    # per-person marker is nearby (1008354, 1047041, 1007800).
+    "registered", "advisor", "information",
+}
+
+# Street-address words that, when they're the LAST word of an otherwise
+# name-shaped match, mean the whole thing is a street address rather than a
+# person's name — checked positionally (see _valid_name) rather than added to
+# ORG_WORDS, because several of these are also legitimate LEADING words
+# (honorifics: "Dr. Strobeck" is a real, correctly-extracted name in this
+# corpus — HONORIFIC_ROSTER_RE relies on "Dr." being accepted). Real false
+# positives: "100 Park Avenue, Suite 1600" (1030143) and "7935 Stone Creek
+# Dr., Suite 120" (1029359) — both the firm's street address, not a person,
+# sitting directly under a cover-page marker with the street NUMBER consumed
+# by the optional page-number sub-pattern in COVER_PAGE_RE, leaving the
+# street NAME to be captured as if it were a name. Includes both full words
+# and the common abbreviated forms (a mechanical sweep of the full table
+# after the "Park Avenue" fix found the abbreviated forms had the exact same
+# problem: "Kehr Rd", "Congress Ave", "Davenport St").
+_TRAILING_ADDRESS_WORDS = {
+    "avenue", "ave", "street", "st", "boulevard", "blvd", "drive", "dr",
+    "road", "rd", "lane", "ln", "way", "plaza", "plz", "court", "ct",
+    "circle", "cir", "suite", "ste", "floor", "fl", "highway", "hwy",
+    "parkway", "pkwy", "place", "pl",
+    # Office-complex/building-name words, same false-positive family but
+    # without a plain street suffix ("El Camino Real, Suite 200..." — 999394;
+    # "Bay Colony Corporate Center \n 950 Winter Street North, Suite
+    # 4100..." — 1026873, itself another firm-wide "the Firm's employees"
+    # generic template with no per-person name nearby at all, same as
+    # 1029359 — rejecting the building name here is what lets the extractor
+    # fall through to bio_lead, which finds the real name at the very start
+    # of each person's own paragraph instead). Deliberately excludes common
+    # words that are also plausible surnames ("Park", "Tower") to avoid
+    # rejecting a real name that happens to end with one.
+    "real", "center", "corporate", "commons", "square", "campus", "building",
+    # US state abbreviations. Real false positive (1049380): "Brochure
+    # Supplement \n\n Gasaway Investment Advisors, Inc. \n Form ADV Part 2B \n
+    # Investment Advisor Brochure Supplement \n\n 7110 Stadium Drive \n
+    # Kalamazoo MI 49009..." — captured "Stadium Drive Kalamazoo MI" (the
+    # street name has no recognized suffix of its own here; the state code
+    # ending the "{City} {ST}" line right before the zip is what's
+    # recognizable and shared by every US mailing address). Two-letter,
+    # ALL-CAPS-in-source, and never a real trailing name component in this
+    # corpus — Roman-numeral name suffixes ("George A. Salter II") are a
+    # different, already-supported case and aren't affected: "ii"/"iv" aren't
+    # in this set.
+    "al", "ak", "az", "ar", "ca", "co", "ct", "de", "fl", "ga", "hi", "id",
+    "il", "in", "ia", "ks", "ky", "la", "me", "md", "ma", "mi", "mn", "ms",
+    "mo", "mt", "ne", "nv", "nh", "nj", "nm", "ny", "nc", "nd", "oh", "ok",
+    "or", "pa", "ri", "sc", "sd", "tn", "tx", "ut", "vt", "va", "wa", "wv",
+    "wi", "wy", "dc",
+    # Compass-direction suffixes on a street name ("Roselane Street NW",
+    # 1049933 — note "Street" itself doesn't catch this one since it isn't
+    # the last word). Two-letter only, for the same initial-collision reason
+    # state codes are: a single-letter trailing word ("N", "S") is already
+    # unconditionally stripped elsewhere as a probable initial, not rejected
+    # outright, so it's deliberately left out of this set.
+    "nw", "ne", "sw", "se",
 }
 
 # ---------------------------------------------------------------------------
@@ -358,6 +478,54 @@ _TRAILING_JUNK_WORDS = {
     "crd", "email", "phone", "tel", "fax", "website", "address", "date",
     "cfp", "cfa", "cpa", "mba", "cima", "chfc", "clu", "aif", "pfs", "ea",
     "jd", "crpc", "aams", "ricp", "cdfa",
+    # Job-title words directly abutting a name with no separator (a leading
+    # "For \n {Name} {Title}" cover-page layout — see _LEADING_JUNK_WORDS
+    # below for the "For" half of this — 1046362: "For Stephen L. Hyde
+    # President"; 1050391: "For Apurva Sahijwani Managing Director", "For
+    # Mrinal Malhotra Executive Director"). Stripped one word at a time, so
+    # a two-word title ("Managing Director") comes off in two passes.
+    "president", "director", "officer", "manager", "partner", "principal",
+    "chairman", "chairwoman", "executive", "associate", "chief", "managing",
+    "vice", "senior", "founder", "ceo", "coo", "cfo", "cco", "svp", "evp",
+    "avp",
+    # A "Name: {name}" bio-opening label (NAME_LABEL_LEAD_RE) runs directly
+    # into whatever immediately follows in the source with no punctuation
+    # NAME_TOKEN would stop at ("Name: Ryan Turbyfill Born: 1978" -> captures
+    # "...Turbyfill Born"; "Name: Dagean A. Larsen \n Year of Birth: 1983" ->
+    # captures "...Larsen Year").
+    "born", "year",
+    # "Mr. Jose Luis Turnes \n [address] \n Additional information about
+    # Mr. Turnes is available..." (1009503) — nothing but the address block
+    # separates the name from the next paragraph's leading "Additional", and
+    # NAME_TOKEN's 5-token cap wasn't reached before absorbing it too.
+    "additional",
+}
+
+# A leading junk word directly abutting a real name with no separator — the
+# mirror image of _TRAILING_JUNK_WORDS above. Real examples: "For \n Charles
+# Carlson" (1022763), "For \n Brian H. Noyes" (1033452) — a cover-page mailing
+# label ("For: {name}") rendered with the label word on its own line, so
+# NAME_TOKEN's greedy match swept it in as a first "name" token. Also catches
+# "The \n Mill 381 Brinton Lake Road..." (1047499, an office/building name,
+# not a person) — stripping "The" leaves the single word "Mill", which then
+# fails the two-word-minimum check in _looks_like_name rather than being
+# accepted as a real (very short) name. Job-title words catch the mirror
+# image of the trailing-title case above — the title sits before the name
+# instead of after (1042222: "...Principal Brenton Ernsbarger..." — an org
+# chart / roster line listing title then name with nothing between them and
+# the next person's own line). "Revised" catches a document-footer
+# date stamp that COVER_PAGE_RE's own date-skipping sub-pattern doesn't quite
+# reach (1025101: "...Brochure Supplement Revised March 24, 2026 vi Marr
+# Leisure" — the sub-pattern expects a bare "Month Day, Year", not "Revised
+# Month Day, Year", so it fails to match and falls through to NAME_TOKEN
+# capturing "Revised March" instead); stripping it leaves "March" alone,
+# which then fails the two-word minimum the same way "Mill" does above.
+_LEADING_JUNK_WORDS = {
+    "for", "the", "a", "an", "revised",
+    "president", "director", "officer", "manager", "partner", "principal",
+    "chairman", "chairwoman", "executive", "associate", "chief", "managing",
+    "vice", "senior", "founder", "ceo", "coo", "cfo", "cco", "svp", "evp",
+    "avp",
 }
 
 
@@ -384,6 +552,8 @@ def _clean_name(name: str) -> str:
         words[-1].lower() in _TRAILING_JUNK_WORDS or re.fullmatch(r"[A-Z]", words[-1])
     ):
         words.pop()
+    while len(words) > 1 and words[0].lower() in _LEADING_JUNK_WORDS:
+        words = words[1:]
     # A bare leading single letter with no period is never a real name's
     # first token in this corpus either — it's the tail end of an adjacent
     # word that NAME_TOKEN could only start matching from partway through
@@ -401,12 +571,71 @@ def _clean_name(name: str) -> str:
     half = len(words) // 2
     if half and words[:half] == words[half:]:
         words = words[:half]
+    # Same duplication, but with an honorific interposed instead of the name
+    # repeating back to back (969340, TITLE_LEAD_RE case: "Yu-Dong Chen Mr.
+    # Yu-Dong Chen was born..." -> captures "Yu-Dong Chen Mr. Yu-Dong Chen",
+    # an odd word count so the even-length check above doesn't fire). When an
+    # "Mr./Ms./Mrs./Dr." token splits the name into two equal, identical
+    # halves, keep the honorific-led half — it reads more naturally and
+    # matches how a bare "Mr. X" name is already shown elsewhere.
+    for i, w in enumerate(words):
+        if re.fullmatch(r"(?:Mr|Ms|Mrs|Dr)\.", w) and words[:i] == words[i + 1 :]:
+            words = words[i:]
+            break
+    # A narrower version of the same duplication, just one word instead of
+    # the whole name (1026715: "...Matthew David Kirr Kirr"; 1011596: "Dr.
+    # James P. Wells Wells") — a mechanical full-table sweep found these
+    # after the whole-name and honorific-split checks above had already
+    # covered the more common shapes. Collapses any immediately-repeated word
+    # (case-insensitively) to a single copy.
+    deduped = []
+    for w in words:
+        if not deduped or deduped[-1].lower() != w.lower():
+            deduped.append(w)
+    words = deduped
     return " ".join(words)
 
 
 def _looks_like_org(name: str) -> bool:
     words = {w.lower().strip(".,") for w in name.split()}
     return bool(words & ORG_WORDS)
+
+
+def _looks_like_address(name: str) -> bool:
+    # Checks every word except the first: a street-suffix word is usually
+    # last ("Park Avenue"), but a city name can trail it with nothing but a
+    # space between them once NAME_TOKEN has swallowed both ("62 Barry Avenue
+    # Ridgefield, CT 06877" -> captures "Barry Avenue Ridgefield", with the
+    # recognizable word "Avenue" stuck in the middle — 1010332). The first
+    # word is deliberately exempted so a real leading honorific isn't
+    # affected ("Dr. Strobeck" must keep working; see HONORIFIC_ROSTER_RE).
+    words = name.split()
+    return any(w.lower().strip(".,") in _TRAILING_ADDRESS_WORDS for w in words[1:])
+
+
+# A real person's name in this corpus is built from full words (even when
+# the whole name is rendered in caps, e.g. "WYATT EVAN LEWIS" — every word is
+# still a real word). A firm's own short-form name or initialism is usually
+# built from several bare, period-free abbreviations instead ("KP FA",
+# 1042999: "...Additional information about KP FA is also available..." —
+# the firm's own short name, matched by INFO_ABOUT_RE because it fits the
+# same sentence shape as a real person's; "WGI DM", 1028542, the firm's name
+# directly preceding the real person's own name with nothing but whitespace
+# between them, same family as the address/building-name bugs above). A
+# single such token is allowed (it can be a real initial without a period,
+# "Robert K Draper"); two or more marks the whole thing as an abbreviation,
+# not a name.
+_ABBREVIATION_RE = re.compile(r"^[A-Z]{2,3}$")
+_KNOWN_SUFFIXES = {"jr", "sr", "ii", "iii", "iv", "v", "vi"}
+
+
+def _looks_like_abbreviation(name: str) -> bool:
+    hits = sum(
+        1
+        for w in name.split()
+        if _ABBREVIATION_RE.match(w) and w.lower() not in _KNOWN_SUFFIXES
+    )
+    return hits >= 2
 
 
 # Final plausibility gate applied to every accepted name, regardless of which
@@ -428,7 +657,12 @@ def _looks_like_name(name: str) -> bool:
 
 
 def _valid_name(name: str) -> bool:
-    return _looks_like_name(name) and not _looks_like_org(name)
+    return (
+        _looks_like_name(name)
+        and not _looks_like_org(name)
+        and not _looks_like_address(name)
+        and not _looks_like_abbreviation(name)
+    )
 
 
 TOC_LOOKAHEAD_CHARS = 180  # a multi-segment dot leader (see TOC_LEADER) can run past 100 chars (1030119)
@@ -527,6 +761,10 @@ def _find_name(preceding: str, bio_start: str) -> tuple[str, str] | tuple[None, 
         # this tier's match, the shorter, address-free one wins.
         return _shorter_if_prefix(supervised, info_about), "supervised_label"
 
+    biographical = _tier_match(BIOGRAPHICAL_INFO_RE, tail)
+    if biographical:
+        return biographical, "biographical_info"
+
     cover_page = _tier_match(COVER_PAGE_RE, tail)
     if cover_page:
         # Real false positive (1030959): the cover page sometimes has
@@ -540,11 +778,36 @@ def _find_name(preceding: str, bio_start: str) -> tuple[str, str] | tuple[None, 
         # words, so the shorter, agreed-upon name wins here too.
         return _shorter_if_prefix(cover_page, info_about), "cover_page"
 
-    m = BIO_LEAD_RE.match(bio_start)
-    if m:
-        name = _clean_name(m.group(1))
-        if _valid_name(name):
-            return name, "bio_lead"
+    for pattern, tier, anchored in (
+        (BIO_LEAD_RE, "bio_lead", True),
+        # These three all search rather than match at position 0: real
+        # documents very often open Item 2 with the SEC's own unfilled
+        # instructional boilerplate, or a generic firm policy statement,
+        # before the actual name (1009636: "This section of the brochure
+        # supplement includes the supervised person's name, age (or year of
+        # birth)... Name: Tara A. Sanders Year of Birth: 1971..." — 200+
+        # characters of template text before the label; 1049380: "We
+        # generally require that employees involved in making investment
+        # decisions... James E. Gasaway        Born 1970..." — same shape, no
+        # label at all, just the bare name + cue further into the section).
+        # Each searches for a specific enough cue that the wider window is
+        # safe: BIO_LEAD_SEARCH_RE deliberately drops BIO_LEAD_RE's bare
+        # "[-–(]" cue for exactly this reason — unanchored, that alternative
+        # matched ordinary institution names ("Biola University (La Mirada,
+        # CA)") as if they were a person. TITLE_LEAD_RE stays anchored to
+        # position 0 since it's the loosest pattern here (any phrase built
+        # from a short closed set of title words), where unanchored search
+        # would risk matching an unrelated title-word mention deeper in
+        # boilerplate that isn't actually introducing the person's name.
+        (BIO_LEAD_SEARCH_RE, "bio_lead", False),
+        (NAME_LABEL_LEAD_RE, "bio_lead", False),
+        (TITLE_LEAD_RE, "bio_lead", True),
+    ):
+        m = pattern.match(bio_start) if anchored else pattern.search(bio_start)
+        if m:
+            name = _clean_name(m.group(1))
+            if _valid_name(name):
+                return name, tier
 
     if info_about:
         return info_about, "info_about"
@@ -636,7 +899,7 @@ def find_bios(text: str) -> list[dict]:
             continue
 
         preceding = flat[prev_end : m.start()]
-        bio_start = flat[m.end() : m.end() + 150]
+        bio_start = flat[m.end() : m.end() + 400]
         name, _tier = _find_name(preceding, bio_start)
         prev_end = m.end()
         if not name:
@@ -649,7 +912,47 @@ def find_bios(text: str) -> list[dict]:
 
         records.append({"name": name, "crd": _find_crd(preceding), "bio": bio})
 
-    return records
+    return _drop_duplicate_bios(records)
+
+
+def _drop_duplicate_bios(records: list[dict]) -> list[dict]:
+    """Final backstop: drop every record whose bio text is byte-identical to
+    another record's in the same document.
+
+    Real false positive (1029359, "Vestment Financial LLC"): six genuinely
+    separate Item 2 headings, one per real supervised person, but the filer
+    put the exact same boilerplate policy statement ("We require that
+    employees that provide investment advice have a bachelor's degree...")
+    under every single one instead of writing individual bios — combined
+    with no name tier finding a real name for any of them (falling through
+    to an address fragment before the address guards above existed), this
+    produced six identical, non-distinguishing fake records. Even with the
+    name bugs fixed, duplicate bio text within one document is never a real,
+    individually-attributable biography — it's boilerplate, a template that
+    wasn't filled in, or an extraction/splitting bug — so none of the copies
+    are shown rather than guessing which (if any) name goes with real content.
+    """
+    bio_counts: dict[str, int] = {}
+    for r in records:
+        bio_counts[r["bio"]] = bio_counts.get(r["bio"], 0) + 1
+    records = [r for r in records if bio_counts[r["bio"]] == 1]
+
+    # Second half of the same backstop, the mirror-image failure: the SAME
+    # name attached to several DIFFERENT bios in one document. Real example
+    # (1035157, "Buckhead Capital Management"): the filer's own "This
+    # Brochure Supplement provides information about {name} that
+    # supplements..." sentence says "Walter DuPre" ahead of all eleven
+    # supervised persons' sections, not just his own — a genuine error in the
+    # source filing itself, not a bug in this extractor, but the visible
+    # symptom is identical either way: one name suddenly "has" eleven
+    # unrelated biographies. A real person is only listed once per document,
+    # so 2+ distinct bios sharing one name is exactly as strong a signal as
+    # 2+ copies of one bio sharing different names above, and gets the same
+    # treatment — drop every copy rather than guess which, if any, is right.
+    name_counts: dict[str, int] = {}
+    for r in records:
+        name_counts[r["name"]] = name_counts.get(r["name"], 0) + 1
+    return [r for r in records if name_counts[r["name"]] == 1]
 
 
 # ---------------------------------------------------------------------------
