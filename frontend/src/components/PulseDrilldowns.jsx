@@ -1,6 +1,6 @@
 import { navigate, pulsePath } from '../router.js'
 import { MethodologyFootnote, PulseDisclaimer, TrendLine } from './PulsePage.jsx'
-import { fmtCompactUsd, fmtCount, fmtQuarter, usePulseStats } from '../pulse.js'
+import { concentrationSeries, fmtCompactUsd, fmtCount, fmtPct, fmtQuarter, usePulseStats } from '../pulse.js'
 
 function PulseBackLink() {
   const path = pulsePath()
@@ -112,34 +112,36 @@ export function DrilldownAssets() {
   return (
     <DrilldownShell
       title="Assets & AUM bands"
-      tagline="Aggregate scale, the middle of the market, and movement between size bands."
-      methodology={['raum', 'median_aum']}
+      tagline="The middle of the market, concentration at the top, and movement between size bands."
+      methodology={['concentration', 'median_aum']}
     >
       {(stats) => {
         const { series, band_migration: migration } = stats
         const latest = series[series.length - 1]
+        const shares = concentrationSeries(series)
         return (
           <>
             <div className="detail-card">
-              <h2>Aggregate & median regulatory AUM</h2>
+              <h2>Median firm AUM & concentration</h2>
               <table className="pulse-table">
                 <thead>
-                  <tr><th>Quarter</th><th className="num">Aggregate RAUM</th><th className="num">Median firm AUM</th><th className="num">Firms</th></tr>
+                  <tr><th>Quarter</th><th className="num">Median firm AUM</th><th className="num">AUM share at $1B+ firms</th><th className="num">Firms</th></tr>
                 </thead>
                 <tbody>
-                  {series.map((s) => (
+                  {series.map((s, i) => (
                     <tr key={s.quarter}>
                       <td>{qLabel(s)}</td>
-                      <td className="num">{fmtCompactUsd(s.raum)}</td>
                       <td className="num">{fmtCompactUsd(s.median_aum)}</td>
+                      <td className="num">{fmtPct(shares[i])}</td>
                       <td className="num">{fmtCount(s.firms)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               <p className="detail-note">
-                Aggregate RAUM double-counts fund complexes and sub-advised assets — read it as a
-                trend index, not distinct client wealth.
+                No gross AUM total is shown: summed regulatory AUM double-counts fund complexes
+                and sub-advised assets, so a concentration ratio and the median are the honest
+                scale measures here.
               </p>
             </div>
 

@@ -59,3 +59,28 @@ describe('deltaView', () => {
     expect(v.tone).toBe('flat')
   })
 })
+
+describe('concentration', () => {
+  it('computes $1B+ share from band sums, with deltas', async () => {
+    const { concentrationSeries, concentrationKpi } = await import('./pulse.js')
+    const q = (small, big) => ({
+      bands: [
+        { id: 'lt100m', raum: small / 2 },
+        { id: '100m-1b', raum: small / 2 },
+        { id: '1b-10b', raum: big / 2 },
+        { id: '10b+', raum: big / 2 },
+      ],
+    })
+    const series = [q(20, 80), q(10, 90)] // 80% then 90%
+    expect(concentrationSeries(series)).toEqual([0.8, 0.9])
+    const kpi = concentrationKpi(series)
+    expect(kpi.value).toBe(0.9)
+    expect(kpi.qoq).toBeCloseTo(0.125)
+    expect(kpi.yoy).toBeNull() // fewer than 5 quarters
+  })
+
+  it('returns null share when a quarter has no band totals', async () => {
+    const { concentrationSeries } = await import('./pulse.js')
+    expect(concentrationSeries([{ bands: [{ id: '10b+', raum: 0 }] }])).toEqual([null])
+  })
+})

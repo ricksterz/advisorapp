@@ -63,6 +63,27 @@ export function deltaView(delta, { goodWhenDown = false } = {}) {
   }
 }
 
+// Share of reported AUM held by $1B+ firms, per quarter — computed from the
+// per-band sums already in the series (no gross total is ever rendered).
+export function concentrationSeries(series) {
+  return series.map((s) => {
+    const total = s.bands.reduce((sum, b) => sum + (b.raum ?? 0), 0)
+    const big = s.bands
+      .filter((b) => b.id === '1b-10b' || b.id === '10b+')
+      .reduce((sum, b) => sum + (b.raum ?? 0), 0)
+    return total ? big / total : null
+  })
+}
+
+export function concentrationKpi(series) {
+  const vals = concentrationSeries(series)
+  const curr = vals[vals.length - 1]
+  const prevQ = vals.length >= 2 ? vals[vals.length - 2] : null
+  const prevY = vals.length >= 5 ? vals[vals.length - 5] : null
+  const delta = (a, b) => (a == null || b == null || b === 0 ? null : (a - b) / b)
+  return { value: curr, qoq: delta(curr, prevQ), yoy: delta(curr, prevY) }
+}
+
 // One registry entry per metric: definition line shown on the KPI card and
 // the fuller methodology footnote, so the copy can't drift between surfaces.
 export const PULSE_META = {
@@ -72,12 +93,11 @@ export const PULSE_META = {
     methodology:
       'Reconstructed per quarter-end from the SEC’s monthly Form ADV filing archives: each firm’s latest filing on or before the quarter-end, no older than 15 months, excluding firms that had filed Form ADV-W (withdrawal) by that date.',
   },
-  raum: {
-    label: 'Aggregate regulatory AUM',
-    definition:
-      'Gross regulatory AUM summed across firms — double-counts fund complexes and sub-advised assets; treat as an index of scale, not real client wealth.',
+  concentration: {
+    label: 'Share of AUM at $1B+ firms',
+    definition: 'How much of all reported regulatory AUM sits at firms managing $1B or more.',
     methodology:
-      'Sum of Form ADV Item 5.F regulatory AUM over all firms in the quarter snapshot. Related advisers within one complex each file separately and sub-advised assets can appear at both the adviser and sub-adviser, so this gross total materially overstates distinct client assets. It is presented for trend comparison, in the same spirit as the SEC’s own aggregate statistics.',
+      'Regulatory AUM at firms with ≥$1B, divided by regulatory AUM across all firms in the quarter snapshot. No gross aggregate total is shown anywhere on this site: summed regulatory AUM double-counts fund complexes (related advisers file separately) and sub-advised assets (which can appear at both the adviser and sub-adviser), so the total materially overstates distinct client assets — a concentration ratio is comparatively robust to that double-counting because it inflates numerator and denominator together.',
   },
   median_aum: {
     label: 'Median firm AUM',

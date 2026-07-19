@@ -1,6 +1,7 @@
 import { navigate, pulsePath } from '../router.js'
 import {
   PULSE_META,
+  concentrationKpi,
   deltaView,
   fmtCompactUsd,
   fmtCount,
@@ -110,7 +111,8 @@ export default function PulsePage() {
   const { kpis, series, as_of: asOf } = stats
   const latest = series[series.length - 1]
   const firmSeries = series.map((s) => s.firms)
-  const raumSeries = series.map((s) => s.raum)
+  const medianSeries = series.map((s) => s.median_aum)
+  const concentration = concentrationKpi(series)
 
   return (
     <section className="pulse" aria-label="Industry Pulse">
@@ -122,7 +124,7 @@ export default function PulsePage() {
 
       <div className="kpi-strip">
         <KpiCard metric="firms" value={kpis.firms.value} kpi={kpis.firms} format={fmtCount} asOf={asOf} />
-        <KpiCard metric="raum" value={kpis.raum.value} kpi={kpis.raum} format={fmtCompactUsd} asOf={asOf} />
+        <KpiCard metric="concentration" value={concentration.value} kpi={concentration} format={fmtPct} asOf={asOf} />
         <KpiCard metric="median_aum" value={kpis.median_aum.value} kpi={kpis.median_aum} format={fmtCompactUsd} asOf={asOf} />
         <KpiCard
           metric="pct_disclosure"
@@ -149,12 +151,12 @@ export default function PulsePage() {
         <CategoryTile
           section="assets"
           title="Assets & AUM bands"
-          stat={`${fmtCompactUsd(latest.raum)} aggregate · median ${fmtCompactUsd(latest.median_aum)}`}
-          series={raumSeries}
+          stat={`median ${fmtCompactUsd(latest.median_aum)} · ${fmtPct(concentration.value)} of AUM at $1B+ firms`}
+          series={medianSeries}
         />
       </div>
 
-      <MethodologyFootnote metrics={['firms', 'raum', 'median_aum', 'pct_disclosure', 'registrations']} />
+      <MethodologyFootnote metrics={['firms', 'concentration', 'median_aum', 'pct_disclosure', 'registrations']} />
     </section>
   )
 }
