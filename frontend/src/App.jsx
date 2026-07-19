@@ -276,6 +276,13 @@ export default function App() {
           Open Disclosure
         </a>
         <span className="spacer" />
+        <a
+          className={`topbar-link${pulse != null ? ' active' : ''}`}
+          href={pulsePath()}
+          onClick={(e) => navigate(e, pulsePath())}
+        >
+          Pulse
+        </a>
         {data && <span className="snapshot">SEC Form ADV · snapshot {data.generated_at.slice(0, 10)}</span>}
         <button
           type="button"

@@ -1338,3 +1338,21 @@ tbody tr:hover {
 .compare-item.compare-worse strong {
   color: var(--critical);
 }
+
+.topbar-link {
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: 13.5px;
+  padding: 5px 10px;
+  border-radius: 8px;
+}
+
+.topbar-link:hover {
+  color: var(--ink);
+  background: var(--hover-wash);
+}
+
+.topbar-link.active {
+  color: var(--ink);
+  background: var(--accent-track);
+}
