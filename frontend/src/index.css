@@ -80,6 +80,9 @@ select {
   gap: 10px;
   font-weight: 600;
   letter-spacing: -0.01em;
+  /* the brand is a home link; keep it looking like the wordmark, not a link */
+  color: var(--ink);
+  text-decoration: none;
 }
 
 .brand-mark {

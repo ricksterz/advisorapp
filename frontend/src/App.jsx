@@ -9,7 +9,7 @@ import { configFromLocation, urlForConfig } from './benchmarking/url.js'
 import MethodologyPanel from './components/MethodologyPanel.jsx'
 import FirmDetail, { websiteHost } from './components/FirmDetail.jsx'
 import DealPatternsSection from './components/DealPatternsSection.jsx'
-import { firmPath, navigate, useFirmRoute } from './router.js'
+import { BASE, firmPath, navigate, useFirmRoute } from './router.js'
 import { DEAL_FLAG_DEFS, useAllDealFlags } from './dealFlags.js'
 import { computeDealPatterns } from './dealPatterns.js'
 
@@ -253,10 +253,10 @@ export default function App() {
   return (
     <>
       <header className="topbar">
-        <span className="brand">
+        <a className="brand" href={BASE} onClick={(e) => navigate(e, BASE)} aria-label="Open Disclosure home">
           <img className="brand-mark" src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" />
           Open Disclosure
-        </span>
+        </a>
         <span className="spacer" />
         {data && <span className="snapshot">SEC Form ADV · snapshot {data.generated_at.slice(0, 10)}</span>}
         <button
