@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { staffOf } from '../benchmarking/factors.js'
+import { percentiler } from '../benchmarking/engine.js'
 import { BASE, navigate } from '../router.js'
 import { DEAL_FLAG_DEFS, useDealFlags } from '../dealFlags.js'
 
@@ -154,6 +155,62 @@ function usePageMeta(firm) {
   }, [firm])
 }
 
+// "How does this compare?" — live percentile ranks vs same-AUM-band peers,
+// computed client-side with the ranking engine's own percentiler (read-only
+// reuse; no ranking behavior is touched). Bands match the app's canonical
+// $100M/$1B/$10B cut points.
+const bandOf = (aum) => {
+  const v = aum ?? 0
+  if (v >= 1e10) return '$10B+'
+  if (v >= 1e9) return '$1B–$10B'
+  if (v >= 1e8) return '$100M–$1B'
+  return 'under $100M'
+}
+
+function CompareStrip({ firm, allFirms }) {
+  if (!allFirms?.length) return null
+  const band = bandOf(firm.aum_total)
+  const peers = allFirms.filter((f) => bandOf(f.aum_total) === band)
+  if (peers.length < 10) return null // a percentile over a handful of peers is noise
+
+  const staff = staffOf(firm)
+  const metrics = [
+    {
+      label: 'AUM',
+      pct: percentiler(peers.map((f) => f.aum_total))(firm.aum_total),
+      have: firm.aum_total != null,
+    },
+    {
+      label: 'AUM per professional',
+      pct: percentiler(peers.map((f) => (staffOf(f) > 0 ? f.aum_total / staffOf(f) : NaN)))(
+        staff > 0 ? firm.aum_total / staff : NaN,
+      ),
+      have: staff > 0 && firm.aum_total != null,
+    },
+  ]
+  const peerDisclosures = peers.map((f) => f.disciplinary_flag_count ?? 0).sort((a, b) => a - b)
+  const medianDisclosures = peerDisclosures[Math.floor(peerDisclosures.length / 2)]
+
+  return (
+    <div className="compare-strip">
+      <span className="compare-title">vs {peers.length.toLocaleString()} peers ({band}):</span>
+      {metrics.filter((m) => m.have).map((m) => (
+        <span key={m.label} className="compare-item">
+          {m.label} <strong>{Math.round(m.pct * 100)}th</strong> pctile
+        </span>
+      ))}
+      <span
+        className={`compare-item ${
+          (firm.disciplinary_flag_count ?? 0) > medianDisclosures ? 'compare-worse' : ''
+        }`}
+      >
+        Disclosures <strong>{firm.disciplinary_flag_count ?? 0}</strong> vs median{' '}
+        {medianDisclosures}
+      </span>
+    </div>
+  )
+}
+
 function BackLink() {
   return (
     <a className="back-link" href={BASE} onClick={(e) => navigate(e, BASE)}>
@@ -171,7 +228,7 @@ function OutboundLink({ href, children, sub }) {
   )
 }
 
-export default function FirmDetail({ firm, crd }) {
+export default function FirmDetail({ firm, crd, allFirms }) {
   const docs = useFirmDocs(crd)
   usePageMeta(firm)
 
@@ -203,6 +260,7 @@ export default function FirmDetail({ firm, crd }) {
           CRD {firm.crd}
           {firm.state && <> · {firm.state}</>}
         </p>
+        <CompareStrip firm={firm} allFirms={allFirms} />
       </div>
 
       <div className="doc-links">

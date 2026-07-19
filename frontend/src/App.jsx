@@ -9,7 +9,9 @@ import { configFromLocation, urlForConfig } from './benchmarking/url.js'
 import MethodologyPanel from './components/MethodologyPanel.jsx'
 import FirmDetail, { websiteHost } from './components/FirmDetail.jsx'
 import DealPatternsSection from './components/DealPatternsSection.jsx'
-import { BASE, firmPath, navigate, useFirmRoute } from './router.js'
+import PulsePage from './components/PulsePage.jsx'
+import { DrilldownAdvisers, DrilldownAssets } from './components/PulseDrilldowns.jsx'
+import { BASE, firmPath, navigate, pulsePath, useRoute } from './router.js'
 import { DEAL_FLAG_DEFS, useAllDealFlags } from './dealFlags.js'
 import { computeDealPatterns } from './dealPatterns.js'
 
@@ -163,9 +165,25 @@ function RankCard({ title, sub, children }) {
   )
 }
 
+const PULSE_TITLES = {
+  '': 'Industry Pulse',
+  advisers: 'Adviser counts & growth — Industry Pulse',
+  assets: 'Assets & AUM bands — Industry Pulse',
+}
+
 export default function App() {
   const [theme, setTheme] = useTheme()
-  const firmCrd = useFirmRoute()
+  const { firmCrd, pulse } = useRoute()
+
+  useEffect(() => {
+    // Firm pages manage their own title (usePageMeta); pulse routes here.
+    if (pulse == null) return undefined
+    const prev = document.title
+    document.title = `${PULSE_TITLES[pulse] ?? PULSE_TITLES['']} · Open Disclosure`
+    return () => {
+      document.title = prev
+    }
+  }, [pulse])
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
   const [query, setQuery] = useState('')
@@ -274,8 +292,12 @@ export default function App() {
           {error && <div className="state error">{error}</div>}
           {!error && !data && <div className="state">Loading firm data…</div>}
           {data && (
-            <FirmDetail firm={data.firms.find((f) => f.crd === firmCrd)} crd={firmCrd} />
+            <FirmDetail firm={data.firms.find((f) => f.crd === firmCrd)} crd={firmCrd} allFirms={data.firms} />
           )}
+        </main>
+      ) : pulse != null ? (
+        <main className="shell">
+          {pulse === 'advisers' ? <DrilldownAdvisers /> : pulse === 'assets' ? <DrilldownAssets /> : <PulsePage />}
         </main>
       ) : (
       <>
@@ -313,6 +335,14 @@ export default function App() {
             />
           </section>
         )}
+
+        <a className="pulse-banner" href={pulsePath()} onClick={(e) => navigate(e, pulsePath())}>
+          <span className="pulse-banner-title">Industry Pulse →</span>
+          <span className="pulse-banner-sub">
+            Quarterly statistics on the adviser industry: registrations, assets, size-band
+            migration, and disclosure trends.
+          </span>
+        </a>
 
         <DealPatternsSection patterns={dealPatterns} />
 

@@ -24,7 +24,10 @@ def generate(data_path: Path, site: str, out_dir: Path) -> int:
     site = site.rstrip("/")
     lastmod = (payload.get("generated_at") or datetime.now(timezone.utc).isoformat())[:10]
 
-    urls = [f"{site}/"] + [f"{site}/firm/{f['crd']}" for f in payload["firms"]]
+    static_pages = ["", "pulse", "pulse/advisers", "pulse/assets"]
+    urls = [f"{site}/{p}".rstrip("/") + ("/" if not p else "") for p in static_pages] + [
+        f"{site}/firm/{f['crd']}" for f in payload["firms"]
+    ]
     if len(urls) > SITEMAP_URL_LIMIT:
         # 50K is the per-file protocol cap; revisit with a sitemap index if the
         # registered-adviser universe ever approaches it (currently ~17K).

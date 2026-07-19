@@ -21,22 +21,29 @@ export function navigate(e, path) {
   window.dispatchEvent(new PopStateEvent('popstate'))
 }
 
-function parseFirmCrd() {
+export const pulsePath = (section = '') => `${BASE}pulse${section ? `/${section}` : ''}`
+
+// Route shape: { firmCrd: number|null, pulse: string|null } — pulse is ''
+// for /pulse itself, or the drill-down segment ('advisers', 'assets', ...).
+function parseRoute() {
   const legacy = window.location.hash.match(/^#\/firm\/(\d+)/)
   if (legacy) {
     window.history.replaceState(null, '', firmPath(legacy[1]) + window.location.search)
-    return Number(legacy[1])
+    return { firmCrd: Number(legacy[1]), pulse: null }
   }
   const path = window.location.pathname
   const rel = path.startsWith(BASE) ? path.slice(BASE.length) : path.replace(/^\//, '')
-  const m = rel.match(/^firm\/(\d+)/)
-  return m ? Number(m[1]) : null
+  const firm = rel.match(/^firm\/(\d+)/)
+  if (firm) return { firmCrd: Number(firm[1]), pulse: null }
+  const pulse = rel.match(/^pulse(?:\/([a-z-]+))?\/?$/)
+  if (pulse) return { firmCrd: null, pulse: pulse[1] ?? '' }
+  return { firmCrd: null, pulse: null }
 }
 
-export function useFirmRoute() {
-  const [firmCrd, setFirmCrd] = useState(parseFirmCrd)
+export function useRoute() {
+  const [route, setRoute] = useState(parseRoute)
   useEffect(() => {
-    const onChange = () => setFirmCrd(parseFirmCrd())
+    const onChange = () => setRoute(parseRoute())
     window.addEventListener('popstate', onChange)
     window.addEventListener('hashchange', onChange)
     return () => {
@@ -46,6 +53,11 @@ export function useFirmRoute() {
   }, [])
   useEffect(() => {
     window.scrollTo(0, 0)
-  }, [firmCrd])
-  return firmCrd
+  }, [route.firmCrd, route.pulse])
+  return route
+}
+
+// Back-compat alias for existing callers that only care about the firm route.
+export function useFirmRoute() {
+  return useRoute().firmCrd
 }
