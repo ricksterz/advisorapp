@@ -62,6 +62,53 @@ CREATE TABLE IF NOT EXISTS advisors (
     prior_firm_crds     VARCHAR                   -- comma-separated prior firm CRDs
 );
 
+-- ---------------------------------------------------------------------------
+-- Industry Pulse (etl/pulse_history.py + etl/pulse_stats.py).
+--
+-- adv_filings holds individual Form ADV filings from the SEC's monthly
+-- advFilingData archives (one row per filing, NOT per firm — an adviser can
+-- file multiple amendments). firm_snapshots is derived from it: each CRD's
+-- latest filing on or before a quarter-end, within a staleness window —
+-- because the monthly archives are filing windows, not universe snapshots,
+-- this reconstruction is the only way to get point-in-time quarterly state.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS adv_filings (
+    filing_id           BIGINT PRIMARY KEY,
+    crd                 BIGINT,
+    legal_name          VARCHAR,
+    date_submitted      DATE,
+    state               VARCHAR,
+    aum_total           DOUBLE,
+    aum_discretionary   DOUBLE,
+    employees_advisory  BIGINT,
+    fee_pct_of_aum      BOOLEAN,
+    fee_performance_based BOOLEAN,
+    fee_commissions     BOOLEAN,
+    disciplinary_flag_count INTEGER,
+    source_archive      VARCHAR                   -- e.g. ADV_Filing_Data_20260601_20260630.zip
+);
+
+CREATE TABLE IF NOT EXISTS adv_withdrawals (
+    filing_id           BIGINT PRIMARY KEY,       -- Form ADV-W filing
+    crd                 BIGINT,
+    filing_date         DATE,
+    source_archive      VARCHAR
+);
+
+CREATE TABLE IF NOT EXISTS firm_snapshots (
+    snapshot_quarter    DATE,                     -- quarter-end date
+    crd                 BIGINT,
+    aum_total           DOUBLE,
+    aum_discretionary   DOUBLE,
+    employees_advisory  BIGINT,
+    state               VARCHAR,
+    fee_pct_of_aum      BOOLEAN,
+    fee_performance_based BOOLEAN,
+    fee_commissions     BOOLEAN,
+    disciplinary_flag_count INTEGER,
+    PRIMARY KEY (snapshot_quarter, crd)
+);
+
 CREATE TABLE IF NOT EXISTS deal_structuring (
     firm_crd            BIGINT,                   -- FK -> firms.crd
     source_document     VARCHAR,                  -- brochure filename / URL

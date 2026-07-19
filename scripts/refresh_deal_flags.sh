@@ -53,3 +53,8 @@ echo
 echo "Done. Review the diff, then:"
 echo "  git add frontend/public/deal_flags.json frontend/public/sitemap.xml frontend/public/robots.txt"
 echo "  git commit -m 'Refresh brochure corpus and sitemap'"
+
+echo "== 5/5 refreshing Industry Pulse (monthly archives -> snapshots -> stats) =="
+$PY -m etl.pulse_history run --db data/advisor.duckdb
+$PY -m etl.pulse_stats --db data/advisor.duckdb --out frontend/public/pulse_stats.json
+echo "  also: git add frontend/public/pulse_stats.json"
