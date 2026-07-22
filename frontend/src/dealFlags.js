@@ -24,9 +24,10 @@ export const DEAL_FLAG_DEFS = [
   },
   {
     id: 'gp',
-    label: 'Affiliated GP / LP',
+    label: 'Affiliated GP / LP (General Partner / Limited Partner)',
     short: 'GP',
-    description: 'brochure language about affiliates serving as fund general partners',
+    description:
+      'brochure language about affiliates serving as fund general partners (the entity that manages the fund) or limited partners (passive investors in it)',
     evidenceKey: 'affiliated_gp_lp',
   },
 ]
