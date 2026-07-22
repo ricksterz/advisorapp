@@ -21,17 +21,24 @@ SITE="https://open-disclosure.com"
 TMP_FIRMS="$(mktemp -t open-disclosure-firms).json"
 trap 'rm -f "$TMP_FIRMS"' EXIT
 
-echo "== 1/4 fetching the latest ADV feed =="
+echo "== 1/7 fetching the latest ADV feed =="
 $PY -m etl.fetch_latest --dest data/raw/latest_adv.xml.gz
 $PY -m etl.ingest_adv --input data/raw/latest_adv.xml.gz --db data/advisor.duckdb
 
-echo "== 2/4 refreshing the brochure corpus (rescans every firm for new/changed brochures) =="
+echo "== 2/7 refreshing the brochure corpus (rescans every firm for new/changed brochures) =="
 $PY -m etl.brochures run --db data/advisor.duckdb --rescan
 
-echo "== 3/4 exporting deal_flags.json =="
-$PY -m etl.export_json --db data/advisor.duckdb --out "$TMP_FIRMS" --flags-out frontend/public/deal_flags.json
+echo "== 3/7 extracting advisor bios from newly-cached brochures (Part 2B) =="
+$PY -m etl.advisor_bios run --db data/advisor.duckdb
 
-echo "== 4/4 regenerating sitemap.xml + robots.txt =="
+echo "== 4/7 refreshing individual disclosure flags (bulk IA_INDVL_Feed) =="
+$PY -m etl.individual_disclosures run --db data/advisor.duckdb
+
+echo "== 5/7 exporting deal_flags.json + advisor_bios.json =="
+$PY -m etl.export_json --db data/advisor.duckdb --out "$TMP_FIRMS" \
+    --flags-out frontend/public/deal_flags.json --bios-out frontend/public/advisor_bios.json
+
+echo "== 6/7 regenerating sitemap.xml + robots.txt =="
 $PY -m etl.gen_sitemap --data "$TMP_FIRMS" --site "$SITE" --out /tmp/sitemap_out
 $PY - "$SITE" <<'PYEOF'
 import sys
@@ -49,12 +56,12 @@ Path("frontend/public/sitemap.xml").write_text(decl + "\n" + comment + rest)
 Path("frontend/public/robots.txt").write_text(Path("/tmp/sitemap_out/robots.txt").read_text())
 PYEOF
 
-echo
-echo "Done. Review the diff, then:"
-echo "  git add frontend/public/deal_flags.json frontend/public/sitemap.xml frontend/public/robots.txt"
-echo "  git commit -m 'Refresh brochure corpus and sitemap'"
-
-echo "== 5/5 refreshing Industry Pulse (monthly archives -> snapshots -> stats) =="
+echo "== 7/7 refreshing Industry Pulse (monthly archives -> snapshots -> stats) =="
 $PY -m etl.pulse_history run --db data/advisor.duckdb
 $PY -m etl.pulse_stats --db data/advisor.duckdb --out frontend/public/pulse_stats.json
-echo "  also: git add frontend/public/pulse_stats.json"
+
+echo
+echo "Done. Review the diff, then:"
+echo "  git add frontend/public/deal_flags.json frontend/public/advisor_bios.json \\"
+echo "          frontend/public/sitemap.xml frontend/public/robots.txt frontend/public/pulse_stats.json"
+echo "  git commit -m 'Refresh brochure corpus, advisor bios, and sitemap'"

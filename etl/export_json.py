@@ -20,6 +20,7 @@ from pathlib import Path
 import duckdb
 
 from etl.config import DB_PATH, REPO_ROOT
+from etl.individual_disclosures import DRP_ATTRS
 
 DEFAULT_OUT = REPO_ROOT / "frontend" / "public" / "firms.json"
 DEFAULT_FLAGS_OUT = REPO_ROOT / "frontend" / "public" / "deal_flags.json"
@@ -129,6 +130,13 @@ def export_advisor_bios(db_path: Path, out_path: Path) -> int:
     this file is committed and only rewritten when the local database
     actually has rows — an empty/missing table leaves the committed file
     untouched instead of clobbering it with nothing.
+
+    Individual disclosure flags (etl/individual_disclosures.py) are joined in
+    by CRD when present, so the frontend needs no second fetch. That table is
+    independent of the brochure corpus (a bulk SEC feed, not PDF-derived) and
+    may be empty or missing even when advisors has rows — looked up
+    separately so a stale/absent individual_disclosures table never blocks
+    the bios export itself.
     """
     con = duckdb.connect(str(db_path), read_only=True)
     try:
@@ -143,23 +151,42 @@ def export_advisor_bios(db_path: Path, out_path: Path) -> int:
             ).fetchall()
         except duckdb.CatalogException:
             rows = []
+        try:
+            disclosure_rows = con.execute(
+                f"""
+                SELECT crd, {', '.join(DRP_ATTRS)}, flag_count, iapd_link
+                FROM individual_disclosures
+                """  # nosec B608 - DRP_ATTRS is a fixed module-level constant, not input
+            ).fetchall()
+        except duckdb.CatalogException:
+            disclosure_rows = []
     finally:
         con.close()
     if not rows:
         print("no advisors data in this database — advisor bios export skipped")
         return 0
 
+    disclosures_by_crd = {
+        r[0]: {
+            "flags": {attr: bool(v) for attr, v in zip(DRP_ATTRS, r[1:-2])},
+            "flag_count": r[-2],
+            "iapd_link": r[-1],
+        }
+        for r in disclosure_rows
+    }
+
     firms: dict[str, list[dict]] = {}
     for firm_crd, full_name, crd, bio_text, source_version_id, source_name in rows:
-        firms.setdefault(str(firm_crd), []).append(
-            {
-                "name": full_name,
-                "crd": crd,
-                "bio": bio_text,
-                "source_version_id": source_version_id,
-                "source_name": source_name,
-            }
-        )
+        entry = {
+            "name": full_name,
+            "crd": crd,
+            "bio": bio_text,
+            "source_version_id": source_version_id,
+            "source_name": source_name,
+        }
+        if crd in disclosures_by_crd:
+            entry["disclosures"] = disclosures_by_crd[crd]
+        firms.setdefault(str(firm_crd), []).append(entry)
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "firms": firms,
