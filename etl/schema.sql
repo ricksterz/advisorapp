@@ -52,14 +52,40 @@ CREATE TABLE IF NOT EXISTS firms (
     disciplinary_flag_count INTEGER DEFAULT 0
 );
 
+-- Individual advisors. The original version of this table used
+-- `crd BIGINT PRIMARY KEY` as the sole identity, which assumes every
+-- advisor's CRD is known. That assumption breaks for Form ADV Part 2B
+-- ("brochure supplement") extraction (etl/advisor_bios.py): sampling the
+-- full brochure corpus found an individual CRD stated in the document text
+-- for well under two-thirds of supervised persons — the rest simply never
+-- disclose one in the body of the filing. A CRD-only primary key would
+-- silently drop a large share of real advisors, so identity here is a
+-- surrogate `id` instead: crd is a nullable, unindexed attribute, never a
+-- key. Re-runs of the extractor stay idempotent via delete-then-insert keyed
+-- on source_version_id (mirroring deal_structuring's source_document pattern
+-- below), not via a stable natural key on the advisor row itself.
+CREATE SEQUENCE IF NOT EXISTS advisor_id_seq START 1;
+
 CREATE TABLE IF NOT EXISTS advisors (
-    crd                 BIGINT PRIMARY KEY,       -- individual advisor CRD
-    full_name           VARCHAR,
+    id                  BIGINT PRIMARY KEY DEFAULT nextval('advisor_id_seq'),
+    crd                 BIGINT,                   -- individual CRD; NULL when the filing never states one
+    full_name           VARCHAR NOT NULL,
     current_firm_crd    BIGINT,                   -- FK -> firms.crd
-    licenses            VARCHAR,                  -- comma-separated exam/license codes
-    tenure_years        DOUBLE,                   -- years at current firm
+    licenses            VARCHAR,                  -- comma-separated exam/license codes (not yet populated)
+    tenure_years        DOUBLE,                   -- years at current firm (not yet populated)
     disciplinary_count  INTEGER DEFAULT 0,
-    prior_firm_crds     VARCHAR                   -- comma-separated prior firm CRDs
+    prior_firm_crds     VARCHAR,                  -- comma-separated prior firm CRDs (not yet populated)
+
+    -- Form ADV Part 2B, Item 2 ("Educational Background and Business
+    -- Experience"): the advisor's own bio, extracted verbatim from a firm's
+    -- brochure supplement text by etl/advisor_bios.py. Nullable because a
+    -- future ingestion path (e.g. a bulk individual-CRD feed, should one ever
+    -- exist) could populate advisor rows without bio text; every row written
+    -- by advisor_bios.py today has one.
+    bio_text            VARCHAR,
+    source_version_id   BIGINT,                   -- FK -> brochures.version_id (provenance / audit trail)
+    source_name         VARCHAR,                  -- brochures.name at extraction time, for display
+    extracted_at        TIMESTAMP
 );
 
 -- ---------------------------------------------------------------------------
@@ -128,5 +154,6 @@ CREATE TABLE IF NOT EXISTS brochures (
     name                VARCHAR,
     date_submitted      VARCHAR,                  -- as reported (M/D/YYYY)
     fetched_at          TIMESTAMP,                -- PDF downloaded
-    text_chars          BIGINT                    -- extracted text size (null = not extracted)
+    text_chars          BIGINT,                   -- extracted text size (null = not extracted)
+    bios_extracted_at   TIMESTAMP                 -- etl/advisor_bios.py last scanned this text for Part 2B bios
 );

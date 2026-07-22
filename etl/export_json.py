@@ -23,6 +23,7 @@ from etl.config import DB_PATH, REPO_ROOT
 
 DEFAULT_OUT = REPO_ROOT / "frontend" / "public" / "firms.json"
 DEFAULT_FLAGS_OUT = REPO_ROOT / "frontend" / "public" / "deal_flags.json"
+DEFAULT_BIOS_OUT = REPO_ROOT / "frontend" / "public" / "advisor_bios.json"
 
 # Keep the payload lean: only the columns the UI actually renders/filters on.
 EXPORT_COLUMNS = [
@@ -118,14 +119,67 @@ def export_deal_flags(db_path: Path, out_path: Path) -> int:
     return len(flags)
 
 
+def export_advisor_bios(db_path: Path, out_path: Path) -> int:
+    """Per-firm advisor bios extracted from Form ADV Part 2B brochure
+    supplements (etl/advisor_bios.py), lazy-loaded by the firm detail view.
+
+    Same CI-safety pattern as export_deal_flags: the advisors table is only
+    ever populated by a workstation run of etl/advisor_bios.py against the
+    local brochure text cache (never in CI, which has no brochure corpus), so
+    this file is committed and only rewritten when the local database
+    actually has rows — an empty/missing table leaves the committed file
+    untouched instead of clobbering it with nothing.
+    """
+    con = duckdb.connect(str(db_path), read_only=True)
+    try:
+        try:
+            rows = con.execute(
+                """
+                SELECT current_firm_crd, full_name, crd, bio_text, source_version_id, source_name
+                FROM advisors
+                WHERE current_firm_crd IS NOT NULL
+                ORDER BY current_firm_crd, full_name
+                """
+            ).fetchall()
+        except duckdb.CatalogException:
+            rows = []
+    finally:
+        con.close()
+    if not rows:
+        print("no advisors data in this database — advisor bios export skipped")
+        return 0
+
+    firms: dict[str, list[dict]] = {}
+    for firm_crd, full_name, crd, bio_text, source_version_id, source_name in rows:
+        firms.setdefault(str(firm_crd), []).append(
+            {
+                "name": full_name,
+                "crd": crd,
+                "bio": bio_text,
+                "source_version_id": source_version_id,
+                "source_name": source_name,
+            }
+        )
+    payload = {
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "firms": firms,
+    }
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(payload, separators=(",", ":")))
+    print(f"exported {len(rows)} advisor bios for {len(firms)} firms to {out_path}")
+    return len(rows)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--db", type=Path, default=DB_PATH)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--flags-out", type=Path, default=DEFAULT_FLAGS_OUT)
+    parser.add_argument("--bios-out", type=Path, default=DEFAULT_BIOS_OUT)
     args = parser.parse_args()
     export(args.db, args.out)
     export_deal_flags(args.db, args.flags_out)
+    export_advisor_bios(args.db, args.bios_out)
 
 
 if __name__ == "__main__":

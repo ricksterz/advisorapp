@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 import duckdb
 
 from etl.config import SCHEMA_PATH
-from etl.export_json import export_deal_flags
+from etl.export_json import export_advisor_bios, export_deal_flags
 
 
 def _make_db(tmp_path, with_flags):
@@ -54,5 +54,54 @@ def test_export_deal_flags_skips_when_empty_leaving_committed_file(tmp_path):
     out = tmp_path / "deal_flags.json"
     out.write_text('{"committed": true}')
     n = export_deal_flags(_make_db(tmp_path, with_flags=False), out)
+    assert n == 0
+    assert json.loads(out.read_text()) == {"committed": True}
+
+
+def _make_db_with_advisors(tmp_path):
+    db = tmp_path / "t.duckdb"
+    con = duckdb.connect(str(db))
+    con.execute(SCHEMA_PATH.read_text())
+    con.execute("INSERT INTO firms (crd, legal_name) VALUES (1, 'ACME'), (2, 'BETA')")
+    now = datetime.now(timezone.utc)
+    con.execute(
+        """
+        INSERT INTO advisors
+            (crd, full_name, current_firm_crd, bio_text, source_version_id, source_name, extracted_at)
+        VALUES
+            (4665596, 'Wyatt Evan Lewis', 1, 'Born 1974. BA Economics, UC Santa Cruz.', 1012112, 'ADV 2B', ?),
+            (NULL, 'Karl Benjamin Ruff', 1, 'AB in Economics, University of Chicago.', 959418, 'ADV 2B', ?)
+        """,
+        [now, now],
+    )
+    con.close()
+    return db
+
+
+def test_export_advisor_bios_groups_by_firm_and_keeps_provenance(tmp_path):
+    out = tmp_path / "advisor_bios.json"
+    n = export_advisor_bios(_make_db_with_advisors(tmp_path), out)
+    assert n == 2
+    payload = json.loads(out.read_text())
+    assert set(payload["firms"]) == {"1"}  # firm 2 has no advisors, never appears
+    bios = payload["firms"]["1"]
+    assert len(bios) == 2
+    lewis = next(b for b in bios if b["name"] == "Wyatt Evan Lewis")
+    assert lewis["crd"] == 4665596
+    assert lewis["source_version_id"] == 1012112
+    assert lewis["source_name"] == "ADV 2B"
+    # CRD is nullable: ~35%+ of advisors never state one in the source text
+    ruff = next(b for b in bios if b["name"] == "Karl Benjamin Ruff")
+    assert ruff["crd"] is None
+
+
+def test_export_advisor_bios_skips_when_empty_leaving_committed_file(tmp_path):
+    db = tmp_path / "t.duckdb"
+    con = duckdb.connect(str(db))
+    con.execute(SCHEMA_PATH.read_text())
+    con.close()
+    out = tmp_path / "advisor_bios.json"
+    out.write_text('{"committed": true}')
+    n = export_advisor_bios(db, out)
     assert n == 0
     assert json.loads(out.read_text()) == {"committed": True}

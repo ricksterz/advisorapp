@@ -1057,6 +1057,52 @@ tbody tr:hover {
   line-height: 1.45;
 }
 
+/* Advisor bios card spans the full detail-grid width — unlike the other
+   cards, it can hold several people's full biography text, so squeezing it
+   into a 320px grid column reads poorly. */
+.advisor-bios-card {
+  grid-column: 1 / -1;
+}
+
+.advisor-bios {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.advisor-bio {
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline);
+}
+
+.advisor-bio:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.advisor-bio-name {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 550;
+}
+
+.advisor-bio-crd {
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.advisor-bio-text {
+  margin: 4px 0 0;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
 /* ---------- states & footer ---------- */
 .state {
   padding: 48px;
