@@ -95,6 +95,52 @@ def test_export_advisor_bios_groups_by_firm_and_keeps_provenance(tmp_path):
     assert ruff["crd"] is None
 
 
+def test_export_advisor_bios_joins_individual_disclosures_by_crd(tmp_path):
+    db = _make_db_with_advisors(tmp_path)
+    con = duckdb.connect(str(db))
+    con.execute(
+        """
+        INSERT INTO individual_disclosures
+            (crd, full_name, has_reg_action, has_criminal, has_bankruptcy,
+             has_civil_judicial, has_bond, has_judgment, has_investigation,
+             has_customer_complaint, has_termination, flag_count, iapd_link,
+             source_archive, fetched_at)
+        VALUES
+            (4665596, 'WYATT LEWIS', false, false, false, false, false,
+             true, false, true, false, 2,
+             'https://adviserinfo.sec.gov/individual/summary/4665596',
+             'IA_INDVL_Feed_01_01_2026.xml.zip', ?)
+        """,
+        [datetime.now(timezone.utc)],
+    )
+    con.close()
+
+    out = tmp_path / "advisor_bios.json"
+    n = export_advisor_bios(db, out)
+    assert n == 2
+    payload = json.loads(out.read_text())
+    bios = payload["firms"]["1"]
+    lewis = next(b for b in bios if b["name"] == "Wyatt Evan Lewis")
+    assert lewis["disclosures"] == {
+        "flags": {
+            "has_reg_action": False,
+            "has_criminal": False,
+            "has_bankruptcy": False,
+            "has_civil_judicial": False,
+            "has_bond": False,
+            "has_judgment": True,
+            "has_investigation": False,
+            "has_customer_complaint": True,
+            "has_termination": False,
+        },
+        "flag_count": 2,
+        "iapd_link": "https://adviserinfo.sec.gov/individual/summary/4665596",
+    }
+    # Karl Benjamin Ruff has no CRD at all, so no join is possible or expected.
+    ruff = next(b for b in bios if b["name"] == "Karl Benjamin Ruff")
+    assert "disclosures" not in ruff
+
+
 def test_export_advisor_bios_skips_when_empty_leaving_committed_file(tmp_path):
     db = tmp_path / "t.duckdb"
     con = duckdb.connect(str(db))

@@ -1095,6 +1095,24 @@ tbody tr:hover {
   font-size: 12px;
 }
 
+.advisor-disclosure-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 550;
+  color: var(--critical);
+  background: var(--critical-wash);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.advisor-disclosure-chip:hover {
+  text-decoration: underline;
+}
+
 .advisor-bio-text {
   margin: 4px 0 0;
   color: var(--ink-2);

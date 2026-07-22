@@ -88,6 +88,37 @@ CREATE TABLE IF NOT EXISTS advisors (
     extracted_at        TIMESTAMP
 );
 
+-- Individual-level disclosure flags from the SEC's bulk IA_INDVL_Feed
+-- (etl/individual_disclosures.py) — a daily-refreshed ~436K-person XML feed
+-- found in the IAPD compilation manifest (2026-07-21 feasibility spike;
+-- superseding this project's earlier, incorrect conclusion that no bulk
+-- individual feed exists). Each person carries at most one <DRP> element
+-- with nine Y/N disclosure-category attributes and no narrative, date, or
+-- dollar detail — real dates/disposition require following iapd_link to the
+-- individual's IAPD summary page, same "flag it, link out" pattern as
+-- firms.disciplinary_flag_count. flag_count is how many of the nine
+-- categories are flagged, not a count of distinct events. Only individuals
+-- with >=1 flag are loaded (~14% of the feed): this is a supplementary
+-- table meant to be joined against advisors.crd, not a general-purpose
+-- roster of all SEC-registered individuals.
+CREATE TABLE IF NOT EXISTS individual_disclosures (
+    crd                     BIGINT PRIMARY KEY,   -- individual CRD (IAPD indvlPK)
+    full_name               VARCHAR,               -- reconciliation/debug only, not for display
+    has_reg_action          BOOLEAN,
+    has_criminal            BOOLEAN,
+    has_bankruptcy          BOOLEAN,
+    has_civil_judicial      BOOLEAN,
+    has_bond                BOOLEAN,
+    has_judgment            BOOLEAN,
+    has_investigation       BOOLEAN,
+    has_customer_complaint  BOOLEAN,
+    has_termination         BOOLEAN,
+    flag_count              INTEGER,               -- categories flagged (1-9); not an event count
+    iapd_link               VARCHAR,               -- full detail page (real dates/disposition live here)
+    source_archive          VARCHAR,               -- feed filename, for provenance
+    fetched_at              TIMESTAMP
+);
+
 -- ---------------------------------------------------------------------------
 -- Industry Pulse (etl/pulse_history.py + etl/pulse_stats.py).
 --

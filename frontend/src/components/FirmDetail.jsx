@@ -4,7 +4,7 @@ import { staffOf } from '../benchmarking/factors.js'
 import { percentiler } from '../benchmarking/engine.js'
 import { BASE, navigate } from '../router.js'
 import { DEAL_FLAG_DEFS, useDealFlags } from '../dealFlags.js'
-import { useAdvisorBios } from '../advisorBios.js'
+import { DISCLOSURE_FLAG_DEFS, useAdvisorBios } from '../advisorBios.js'
 
 // Public IAPD document endpoints (all CORS-enabled, no key required).
 const firmApiUrl = (crd) => `https://api.adviserinfo.sec.gov/search/firm/${crd}`
@@ -126,9 +126,27 @@ function DealStructuringCard({ crd }) {
   )
 }
 
+function DisclosureBadge({ disclosures }) {
+  const active = DISCLOSURE_FLAG_DEFS.filter((d) => disclosures.flags[d.key])
+  if (!active.length) return null
+  const title = `${active.map((d) => d.label).join(', ')} — see IAPD for detail`
+  return (
+    <a
+      className="advisor-disclosure-chip"
+      href={disclosures.iapd_link}
+      target="_blank"
+      rel="noreferrer"
+      title={title}
+    >
+      ⚑ {disclosures.flag_count} disclosure{disclosures.flag_count === 1 ? '' : 's'}
+    </a>
+  )
+}
+
 function AdvisorBiosCard({ crd }) {
   const bios = useAdvisorBios(crd)
   if (!bios || bios.length === 0) return null // loading, unavailable, or no advisors extracted for this firm
+  const anyDisclosures = bios.some((b) => b.disclosures)
   return (
     <div className="detail-card advisor-bios-card">
       <h2>Advisor bios</h2>
@@ -138,6 +156,7 @@ function AdvisorBiosCard({ crd }) {
             <div className="advisor-bio-name">
               {b.name}
               {b.crd && <span className="advisor-bio-crd">CRD {b.crd}</span>}
+              {b.disclosures && <DisclosureBadge disclosures={b.disclosures} />}
             </div>
             <p className="advisor-bio-text">{b.bio}</p>
           </div>
@@ -148,6 +167,15 @@ function AdvisorBiosCard({ crd }) {
         regulatory disclosure of their education and business background. Not verified or
         curated; it is context, not a finding. Read the source brochure (linked above) before
         drawing conclusions.
+        {anyDisclosures && (
+          <>
+            {' '}
+            Disclosure flags (⚑), where shown, come from the SEC’s public individual-adviser feed
+            and mark categories with at least one reported event — not a count of events, and not
+            a finding of wrongdoing. Follow the flag to the individual’s IAPD summary for the
+            actual record.
+          </>
+        )}
       </p>
     </div>
   )

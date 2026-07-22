@@ -724,6 +724,18 @@ export default function App() {
                     capture. Consult a qualified professional before making financial decisions.
                   </dd>
                 </div>
+                <div>
+                  <dt>Abbreviations used on this site</dt>
+                  <dd>
+                    <strong>AUM</strong> = assets under management. <strong>CRD</strong> = Central
+                    Registration Depository number, the SEC/FINRA identifier for a firm or
+                    individual (links to the IAPD page above use it). The deal-structuring flags
+                    shown per firm and banded by scale: <strong>PF</strong> = proprietary funds
+                    (brochure language about placing clients in affiliated funds),{' '}
+                    <strong>RS</strong> = revenue sharing / referrals, <strong>GP / LP</strong> =
+                    affiliated general partner / limited partner fund structures.
+                  </dd>
+                </div>
           </dl>
         </footer>
       )}

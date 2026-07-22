@@ -15,6 +15,22 @@ function fetchAdvisorBios() {
   return advisorBiosPromise
 }
 
+// Disclosure category flags (etl/individual_disclosures.py), keyed the same
+// as each bio's optional `disclosures.flags` object. The bulk feed reports
+// only these nine Y/N booleans per person — no narrative, date, or dollar
+// detail — so labels stay short; real detail lives behind `iapd_link`.
+export const DISCLOSURE_FLAG_DEFS = [
+  { key: 'has_customer_complaint', label: 'Customer complaint' },
+  { key: 'has_reg_action', label: 'Regulatory action' },
+  { key: 'has_criminal', label: 'Criminal' },
+  { key: 'has_civil_judicial', label: 'Civil judicial' },
+  { key: 'has_investigation', label: 'Investigation' },
+  { key: 'has_termination', label: 'Termination' },
+  { key: 'has_judgment', label: 'Judgment' },
+  { key: 'has_bond', label: 'Bond' },
+  { key: 'has_bankruptcy', label: 'Bankruptcy' },
+]
+
 // A single firm's advisor bios: undefined while loading, null once resolved
 // if the firm has none (or the file itself is unavailable, e.g. the dev
 // sample fixture) — callers should treat both the same way (hide the card).

@@ -98,6 +98,11 @@ export function MethodologyFootnote({ metrics }) {
           structurally under-observed and would fabricate growth that is actually just improving
           coverage.
         </p>
+        <p>
+          <strong>QoQ</strong> = quarter-over-quarter change (vs. the prior published quarter).{' '}
+          <strong>YoY</strong> = year-over-year change (vs. four published quarters back).{' '}
+          <strong>AUM</strong> = assets under management.
+        </p>
       </div>
     </details>
   )
