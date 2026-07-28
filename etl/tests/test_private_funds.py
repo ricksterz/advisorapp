@@ -4,8 +4,8 @@ import duckdb
 import pandas as pd
 
 from etl.config import SCHEMA_PATH
-from etl.pulse_history import SNAPSHOT_STALENESS_MONTHS
 from etl.private_funds import parse_7b1, parse_provider, stage_snapshot
+from etl.pulse_history import SNAPSHOT_STALENESS_MONTHS
 
 # Headers verified against a real cached ADV_Filing_Data archive (2026-07-27).
 FUND_COLS = [

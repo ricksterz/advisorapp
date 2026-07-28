@@ -28,8 +28,8 @@ from pathlib import Path
 
 import duckdb
 
-from etl.config import REPO_ROOT
 from etl.config import DB_PATH as DEFAULT_DB
+from etl.config import REPO_ROOT
 
 DEFAULT_OUT = REPO_ROOT / "frontend" / "public" / "pulse_stats.json"
 

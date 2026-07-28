@@ -169,7 +169,7 @@ def pick_website(addresses) -> str | None:
     for addr in candidates:
         if not addr:
             continue
-        host = re.sub(r"^https?://", "", addr, flags=re.I).split("/")[0].lower()
+        host = re.sub(r"^https?://", "", addr, flags=re.IGNORECASE).split("/")[0].lower()
         host = host.removeprefix("www.")
         if not host or "." not in host:
             continue
@@ -177,7 +177,7 @@ def pick_website(addresses) -> str | None:
             continue
         if any(token in host for token in SOCIAL_HOST_TOKENS):
             continue
-        return addr if re.match(r"https?://", addr, flags=re.I) else f"http://{addr}"
+        return addr if re.match(r"https?://", addr, flags=re.IGNORECASE) else f"http://{addr}"
     return None
 
 
@@ -227,12 +227,11 @@ def read_firm_feed(path: Path) -> pd.DataFrame:
 
     from lxml import etree
 
-    opener = gzip.open(str(path), "rb") if str(path).endswith(".gz") else open(path, "rb")
     rows: list[dict] = []
     skipped_unregistered = 0
-    with opener as fh:
+    with (gzip.open(str(path), "rb") if str(path).endswith(".gz") else open(path, "rb")) as fh:
         for _, firm in etree.iterparse(fh, events=("end",), tag="Firm", recover=True):
-            def attrs(tag: str) -> dict:
+            def attrs(tag: str, firm=firm) -> dict:
                 el = firm.find(f".//{tag}")
                 return dict(el.attrib) if el is not None else {}
 

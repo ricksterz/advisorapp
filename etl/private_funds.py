@@ -42,7 +42,13 @@ import pandas as pd
 from etl.config import DB_PATH as DEFAULT_DB
 from etl.config import SCHEMA_PATH
 from etl.ingest_adv import normalize_header, to_bool, to_number
-from etl.pulse_history import PULSE_RAW_DIR, SNAPSHOT_STALENESS_MONTHS, _archive_member, _read_member_csv, parse_base_a
+from etl.pulse_history import (
+    PULSE_RAW_DIR,
+    SNAPSHOT_STALENESS_MONTHS,
+    _archive_member,
+    _read_member_csv,
+    parse_base_a,
+)
 
 FUND_COLUMNS: dict[str, list[str]] = {
     "filing_id": ["FILINGID"],

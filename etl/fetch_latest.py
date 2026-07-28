@@ -24,7 +24,7 @@ import gzip
 import re
 import sys
 import zipfile
-from datetime import date, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urljoin
 
@@ -64,7 +64,7 @@ def url_exists(url: str) -> bool:
 
 
 def probe_iapd_feed() -> str | None:
-    today = date.today()
+    today = datetime.now(timezone.utc).date()
     for offset in range(PROBE_DAYS):
         url = IAPD_FEED_URL.format(d=today - timedelta(days=offset))
         if url_exists(url):
@@ -108,8 +108,7 @@ def download(url: str, dest: Path) -> Path:
     with requests.get(url, headers=HTTP_HEADERS, timeout=600, stream=True) as resp:
         resp.raise_for_status()
         with open(dest, "wb") as fh:
-            for chunk in resp.iter_content(chunk_size=1 << 20):
-                fh.write(chunk)
+            fh.writelines(resp.iter_content(chunk_size=1 << 20))
     print(f"downloaded {url} ({dest.stat().st_size / 1e6:.1f} MB) -> {dest}")
     return dest
 

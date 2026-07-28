@@ -33,8 +33,8 @@ from pathlib import Path
 import duckdb
 import requests
 
-from etl.config import HTTP_HEADERS, REPO_ROOT, SCHEMA_PATH
 from etl.config import DB_PATH as DEFAULT_DB
+from etl.config import HTTP_HEADERS, REPO_ROOT, SCHEMA_PATH
 
 FIRM_API = "https://api.adviserinfo.sec.gov/search/firm/{crd}"
 BROCHURE_PDF = (
@@ -98,7 +98,7 @@ def extract_pdf_text(pdf_path: Path) -> str | None:
     try:
         reader = PdfReader(str(pdf_path))
         return "\n".join((page.extract_text() or "") for page in reader.pages)
-    except Exception:  # damaged/encrypted PDFs happen in the wild
+    except Exception:  # noqa: BLE001 - pypdf raises varied types for damaged/encrypted PDFs; all should skip, not crash
         return None
 
 

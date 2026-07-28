@@ -30,8 +30,8 @@ from pathlib import Path
 
 import duckdb
 
-from etl.config import REPO_ROOT
 from etl.config import DB_PATH as DEFAULT_DB
+from etl.config import REPO_ROOT
 
 DEFAULT_OUT = REPO_ROOT / "frontend" / "public" / "private_funds.json"
 DEFAULT_FIRM_OUT = REPO_ROOT / "frontend" / "public" / "firm_private_funds.json"
@@ -49,7 +49,7 @@ MAX_FUNDS_PER_FIRM = 20
 # Legal-suffix noise collapses distinct spellings of the same real firm
 # ("KPMG LLP" / "KPMG" / "KPMG, LLP") for LEAGUE-TABLE GROUPING ONLY — the
 # raw provider_name is preserved in the database untouched.
-_SUFFIX_RE = re.compile(r"[,.]?\s*(LLP|LLC|L\.L\.P\.|L\.L\.C\.|INC\.?|P\.C\.|LTD\.?)$", re.I)
+_SUFFIX_RE = re.compile(r"[,.]?\s*(LLP|LLC|L\.L\.P\.|L\.L\.C\.|INC\.?|P\.C\.|LTD\.?)$", re.IGNORECASE)
 
 
 def _normalize_provider(name: str) -> str:
