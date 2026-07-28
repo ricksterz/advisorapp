@@ -47,3 +47,19 @@ export function useAdvisorBios(crd) {
   }, [crd])
   return bios
 }
+
+// The whole file: undefined while loading, null if unavailable. Used where a
+// caller needs to look up many firms at once (the main table's filter/column).
+export function useAllAdvisorBios() {
+  const [data, setData] = useState(undefined)
+  useEffect(() => {
+    let alive = true
+    fetchAdvisorBios().then((d) => {
+      if (alive) setData(d ?? null)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+  return data
+}

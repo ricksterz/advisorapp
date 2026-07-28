@@ -13,6 +13,7 @@ import PulsePage from './components/PulsePage.jsx'
 import { DrilldownAdvisers, DrilldownAssets, DrilldownPrivateFunds } from './components/PulseDrilldowns.jsx'
 import { BASE, firmPath, navigate, pulsePath, useRoute } from './router.js'
 import { DEAL_FLAG_DEFS, useAllDealFlags } from './dealFlags.js'
+import { useAllAdvisorBios } from './advisorBios.js'
 import { computeDealPatterns } from './dealPatterns.js'
 
 const compactUsd = (v) => {
@@ -153,6 +154,22 @@ function DealFlagsCell({ crd, data }) {
   )
 }
 
+// Compact per-row indicator for advisor bios (etl/advisor_bios.py scan of
+// Part 2B brochure supplements) — "…" while the shared file is still
+// loading, "—" for a firm with none on file, otherwise the person count.
+// Same "…"/"—" convention as DealFlagsCell so a scanning-in-progress row
+// never looks identical to a confirmed-empty one.
+function AdvisorBiosCell({ crd, data }) {
+  if (data === undefined) return <span className="flag-none">…</span>
+  const bios = data?.firms?.[String(crd)]
+  if (!bios?.length) return <span className="flag-none">—</span>
+  return (
+    <span className="deal-flag-mini" title={`${bios.length} advisor bio${bios.length === 1 ? '' : 's'} on file`}>
+      {bios.length}
+    </span>
+  )
+}
+
 function RankCard({ title, sub, children }) {
   return (
     <div className="rank-card">
@@ -191,6 +208,7 @@ export default function App() {
   const [minAum, setMinAum] = useState(0)
   const [perfOnly, setPerfOnly] = useState(false)
   const [flaggedOnly, setFlaggedOnly] = useState(false)
+  const [bioOnly, setBioOnly] = useState(false)
   const [dealFilters, setDealFilters] = useState({})
   const [sort, setSort] = useState('aum')
   const [limit, setLimit] = useState(PAGE)
@@ -214,6 +232,11 @@ export default function App() {
   // Deal-structuring flags (etl/brochures.py) — a separate committed file,
   // since the brochure corpus that produces it can't be built in CI.
   const dealFlagsData = useAllDealFlags()
+
+  // Advisor bios (etl/advisor_bios.py) — same reasoning, same pattern. Only
+  // ~12% of firms have any bios on file, so a filter/column here is what
+  // actually lets someone find one instead of guessing at random firms.
+  const advisorBiosData = useAllAdvisorBios()
 
   const stats = useMemo(() => {
     if (!data) return null
@@ -252,6 +275,7 @@ export default function App() {
         if (minAum && (f.aum_total ?? 0) < minAum) return false
         if (perfOnly && !f.fee_performance_based) return false
         if (flaggedOnly && !(f.disciplinary_flag_count > 0)) return false
+        if (bioOnly && !(advisorBiosData?.firms?.[String(f.crd)]?.length > 0)) return false
         if (activeDealFilters.length) {
           const flags = dealFlagsData?.firms?.[String(f.crd)]
           if (!flags || !activeDealFilters.every((d) => flags[d.id])) return false
@@ -264,7 +288,7 @@ export default function App() {
         )
       })
       .sort(SORTS[sort])
-  }, [data, query, minAum, perfOnly, flaggedOnly, sort, activeDealFilters, dealFlagsData])
+  }, [data, query, minAum, perfOnly, flaggedOnly, bioOnly, sort, activeDealFilters, dealFlagsData, advisorBiosData])
 
   const visible = firms.slice(0, limit)
   const resetPage = () => setLimit(PAGE)
@@ -547,6 +571,18 @@ export default function App() {
               >
                 Has disclosures
               </button>
+              {advisorBiosData !== null && (
+                <button
+                  type="button"
+                  className="chip"
+                  aria-pressed={bioOnly}
+                  disabled={advisorBiosData === undefined}
+                  title="Advisor bios, extracted from Form ADV Part 2B brochure supplement filings — on file for ~12% of firms"
+                  onClick={() => { setBioOnly(!bioOnly); resetPage() }}
+                >
+                  Has advisor bios
+                </button>
+              )}
               {dealFlagsData !== null &&
                 DEAL_FLAG_DEFS.map((d) => (
                   <button
@@ -581,6 +617,7 @@ export default function App() {
                     <th className="num">Affiliations</th>
                     <SortHeader id="flags" sort={sort} onSort={setSort} className="num">Disclosures</SortHeader>
                     {dealFlagsData !== null && <th>Deal structuring</th>}
+                    {advisorBiosData !== null && <th className="num">Advisor bios</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -634,11 +671,19 @@ export default function App() {
                           <DealFlagsCell crd={f.crd} data={dealFlagsData} />
                         </td>
                       )}
+                      {advisorBiosData !== null && (
+                        <td className="num">
+                          <AdvisorBiosCell crd={f.crd} data={advisorBiosData} />
+                        </td>
+                      )}
                     </tr>
                   ))}
                   {visible.length === 0 && (
                     <tr>
-                      <td colSpan={dealFlagsData !== null ? 8 : 7} className="state">
+                      <td
+                        colSpan={7 + (dealFlagsData !== null ? 1 : 0) + (advisorBiosData !== null ? 1 : 0)}
+                        className="state"
+                      >
                         No firms match the current filters.
                       </td>
                     </tr>
