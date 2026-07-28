@@ -94,9 +94,11 @@ def _latest_archive() -> Path | None:
     return archives[-1] if archives else None
 
 
-def parse_feed(zf: zipfile.ZipFile) -> pd.DataFrame:
+def parse_feed(zf: zipfile.ZipFile) -> tuple[pd.DataFrame, int]:
     """Stream every <Indvl> across every member of the feed zip, keeping
-    only individuals with at least one flagged DRP category.
+    only individuals with at least one flagged DRP category. Returns
+    (flagged, total_scanned) — the total is needed to compute an honest
+    industry-wide flagged rate without re-parsing the feed later.
 
     Streams via lxml.etree.iterparse (clearing each element after use)
     rather than loading whole files, since each member is ~50-60MB — the
@@ -105,11 +107,13 @@ def parse_feed(zf: zipfile.ZipFile) -> pd.DataFrame:
     from lxml import etree
 
     rows: list[dict] = []
+    total = 0
     for member in zf.namelist():
         if not member.endswith(".xml"):
             continue
         with zf.open(member) as fh:
             for _, indvl in etree.iterparse(fh, events=("end",), tag="Indvl", recover=True):
+                total += 1
                 drp = indvl.find("DRPs/DRP")
                 if drp is None:
                     indvl.clear()
@@ -136,7 +140,8 @@ def parse_feed(zf: zipfile.ZipFile) -> pd.DataFrame:
                     }
                 )
                 indvl.clear()
-    return pd.DataFrame(rows, columns=["crd", "full_name", *DRP_ATTRS.keys(), "flag_count", "iapd_link"])
+    flagged = pd.DataFrame(rows, columns=["crd", "full_name", *DRP_ATTRS.keys(), "flag_count", "iapd_link"])
+    return flagged, total
 
 
 def stage_load(con: duckdb.DuckDBPyConnection, archive: Path) -> int:
@@ -147,16 +152,32 @@ def stage_load(con: duckdb.DuckDBPyConnection, archive: Path) -> int:
     delete-then-bulk-insert rather than an upsert.
     """
     with zipfile.ZipFile(archive) as zf:
-        flagged = parse_feed(zf)
+        flagged, total = parse_feed(zf)
+    # DuckDB's plain TIMESTAMP column silently reinterprets a tz-aware
+    # datetime as the SYSTEM's local wall-clock time on insert (verified:
+    # inserting 2026-07-28 00:00 UTC on a UTC-5 machine reads back as
+    # 2026-07-27 19:00) — stripping tzinfo here, after computing the correct
+    # UTC instant, avoids that silent shift so individual_disclosures_stats.py
+    # can safely take .date() on the stored value for "as of".
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     flagged["source_archive"] = archive.name
-    flagged["fetched_at"] = datetime.now(timezone.utc)
+    flagged["fetched_at"] = now
 
     con.execute("DELETE FROM individual_disclosures")
     con.register("staging_indvl", flagged)
     cols = ", ".join(flagged.columns)
     con.execute(f"INSERT INTO individual_disclosures ({cols}) SELECT {cols} FROM staging_indvl")  # nosec B608
     con.unregister("staging_indvl")
-    print(f"loaded {len(flagged)} flagged individuals from {archive.name}")
+
+    con.execute("DELETE FROM individual_disclosures_meta")
+    con.execute(
+        """
+        INSERT INTO individual_disclosures_meta (source_archive, total_individuals, flagged_individuals, fetched_at)
+        VALUES (?, ?, ?, ?)
+        """,
+        [archive.name, total, len(flagged), now],
+    )
+    print(f"loaded {len(flagged)} flagged individuals (of {total} total scanned) from {archive.name}")
     return len(flagged)
 
 

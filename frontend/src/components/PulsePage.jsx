@@ -10,6 +10,7 @@ import {
   usePulseStats,
 } from '../pulse.js'
 import { usePrivateFundStats } from '../privateFunds.js'
+import { useIndividualDisclosureStats } from '../individualDisclosures.js'
 
 function AsOfTag({ asOf }) {
   return <span className="as-of">as of {fmtQuarter(asOf)}</span>
@@ -72,6 +73,23 @@ function PrivateFundsTile() {
       section="private-funds"
       title="Private funds"
       stat={`${fmtCount(stats.total_funds)} funds across ${fmtCount(stats.total_firms)} advisers · most common: ${topType?.type ?? '—'}`}
+    />
+  )
+}
+
+// Individual-level breakdown is a separate industry-wide data file (the
+// bulk feed's roster is independent of this site's much smaller advisor-bios
+// roster) — fetched independently so a slow/missing file never blocks the
+// rest of the Pulse page.
+function DisclosuresTile() {
+  const stats = useIndividualDisclosureStats()
+  if (!stats) return null
+  const topCategory = stats.categories[0]
+  return (
+    <CategoryTile
+      section="disclosures"
+      title="Disclosures"
+      stat={`${fmtPct(stats.flagged_rate)} of ${fmtCount(stats.total_individuals)} individuals flagged · most common: ${topCategory?.label ?? '—'}`}
     />
   )
 }
@@ -177,6 +195,7 @@ export default function PulsePage() {
           series={medianSeries}
         />
         <PrivateFundsTile />
+        <DisclosuresTile />
       </div>
 
       <MethodologyFootnote metrics={['firms', 'concentration', 'median_aum', 'pct_disclosure', 'registrations']} />
