@@ -41,8 +41,8 @@ from pathlib import Path
 
 import duckdb
 
-from etl.config import REPO_ROOT, SCHEMA_PATH
 from etl.config import DB_PATH as DEFAULT_DB
+from etl.config import REPO_ROOT, SCHEMA_PATH
 
 CACHE_DIR = REPO_ROOT / "data" / "brochures"  # same cache etl/brochures.py populates; gitignored via data/
 
@@ -386,7 +386,7 @@ _TRAILING_ADDRESS_WORDS = {
     # corpus — Roman-numeral name suffixes ("George A. Salter II") are a
     # different, already-supported case and aren't affected: "ii"/"iv" aren't
     # in this set.
-    "al", "ak", "az", "ar", "ca", "co", "ct", "de", "fl", "ga", "hi", "id",
+    "al", "ak", "az", "ar", "ca", "co", "de", "ga", "hi", "id",
     "il", "in", "ia", "ks", "ky", "la", "me", "md", "ma", "mi", "mn", "ms",
     "mo", "mt", "ne", "nv", "nh", "nj", "nm", "ny", "nc", "nd", "oh", "ok",
     "or", "pa", "ri", "sc", "sd", "tn", "tx", "ut", "vt", "va", "wa", "wv",
@@ -397,7 +397,7 @@ _TRAILING_ADDRESS_WORDS = {
     # state codes are: a single-letter trailing word ("N", "S") is already
     # unconditionally stripped elsewhere as a probable initial, not rejected
     # outright, so it's deliberately left out of this set.
-    "nw", "ne", "sw", "se",
+    "nw", "sw", "se",
 }
 
 # ---------------------------------------------------------------------------

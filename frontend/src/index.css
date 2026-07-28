@@ -1064,6 +1064,35 @@ tbody tr:hover {
   grid-column: 1 / -1;
 }
 
+/* Private funds card: same full-width reasoning — a table of funds with a
+   providers column reads poorly squeezed into a narrow grid cell. */
+.private-funds-card {
+  grid-column: 1 / -1;
+  overflow-x: auto;
+}
+
+.fund-tag {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink-3);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.fund-provider {
+  display: inline-block;
+  margin: 0 4px 2px 0;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
 .advisor-bios {
   display: flex;
   flex-direction: column;
@@ -1380,6 +1409,46 @@ tbody tr:hover {
 .pulse-table td.migrated {
   color: var(--accent);
   font-weight: 600;
+}
+
+.provider-leagues {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 18px;
+}
+
+.provider-league h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--ink-3);
+  font-weight: 550;
+}
+
+.provider-league ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: league;
+}
+
+.provider-league li {
+  counter-increment: league;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.provider-league li:last-child {
+  border-bottom: none;
+}
+
+.provider-league li::before {
+  content: counter(league) '. ';
+  color: var(--ink-3);
+  margin-right: 4px;
 }
 
 .compare-strip {

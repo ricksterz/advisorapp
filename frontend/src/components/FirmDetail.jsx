@@ -5,6 +5,8 @@ import { percentiler } from '../benchmarking/engine.js'
 import { BASE, navigate } from '../router.js'
 import { DEAL_FLAG_DEFS, useDealFlags } from '../dealFlags.js'
 import { DISCLOSURE_FLAG_DEFS, useAdvisorBios } from '../advisorBios.js'
+import { PROVIDER_ROLE_LABELS, useFirmPrivateFunds } from '../privateFunds.js'
+import { fmtCompactUsd } from '../pulse.js'
 
 // Public IAPD document endpoints (all CORS-enabled, no key required).
 const firmApiUrl = (crd) => `https://api.adviserinfo.sec.gov/search/firm/${crd}`
@@ -121,6 +123,62 @@ function DealStructuringCard({ crd }) {
         Keyword scan of the firm’s Form ADV Part 2A brochure(s) — a flag means the language
         appears affirmatively; it is context, not a finding. Read the brochure itself (linked
         above) before drawing conclusions.
+      </p>
+    </div>
+  )
+}
+
+const PRIVATE_FUNDS_SHOWN = 20
+
+function PrivateFundsCard({ crd }) {
+  const funds = useFirmPrivateFunds(crd)
+  if (!funds || funds.length === 0) return null // loading, unavailable, or no funds for this firm
+  const shown = funds.slice(0, PRIVATE_FUNDS_SHOWN)
+  const hiddenCount = funds.length - shown.length
+  return (
+    <div className="detail-card private-funds-card">
+      <h2>Private funds</h2>
+      <table className="pulse-table">
+        <thead>
+          <tr>
+            <th>Fund</th>
+            <th>Type</th>
+            <th>Domicile</th>
+            <th className="num">GAV</th>
+            <th>Providers</th>
+          </tr>
+        </thead>
+        <tbody>
+          {shown.map((f) => (
+            <tr key={f.fund_id}>
+              <td>
+                {f.name}
+                {f.is_master_fund && <span className="fund-tag">master</span>}
+                {f.is_feeder_fund && <span className="fund-tag">feeder</span>}
+              </td>
+              <td>{f.type}</td>
+              <td>{f.domicile}</td>
+              <td className="num">{fmtCompactUsd(f.gav)}</td>
+              <td>
+                {f.providers.map((p, i) => (
+                  <span key={`${p.role}-${p.name}-${i}`} className="fund-provider" title={PROVIDER_ROLE_LABELS[p.role] ?? p.role}>
+                    {p.name}
+                  </span>
+                ))}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {hiddenCount > 0 && (
+        <p className="detail-note">
+          {hiddenCount} more fund{hiddenCount === 1 ? '' : 's'} not shown, sorted by gross asset value.
+        </p>
+      )}
+      <p className="detail-note">
+        From Form ADV Schedule D 7.B.1, the firm’s own current filing — not a live feed. Feeder-fund
+        GAV overlaps with its master fund’s, so treat each fund’s figure as reported, not additive
+        across the table.
       </p>
     </div>
   )
@@ -418,6 +476,7 @@ export default function FirmDetail({ firm, crd, allFirms }) {
         </div>
 
         <DealStructuringCard crd={firm.crd} />
+        <PrivateFundsCard crd={firm.crd} />
         <AdvisorBiosCard crd={firm.crd} />
       </div>
     </section>

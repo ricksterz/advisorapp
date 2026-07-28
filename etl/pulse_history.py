@@ -42,8 +42,8 @@ import duckdb
 import pandas as pd
 import requests
 
-from etl.config import HTTP_HEADERS, RAW_DIR, SCHEMA_PATH
 from etl.config import DB_PATH as DEFAULT_DB
+from etl.config import HTTP_HEADERS, RAW_DIR, SCHEMA_PATH
 from etl.ingest_adv import normalize_header, to_bool, to_number
 
 PULSE_RAW_DIR = RAW_DIR / "pulse"
@@ -207,7 +207,6 @@ def _read_member_csv(zf: zipfile.ZipFile, member: str) -> pd.DataFrame:
 
         def _on_bad(row):  # engine='python' callable form: return None to skip
             bad.append(1)
-            return None
 
         df = pd.read_csv(
             io.BytesIO(data),

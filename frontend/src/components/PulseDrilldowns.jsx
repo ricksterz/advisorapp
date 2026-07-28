@@ -1,6 +1,7 @@
-import { navigate, pulsePath } from '../router.js'
+import { firmPath, navigate, pulsePath } from '../router.js'
 import { MethodologyFootnote, PulseDisclaimer, TrendLine } from './PulsePage.jsx'
 import { concentrationSeries, fmtCompactUsd, fmtCount, fmtPct, fmtQuarter, usePulseStats } from '../pulse.js'
+import { PROVIDER_ROLE_LABELS, usePrivateFundStats } from '../privateFunds.js'
 
 function PulseBackLink() {
   const path = pulsePath()
@@ -203,5 +204,124 @@ export function DrilldownAssets() {
         )
       }}
     </DrilldownShell>
+  )
+}
+
+export function DrilldownPrivateFunds() {
+  const stats = usePrivateFundStats()
+  if (stats === undefined) return <div className="state">Loading industry data…</div>
+  if (stats === null) return <div className="state">Industry statistics are not available in this build.</div>
+
+  const { fund_types: fundTypes, domicile, top_firms: topFirms, providers, total_funds: totalFunds, total_firms: totalFirms } = stats
+  const maxTypeCount = Math.max(...fundTypes.map((t) => t.count))
+  const maxDomicileCount = Math.max(...domicile.map((d) => d.count))
+
+  return (
+    <section className="pulse" aria-label="Private funds">
+      <PulseBackLink />
+      <div className="page-head">
+        <h1>Private funds</h1>
+        <p className="page-tagline">
+          {fmtCount(totalFunds)} funds across {fmtCount(totalFirms)} advisers, from Form ADV Schedule
+          D 7.B.1. <span className="as-of">as of {stats.as_of}</span>
+        </p>
+        <PulseDisclaimer />
+      </div>
+
+      <div className="detail-card">
+        <h2>Funds by type</h2>
+        <div className="pulse-bars">
+          {fundTypes.map((t) => (
+            <div key={t.type} className="pattern-row">
+              <span className="pattern-label wide">{t.type}</span>
+              <span className="track">
+                <span className="fill" style={{ width: `${(t.count / maxTypeCount) * 100}%` }} />
+              </span>
+              <span className="pattern-pct wide">
+                {fmtCount(t.count)} · {fmtCompactUsd(t.gav)} median {fmtCompactUsd(t.median_gav)}
+              </span>
+            </div>
+          ))}
+        </div>
+        <p className="detail-note">
+          No total gross asset value is shown across fund types: a fund complex's master fund and its
+          feeder funds both report GAV for largely the same underlying capital (~4% of total GAV in a
+          real pull), so feeder funds are excluded from every GAV figure here. A fund whose adviser
+          discloses it as a subadviser could in theory also appear on another firm's schedule — a
+          smaller, unresolved edge case.
+        </p>
+      </div>
+
+      <div className="detail-card">
+        <h2>Fund domicile</h2>
+        <div className="pulse-bars">
+          {domicile.map((d) => (
+            <div key={d.domicile} className="pattern-row">
+              <span className="pattern-label wide">{d.domicile}</span>
+              <span className="track">
+                <span className="fill" style={{ width: `${(d.count / maxDomicileCount) * 100}%` }} />
+              </span>
+              <span className="pattern-pct wide">{fmtCount(d.count)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="detail-card">
+        <h2>Advisers by number of funds</h2>
+        <table className="pulse-table">
+          <thead>
+            <tr><th>Adviser</th><th className="num">Funds</th><th className="num">GAV</th></tr>
+          </thead>
+          <tbody>
+            {topFirms.map((f) => (
+              <tr key={f.crd}>
+                <td>
+                  {f.name ? (
+                    <a href={firmPath(f.crd)} onClick={(e) => navigate(e, firmPath(f.crd))}>
+                      {f.name}
+                    </a>
+                  ) : (
+                    `CRD ${f.crd}`
+                  )}
+                </td>
+                <td className="num">{fmtCount(f.fund_count)}</td>
+                <td className="num">{fmtCompactUsd(f.gav)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="detail-card">
+        <h2>Service-provider concentration</h2>
+        <div className="provider-leagues">
+          {Object.entries(providers).map(([role, list]) => (
+            <div key={role} className="provider-league">
+              <h3>{PROVIDER_ROLE_LABELS[role] ?? role}</h3>
+              <ol>
+                {list.map((p) => (
+                  <li key={p.name}>
+                    <span>{p.name}</span>
+                    <span className="pattern-pct">{fmtCount(p.fund_count)}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))}
+        </div>
+        <p className="detail-note">
+          Ranked by number of funds naming that provider (not assets serviced). Provider names are
+          normalized to collapse legal-suffix variants of the same firm (“KPMG LLP” / “KPMG, LLP” /
+          “KPMG”) for grouping only — the underlying data keeps each filing’s exact wording.
+        </p>
+      </div>
+
+      <p className="pulse-disclaimer">
+        Fund counts and GAV reflect each adviser’s most recent Schedule D 7.B.1 filing on file,
+        not a live feed — see the Methodology note on the main Industry Pulse page for how ADV
+        filings are reconstructed into a point-in-time view.
+      </p>
+    </section>
   )
 }
