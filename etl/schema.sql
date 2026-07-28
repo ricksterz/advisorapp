@@ -177,8 +177,15 @@ CREATE TABLE IF NOT EXISTS firm_snapshots (
 -- archives; private_funds/private_fund_providers are the reconstructed
 -- "latest known state per fund" (fund_id is a stable SEC-assigned
 -- identifier, unlike reference_id which is only unique within one filing).
--- v1 scope is current-state only, not a quarterly time series like
--- firm_snapshots — see docs/industry-pulse-plan.md Phase 2b.
+-- private_fund_snapshots adds the quarterly time series deferred from v1
+-- (docs/industry-pulse-plan.md Phase 2b fast-follow): same reconstruction
+-- as firm_snapshots (latest filing per fund on/before each quarter-end,
+-- within the staleness window, excluding withdrawn firms), gated to the
+-- SAME published-quarter list pulse_stats.py already computes from
+-- firm_snapshots — one canonical completeness gate for the whole Pulse
+-- surface rather than a second one recomputed for funds. No per-quarter
+-- provider join: a trend needs fund counts/types/GAV, not the full
+-- service-provider table replayed at every quarter-end.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS private_fund_filings (
     filing_id           BIGINT,
@@ -237,6 +244,16 @@ CREATE TABLE IF NOT EXISTS private_fund_providers (
     state               VARCHAR,
     country             VARCHAR,
     source_archive      VARCHAR
+);
+
+CREATE TABLE IF NOT EXISTS private_fund_snapshots (
+    snapshot_quarter    DATE,
+    fund_id             VARCHAR,
+    crd                 BIGINT,
+    fund_type           VARCHAR,
+    gross_asset_value   DOUBLE,
+    is_feeder_fund      BOOLEAN,
+    PRIMARY KEY (snapshot_quarter, fund_id)
 );
 
 CREATE TABLE IF NOT EXISTS deal_structuring (

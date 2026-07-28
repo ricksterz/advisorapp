@@ -4,7 +4,12 @@ import duckdb
 import pandas as pd
 
 from etl.config import SCHEMA_PATH
-from etl.private_funds import parse_7b1, parse_provider, stage_snapshot
+from etl.private_funds import (
+    parse_7b1,
+    parse_provider,
+    stage_quarterly_snapshot,
+    stage_snapshot,
+)
 from etl.pulse_history import SNAPSHOT_STALENESS_MONTHS
 
 # Headers verified against a real cached ADV_Filing_Data archive (2026-07-27).
@@ -149,3 +154,40 @@ def test_snapshot_staleness_window_ages_funds_out(tmp_path):
     # 805-old's only filing predates the newest by more than the staleness window
     assert fund_ids == {"805-new"}
     assert (date(2026, 6, 30) - date(2025, 1, 10)).days / 30 > SNAPSHOT_STALENESS_MONTHS
+
+
+def _firm_snapshot_quarter(con, q, n_firms):
+    for crd in range(n_firms):
+        con.execute(
+            "INSERT INTO firm_snapshots (snapshot_quarter, crd) VALUES (?, ?)", [q, 1000 + crd]
+        )
+
+
+def test_quarterly_snapshot_replays_reconstruction_per_published_quarter(tmp_path):
+    con = _db(tmp_path)
+    # Two equal-sized firm_snapshots quarters -> both clear the completeness
+    # gate, so published_quarters() returns both.
+    _firm_snapshot_quarter(con, date(2026, 3, 31), 10)
+    _firm_snapshot_quarter(con, date(2026, 6, 30), 10)
+
+    _fund_filing(con, 1, "805-1", 100, date(2026, 1, 10), 1e6)  # latest as of Q1 only
+    _fund_filing(con, 2, "805-1", 100, date(2026, 6, 15), 2e6)  # supersedes it by Q2
+    _fund_filing(con, 3, "805-2", 200, date(2026, 6, 1), 5e5)  # only exists by Q2
+
+    stage_quarterly_snapshot(con)
+
+    q1 = con.execute(
+        "SELECT fund_id, gross_asset_value FROM private_fund_snapshots WHERE snapshot_quarter = '2026-03-31'"
+    ).fetchall()
+    assert q1 == [("805-1", 1e6)]
+    q2 = con.execute(
+        "SELECT fund_id, gross_asset_value FROM private_fund_snapshots WHERE snapshot_quarter = '2026-06-30' ORDER BY fund_id"
+    ).fetchall()
+    assert q2 == [("805-1", 2e6), ("805-2", 5e5)]
+
+
+def test_quarterly_snapshot_noop_when_no_published_quarters(tmp_path):
+    con = _db(tmp_path)
+    _fund_filing(con, 1, "805-1", 100, date(2026, 6, 15), 2e6)
+    stage_quarterly_snapshot(con)  # no firm_snapshots rows at all -> nothing published
+    assert con.execute("SELECT count(*) FROM private_fund_snapshots").fetchone()[0] == 0

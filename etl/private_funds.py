@@ -19,14 +19,20 @@ actual service-provider data. Sub-items join to 7.B.1 rows via
 (filing_id, reference_id) — reference_id is only unique within one filing,
 unlike fund_id (a stable SEC-assigned identifier across filings).
 
-v1 scope: latest-known state per fund (by fund_id, within the same
-staleness window pulse_history uses for firm_snapshots), not a quarterly
-time series — matches this project's "ship the core, iterate after" pattern.
+private_funds/private_fund_providers hold latest-known current state (by
+fund_id, within the same staleness window pulse_history uses for
+firm_snapshots) — what FirmDetail's PrivateFundsCard reads. quarterly()
+adds the deferred v1 fast-follow: private_fund_snapshots replays that same
+reconstruction once per Pulse-published quarter (no per-quarter provider
+join — a trend needs counts/types/GAV, not the full provider table repeated
+at every quarter-end), gated to the SAME published-quarter list
+pulse_stats.py already computes from firm_snapshots.
 
 Usage:
     python -m etl.private_funds load       # cached archives -> *_filings tables
-    python -m etl.private_funds snapshot   # *_filings -> private_funds / private_fund_providers
-    python -m etl.private_funds run        # both
+    python -m etl.private_funds snapshot   # *_filings -> private_funds / private_fund_providers (current)
+    python -m etl.private_funds quarterly  # *_filings -> private_fund_snapshots (trend)
+    python -m etl.private_funds run        # all three
 """
 
 from __future__ import annotations
@@ -49,6 +55,7 @@ from etl.pulse_history import (
     _read_member_csv,
     parse_base_a,
 )
+from etl.pulse_stats import published_quarters
 
 FUND_COLUMNS: dict[str, list[str]] = {
     "filing_id": ["FILINGID"],
@@ -225,9 +232,49 @@ def stage_snapshot(con: duckdb.DuckDBPyConnection) -> None:
     print(f"snapshot as of {latest}: {n_funds} funds, {n_providers} provider records")
 
 
+def stage_quarterly_snapshot(con: duckdb.DuckDBPyConnection) -> None:
+    """Rebuild private_fund_snapshots: for each Pulse-published quarter,
+    every fund's latest filing on/before that quarter-end within the
+    staleness window, excluding firms that had withdrawn by then — the same
+    reconstruction stage_snapshot does for "current", replayed once per
+    quarter. Requires firm_snapshots to already be populated (run
+    `python -m etl.pulse_history snapshots` first) since it reuses
+    pulse_stats.published_quarters() as the one canonical completeness gate
+    for the whole Pulse surface.
+    """
+    quarters = published_quarters(con)
+    if not quarters:
+        print("no published quarters yet (run etl.pulse_history snapshots first); nothing to snapshot")
+        return
+    con.execute("DELETE FROM private_fund_snapshots")
+    for q in quarters:
+        con.execute(
+            """
+            INSERT INTO private_fund_snapshots
+            SELECT ?::DATE AS snapshot_quarter, fund_id, crd, fund_type, gross_asset_value, is_feeder_fund
+            FROM (
+                SELECT f.*, row_number() OVER (
+                    PARTITION BY f.fund_id ORDER BY f.date_submitted DESC, f.filing_id DESC
+                ) AS rn
+                FROM private_fund_filings f
+                WHERE f.date_submitted <= ?::DATE
+                  AND f.date_submitted > ?::DATE - to_months(?)
+                  AND NOT EXISTS (
+                      SELECT 1 FROM adv_withdrawals w WHERE w.crd = f.crd AND w.filing_date <= ?::DATE
+                  )
+            ) WHERE rn = 1
+            """,
+            [q, q, q, SNAPSHOT_STALENESS_MONTHS, q],
+        )
+        n = con.execute(
+            "SELECT count(*) FROM private_fund_snapshots WHERE snapshot_quarter = ?", [q]
+        ).fetchone()[0]
+        print(f"quarterly snapshot {q}: {n} funds")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("stage", choices=["load", "snapshot", "run"])
+    parser.add_argument("stage", choices=["load", "snapshot", "quarterly", "run"])
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
     args = parser.parse_args()
 
@@ -239,6 +286,8 @@ def main() -> None:
             stage_load(con)
         if args.stage in ("snapshot", "run"):
             stage_snapshot(con)
+        if args.stage in ("quarterly", "run"):
+            stage_quarterly_snapshot(con)
     finally:
         con.close()
 

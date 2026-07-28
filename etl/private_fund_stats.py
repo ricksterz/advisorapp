@@ -32,6 +32,7 @@ import duckdb
 
 from etl.config import DB_PATH as DEFAULT_DB
 from etl.config import REPO_ROOT
+from etl.pulse_stats import _delta, published_quarters
 
 DEFAULT_OUT = REPO_ROOT / "frontend" / "public" / "private_funds.json"
 DEFAULT_FIRM_OUT = REPO_ROOT / "frontend" / "public" / "firm_private_funds.json"
@@ -120,6 +121,43 @@ def provider_leagues(con: duckdb.DuckDBPyConnection, top_n: int = TOP_N_PROVIDER
     return out
 
 
+def quarterly_series(con: duckdb.DuckDBPyConnection, quarters: list[str]) -> list[dict]:
+    """Per Pulse-published quarter: total fund count + per-type breakdown,
+    from private_fund_snapshots (etl.private_funds's quarterly() stage).
+    Same feeder-exclusion reasoning as fund_type_series — no per-quarter
+    provider replay, no cross-type GAV total.
+    """
+    series = []
+    for q in quarters:
+        total = con.execute(
+            "SELECT count(*) FROM private_fund_snapshots WHERE snapshot_quarter = ?", [q]
+        ).fetchone()[0]
+        rows = con.execute(
+            """
+            SELECT fund_type, count(*), sum(gross_asset_value) FILTER (NOT is_feeder_fund)
+            FROM private_fund_snapshots
+            WHERE snapshot_quarter = ? AND fund_type IS NOT NULL
+            GROUP BY 1 ORDER BY 2 DESC
+            """,
+            [q],
+        ).fetchall()
+        series.append(
+            {
+                "quarter": q,
+                "total_funds": total,
+                "fund_types": [{"type": t, "count": n, "gav": gav} for t, n, gav in rows],
+            }
+        )
+    return series
+
+
+def fund_count_kpi(series: list[dict]) -> dict:
+    curr = series[-1]["total_funds"] if series else None
+    prev_q = series[-2]["total_funds"] if len(series) >= 2 else None
+    prev_y = series[-5]["total_funds"] if len(series) >= 5 else None
+    return {"value": curr, "qoq": _delta(curr, prev_q), "yoy": _delta(curr, prev_y)}
+
+
 def export_private_fund_stats(db_path: Path, out_path: Path) -> int:
     con = duckdb.connect(str(db_path), read_only=True)
     try:
@@ -134,6 +172,13 @@ def export_private_fund_stats(db_path: Path, out_path: Path) -> int:
         n_funds, n_firms = con.execute(
             "SELECT count(*), count(DISTINCT crd) FROM private_funds"
         ).fetchone()
+
+        try:
+            quarters = published_quarters(con)
+        except duckdb.CatalogException:
+            quarters = []
+        series = quarterly_series(con, quarters) if quarters else []
+
         payload = {
             "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "as_of": str(as_of),
@@ -143,6 +188,9 @@ def export_private_fund_stats(db_path: Path, out_path: Path) -> int:
             "domicile": domicile_series(con),
             "top_firms": top_firms(con),
             "providers": provider_leagues(con),
+            "quarters": quarters,
+            "series": series,
+            "fund_count_kpi": fund_count_kpi(series) if series else None,
         }
     finally:
         con.close()

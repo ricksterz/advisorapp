@@ -1,6 +1,6 @@
 import { firmPath, navigate, pulsePath } from '../router.js'
 import { MethodologyFootnote, PulseDisclaimer, TrendLine } from './PulsePage.jsx'
-import { concentrationSeries, fmtCompactUsd, fmtCount, fmtPct, fmtQuarter, usePulseStats } from '../pulse.js'
+import { concentrationSeries, deltaView, fmtCompactUsd, fmtCount, fmtPct, fmtQuarter, usePulseStats } from '../pulse.js'
 import { PROVIDER_ROLE_LABELS, usePrivateFundStats } from '../privateFunds.js'
 
 function PulseBackLink() {
@@ -212,9 +212,22 @@ export function DrilldownPrivateFunds() {
   if (stats === undefined) return <div className="state">Loading industry data…</div>
   if (stats === null) return <div className="state">Industry statistics are not available in this build.</div>
 
-  const { fund_types: fundTypes, domicile, top_firms: topFirms, providers, total_funds: totalFunds, total_firms: totalFirms } = stats
+  const {
+    fund_types: fundTypes,
+    domicile,
+    top_firms: topFirms,
+    providers,
+    total_funds: totalFunds,
+    total_firms: totalFirms,
+    quarters,
+    series,
+    fund_count_kpi: fundCountKpi,
+  } = stats
   const maxTypeCount = Math.max(...fundTypes.map((t) => t.count))
   const maxDomicileCount = Math.max(...domicile.map((d) => d.count))
+  const qoq = deltaView(fundCountKpi?.qoq)
+  const yoy = deltaView(fundCountKpi?.yoy)
+  const maxSeriesCount = series?.length ? Math.max(...series.map((s) => s.total_funds)) : 0
 
   return (
     <section className="pulse" aria-label="Private funds">
@@ -227,6 +240,42 @@ export function DrilldownPrivateFunds() {
         </p>
         <PulseDisclaimer />
       </div>
+
+      {series?.length > 1 && (
+        <div className="detail-card">
+          <h2>
+            Fund count by quarter
+            {qoq && (
+              <span className={`kpi-delta ${qoq.tone}`} title="Fund count change">
+                {' '}
+                <span aria-hidden="true">{qoq.arrow}</span> {qoq.text} QoQ
+              </span>
+            )}
+            {yoy && (
+              <span className={`kpi-delta ${yoy.tone}`} title="Fund count change">
+                {' '}
+                <span aria-hidden="true">{yoy.arrow}</span> {yoy.text} YoY
+              </span>
+            )}
+          </h2>
+          <div className="pulse-bars">
+            {series.map((s) => (
+              <div key={s.quarter} className="pattern-row">
+                <span className="pattern-label wide">{fmtQuarter(s.quarter)}</span>
+                <span className="track">
+                  <span className="fill" style={{ width: `${(s.total_funds / maxSeriesCount) * 100}%` }} />
+                </span>
+                <span className="pattern-pct wide">{fmtCount(s.total_funds)}</span>
+              </div>
+            ))}
+          </div>
+          <p className="detail-note">
+            Published for the same {quarters?.length ?? 0} quarters as the rest of Industry Pulse —
+            gated on the same completeness threshold (see the main Pulse page's Methodology), not
+            recomputed separately for private funds.
+          </p>
+        </div>
+      )}
 
       <div className="detail-card">
         <h2>Funds by type</h2>
