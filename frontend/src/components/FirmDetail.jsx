@@ -479,6 +479,17 @@ export default function FirmDetail({ firm, crd, allFirms }) {
         <PrivateFundsCard crd={firm.crd} />
         <AdvisorBiosCard crd={firm.crd} />
       </div>
+
+      <p className="pulse-disclaimer">
+        Open Disclosure is independent and not affiliated with, endorsed by, or a representative of{' '}
+        {firm.business_name || firm.legal_name}, the SEC, or FINRA. Figures above come from the
+        firm’s own Form ADV filing and may be stale between amendments. Nothing on this page is
+        investment, legal, or tax advice —{' '}
+        <a href={BASE} onClick={(e) => navigate(e, BASE)}>
+          full methodology and sourcing
+        </a>
+        .
+      </p>
     </section>
   )
 }
