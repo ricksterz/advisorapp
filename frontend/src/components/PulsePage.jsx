@@ -60,18 +60,20 @@ export function TrendLine({ values, width = 120, height = 32 }) {
   )
 }
 
-// Private funds is a separate, non-quarterly data file (current-known-state,
-// not a time series) — fetched independently so a slow/missing file never
-// blocks the rest of the Pulse page from rendering.
+// Private funds is a separate data file — fetched independently so a
+// slow/missing file never blocks the rest of the Pulse page from rendering.
 function PrivateFundsTile() {
   const stats = usePrivateFundStats()
   if (!stats) return null
   const topType = stats.fund_types[0]
+  const qoq = deltaView(stats.fund_count_kpi?.qoq)
+  const series = stats.series?.map((s) => s.total_funds)
   return (
     <CategoryTile
       section="private-funds"
       title="Private funds"
-      stat={`${fmtCount(stats.total_funds)} funds across ${fmtCount(stats.total_firms)} advisers · most common: ${topType?.type ?? '—'}`}
+      stat={`${fmtCount(stats.total_funds)} funds across ${fmtCount(stats.total_firms)} advisers${qoq ? ` · ${qoq.arrow} ${qoq.text} QoQ` : ''} · most common: ${topType?.type ?? '—'}`}
+      series={series}
     />
   )
 }

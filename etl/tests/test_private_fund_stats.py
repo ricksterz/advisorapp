@@ -8,8 +8,10 @@ from etl.private_fund_stats import (
     _normalize_provider,
     export_firm_private_funds,
     export_private_fund_stats,
+    fund_count_kpi,
     fund_type_series,
     provider_leagues,
+    quarterly_series,
 )
 
 
@@ -136,3 +138,49 @@ def test_export_firm_private_funds_dedupes_repeated_provider_rows(tmp_path):
     master = payload["firms"]["1"][0]
     marketers = [p for p in master["providers"] if p["role"] == "marketer"]
     assert marketers == [{"role": "marketer", "name": "DUP MARKETER"}]
+
+
+def _make_db_with_quarters(tmp_path):
+    db = tmp_path / "t.duckdb"
+    con = duckdb.connect(str(db))
+    con.execute(SCHEMA_PATH.read_text())
+    con.execute(
+        """
+        INSERT INTO private_fund_snapshots (snapshot_quarter, fund_id, crd, fund_type, gross_asset_value, is_feeder_fund)
+        VALUES
+            ('2026-03-31', '805-1', 1, 'Hedge Fund', 100000000, false),
+            ('2026-03-31', '805-2', 1, 'Hedge Fund', 40000000, true),
+            ('2026-06-30', '805-1', 1, 'Hedge Fund', 110000000, false),
+            ('2026-06-30', '805-2', 1, 'Hedge Fund', 45000000, true),
+            ('2026-06-30', '805-3', 2, 'Private Equity Fund', 5000000, false)
+        """
+    )
+    con.close()
+    return db
+
+
+def test_quarterly_series_excludes_feeder_gav_per_quarter(tmp_path):
+    db = _make_db_with_quarters(tmp_path)
+    con = duckdb.connect(str(db), read_only=True)
+    series = quarterly_series(con, ["2026-03-31", "2026-06-30"])
+    con.close()
+    assert series[0] == {
+        "quarter": "2026-03-31",
+        "total_funds": 2,
+        "fund_types": [{"type": "Hedge Fund", "count": 2, "gav": 100000000}],
+    }
+    assert series[1]["total_funds"] == 3
+    types_by_name = {t["type"]: t for t in series[1]["fund_types"]}
+    assert types_by_name["Hedge Fund"]["gav"] == 110000000  # feeder still excluded
+
+
+def test_fund_count_kpi_computes_qoq():
+    series = [{"total_funds": 2}, {"total_funds": 3}]
+    kpi = fund_count_kpi(series)
+    assert kpi["value"] == 3
+    assert kpi["qoq"] == 0.5
+    assert kpi["yoy"] is None  # fewer than 5 quarters
+
+
+def test_fund_count_kpi_empty_series():
+    assert fund_count_kpi([]) == {"value": None, "qoq": None, "yoy": None}
