@@ -2,6 +2,7 @@ import { firmPath, navigate, pulsePath } from '../router.js'
 import { MethodologyFootnote, PulseDisclaimer, TrendLine } from './PulsePage.jsx'
 import { concentrationSeries, deltaView, fmtCompactUsd, fmtCount, fmtPct, fmtQuarter, usePulseStats } from '../pulse.js'
 import { PROVIDER_ROLE_LABELS, usePrivateFundStats } from '../privateFunds.js'
+import { useIndividualDisclosureStats } from '../individualDisclosures.js'
 
 function PulseBackLink() {
   const path = pulsePath()
@@ -371,6 +372,90 @@ export function DrilldownPrivateFunds() {
         not a live feed — see the Methodology note on the main Industry Pulse page for how ADV
         filings are reconstructed into a point-in-time view.
       </p>
+    </section>
+  )
+}
+
+export function DrilldownDisclosures() {
+  const pulseStats = usePulseStats()
+  const indvlStats = useIndividualDisclosureStats()
+  if (pulseStats === undefined || indvlStats === undefined) return <div className="state">Loading industry data…</div>
+  if (pulseStats === null) return <div className="state">Industry statistics are not available in this build.</div>
+
+  const { series, as_of: asOf } = pulseStats
+  const maxCategoryShare = indvlStats
+    ? Math.max(...indvlStats.categories.map((c) => c.pct_of_individuals ?? 0))
+    : 0
+
+  return (
+    <section className="pulse" aria-label="Disclosures">
+      <PulseBackLink />
+      <div className="page-head">
+        <h1>Disclosures</h1>
+        <p className="page-tagline">
+          Firm-level trends from Form ADV Item 11, and individual-level category breakdown from
+          the SEC’s bulk adviser feed. <span className="as-of">as of {fmtQuarter(asOf)}</span>
+        </p>
+        <PulseDisclaimer />
+      </div>
+
+      <div className="detail-card">
+        <h2>Firms with a disclosure event, by quarter</h2>
+        <table className="pulse-table">
+          <thead>
+            <tr><th>Quarter</th><th className="num">Share of firms</th><th className="num">Firms</th></tr>
+          </thead>
+          <tbody>
+            {series.map((s) => (
+              <tr key={s.quarter}>
+                <td>{fmtQuarter(s.quarter)}</td>
+                <td className="num">{fmtPct(s.pct_disclosure)}</td>
+                <td className="num">{fmtCount(s.firms)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="detail-note">
+          “Disclosures” counts affirmative answers to Form ADV Item 11 — criminal, regulatory, and
+          civil-judicial events, including matters that were settled, dismissed, or involve
+          affiliates rather than the firm itself. A disclosure is a reason to read the underlying
+          record, not a finding of wrongdoing.
+        </p>
+      </div>
+
+      {indvlStats && (
+        <div className="detail-card">
+          <h2>Individual-level disclosure categories</h2>
+          <p className="detail-note">
+            {fmtPct(indvlStats.flagged_rate)} of {fmtCount(indvlStats.total_individuals)} individuals in
+            the SEC’s bulk adviser feed have at least one flagged category, as of {indvlStats.as_of}.
+          </p>
+          <div className="pulse-bars">
+            {indvlStats.categories.map((c) => (
+              <div key={c.key} className="pattern-row">
+                <span className="pattern-label wide">{c.label}</span>
+                <span className="track">
+                  <span
+                    className="fill"
+                    style={{ width: `${((c.pct_of_individuals ?? 0) / maxCategoryShare) * 100}%` }}
+                  />
+                </span>
+                <span className="pattern-pct wide">
+                  {fmtCount(c.count)} · {fmtPct(c.pct_of_individuals)}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="detail-note">
+            From the SEC’s bulk individual-adviser feed: Y/N category flags only, no narrative,
+            date, or dollar detail, and not a count of distinct events — a person flagged for
+            “Customer complaint” may have one or many. Each category is a share of every
+            individual in the feed, not just the flagged ones. Real detail lives on each
+            individual’s IAPD summary page, linked from the disclosure badge on their firm’s
+            Advisor bios card.
+          </p>
+        </div>
+      )}
     </section>
   )
 }

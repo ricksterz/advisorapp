@@ -119,6 +119,17 @@ CREATE TABLE IF NOT EXISTS individual_disclosures (
     fetched_at              TIMESTAMP
 );
 
+-- One row per load: the TOTAL individuals scanned in that feed pull, not
+-- just the flagged subset kept in individual_disclosures above — needed to
+-- compute an honest industry-wide flagged rate (etl/individual_disclosures_stats.py)
+-- without re-parsing the 175MB source feed at export time.
+CREATE TABLE IF NOT EXISTS individual_disclosures_meta (
+    source_archive          VARCHAR PRIMARY KEY,
+    total_individuals       BIGINT,
+    flagged_individuals     BIGINT,
+    fetched_at              TIMESTAMP
+);
+
 -- ---------------------------------------------------------------------------
 -- Industry Pulse (etl/pulse_history.py + etl/pulse_stats.py).
 --
