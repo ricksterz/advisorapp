@@ -56,12 +56,18 @@ Path("frontend/public/sitemap.xml").write_text(decl + "\n" + comment + rest)
 Path("frontend/public/robots.txt").write_text(Path("/tmp/sitemap_out/robots.txt").read_text())
 PYEOF
 
-echo "== 7/7 refreshing Industry Pulse (monthly archives -> snapshots -> stats) =="
+echo "== 7/8 refreshing Industry Pulse (monthly archives -> snapshots -> stats) =="
 $PY -m etl.pulse_history run --db data/advisor.duckdb
 $PY -m etl.pulse_stats --db data/advisor.duckdb --out frontend/public/pulse_stats.json
+
+echo "== 8/8 refreshing private funds (Schedule D 7.B.1, reuses Pulse's cached archives) =="
+$PY -m etl.private_funds run --db data/advisor.duckdb
+$PY -m etl.private_fund_stats --db data/advisor.duckdb \
+    --out frontend/public/private_funds.json --firm-out frontend/public/firm_private_funds.json
 
 echo
 echo "Done. Review the diff, then:"
 echo "  git add frontend/public/deal_flags.json frontend/public/advisor_bios.json \\"
-echo "          frontend/public/sitemap.xml frontend/public/robots.txt frontend/public/pulse_stats.json"
-echo "  git commit -m 'Refresh brochure corpus, advisor bios, and sitemap'"
+echo "          frontend/public/sitemap.xml frontend/public/robots.txt frontend/public/pulse_stats.json \\"
+echo "          frontend/public/private_funds.json frontend/public/firm_private_funds.json"
+echo "  git commit -m 'Refresh brochure corpus, advisor bios, private funds, and sitemap'"

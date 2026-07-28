@@ -10,7 +10,7 @@ import MethodologyPanel from './components/MethodologyPanel.jsx'
 import FirmDetail, { websiteHost } from './components/FirmDetail.jsx'
 import DealPatternsSection from './components/DealPatternsSection.jsx'
 import PulsePage from './components/PulsePage.jsx'
-import { DrilldownAdvisers, DrilldownAssets } from './components/PulseDrilldowns.jsx'
+import { DrilldownAdvisers, DrilldownAssets, DrilldownPrivateFunds } from './components/PulseDrilldowns.jsx'
 import { BASE, firmPath, navigate, pulsePath, useRoute } from './router.js'
 import { DEAL_FLAG_DEFS, useAllDealFlags } from './dealFlags.js'
 import { computeDealPatterns } from './dealPatterns.js'
@@ -169,6 +169,7 @@ const PULSE_TITLES = {
   '': 'Industry Pulse',
   advisers: 'Adviser counts & growth — Industry Pulse',
   assets: 'Assets & AUM bands — Industry Pulse',
+  'private-funds': 'Private funds — Industry Pulse',
 }
 
 export default function App() {
@@ -304,7 +305,15 @@ export default function App() {
         </main>
       ) : pulse != null ? (
         <main className="shell">
-          {pulse === 'advisers' ? <DrilldownAdvisers /> : pulse === 'assets' ? <DrilldownAssets /> : <PulsePage />}
+          {pulse === 'advisers' ? (
+            <DrilldownAdvisers />
+          ) : pulse === 'assets' ? (
+            <DrilldownAssets />
+          ) : pulse === 'private-funds' ? (
+            <DrilldownPrivateFunds />
+          ) : (
+            <PulsePage />
+          )}
         </main>
       ) : (
       <>

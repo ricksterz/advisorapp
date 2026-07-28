@@ -166,6 +166,79 @@ CREATE TABLE IF NOT EXISTS firm_snapshots (
     PRIMARY KEY (snapshot_quarter, crd)
 );
 
+-- ---------------------------------------------------------------------------
+-- Private funds (etl/private_funds.py) — Form ADV Schedule D 7.B.1, one row
+-- per private fund a registered adviser manages, plus 7.B.1's named
+-- service-provider sub-items (7.B.1.(a).23/24/25/26/28: auditor, prime
+-- broker, custodian, administrator, marketer). Lives in the SAME monthly
+-- advFilingData archives etl/pulse_history.py already downloads — no new
+-- data source. Same filing-window-not-snapshot problem as adv_filings:
+-- private_fund_filings holds every raw filing row across all cached
+-- archives; private_funds/private_fund_providers are the reconstructed
+-- "latest known state per fund" (fund_id is a stable SEC-assigned
+-- identifier, unlike reference_id which is only unique within one filing).
+-- v1 scope is current-state only, not a quarterly time series like
+-- firm_snapshots — see docs/industry-pulse-plan.md Phase 2b.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS private_fund_filings (
+    filing_id           BIGINT,
+    fund_id             VARCHAR,                  -- stable SEC fund identifier, e.g. 805-XXXXXXX
+    reference_id        BIGINT,                    -- valid as a join key only within this filing_id
+    crd                 BIGINT,                    -- adviser CRD, joined in from IA_ADV_Base_A
+    date_submitted      DATE,
+    fund_name           VARCHAR,
+    fund_type           VARCHAR,
+    state               VARCHAR,                  -- fund domicile
+    country             VARCHAR,
+    exclusion_3c1       BOOLEAN,
+    exclusion_3c7       BOOLEAN,
+    is_master_fund      BOOLEAN,
+    is_feeder_fund      BOOLEAN,
+    gross_asset_value   DOUBLE,
+    source_archive      VARCHAR,
+    PRIMARY KEY (filing_id, fund_id)
+);
+
+CREATE TABLE IF NOT EXISTS private_fund_provider_filings (
+    filing_id           BIGINT,
+    reference_id        BIGINT,
+    role                VARCHAR,                  -- auditor | prime_broker | custodian | administrator | marketer
+    provider_name       VARCHAR,
+    city                VARCHAR,
+    state               VARCHAR,
+    country             VARCHAR,
+    source_archive      VARCHAR
+);
+
+CREATE TABLE IF NOT EXISTS private_funds (
+    fund_id             VARCHAR PRIMARY KEY,
+    crd                 BIGINT,
+    fund_name           VARCHAR,
+    fund_type           VARCHAR,
+    state               VARCHAR,
+    country             VARCHAR,
+    exclusion_3c1       BOOLEAN,
+    exclusion_3c7       BOOLEAN,
+    is_master_fund      BOOLEAN,
+    is_feeder_fund      BOOLEAN,
+    gross_asset_value   DOUBLE,
+    reference_id        BIGINT,                    -- this fund's winning filing's reference_id
+    filing_id           BIGINT,                    -- this fund's winning (most recent) filing
+    date_submitted      DATE,
+    source_archive      VARCHAR
+);
+
+CREATE TABLE IF NOT EXISTS private_fund_providers (
+    filing_id           BIGINT,
+    reference_id        BIGINT,
+    role                VARCHAR,
+    provider_name       VARCHAR,
+    city                VARCHAR,
+    state               VARCHAR,
+    country             VARCHAR,
+    source_archive      VARCHAR
+);
+
 CREATE TABLE IF NOT EXISTS deal_structuring (
     firm_crd            BIGINT,                   -- FK -> firms.crd
     source_document     VARCHAR,                  -- brochure filename / URL

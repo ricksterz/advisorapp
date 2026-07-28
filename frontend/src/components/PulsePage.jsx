@@ -9,6 +9,7 @@ import {
   fmtQuarter,
   usePulseStats,
 } from '../pulse.js'
+import { usePrivateFundStats } from '../privateFunds.js'
 
 function AsOfTag({ asOf }) {
   return <span className="as-of">as of {fmtQuarter(asOf)}</span>
@@ -56,6 +57,22 @@ export function TrendLine({ values, width = 120, height = 32 }) {
     <svg className="trend-line" viewBox={`0 0 ${width} ${height}`} width={width} height={height} aria-hidden="true">
       <polyline points={points} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
     </svg>
+  )
+}
+
+// Private funds is a separate, non-quarterly data file (current-known-state,
+// not a time series) — fetched independently so a slow/missing file never
+// blocks the rest of the Pulse page from rendering.
+function PrivateFundsTile() {
+  const stats = usePrivateFundStats()
+  if (!stats) return null
+  const topType = stats.fund_types[0]
+  return (
+    <CategoryTile
+      section="private-funds"
+      title="Private funds"
+      stat={`${fmtCount(stats.total_funds)} funds across ${fmtCount(stats.total_firms)} advisers · most common: ${topType?.type ?? '—'}`}
+    />
   )
 }
 
@@ -159,6 +176,7 @@ export default function PulsePage() {
           stat={`median ${fmtCompactUsd(latest.median_aum)} · ${fmtPct(concentration.value)} of AUM at $1B+ firms`}
           series={medianSeries}
         />
+        <PrivateFundsTile />
       </div>
 
       <MethodologyFootnote metrics={['firms', 'concentration', 'median_aum', 'pct_disclosure', 'registrations']} />
