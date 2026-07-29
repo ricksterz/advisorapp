@@ -10,7 +10,13 @@ import MethodologyPanel from './components/MethodologyPanel.jsx'
 import FirmDetail, { websiteHost } from './components/FirmDetail.jsx'
 import DealPatternsSection from './components/DealPatternsSection.jsx'
 import PulsePage from './components/PulsePage.jsx'
-import { DrilldownAdvisers, DrilldownAssets, DrilldownDisclosures, DrilldownPrivateFunds } from './components/PulseDrilldowns.jsx'
+import {
+  DrilldownAdvisers,
+  DrilldownAssets,
+  DrilldownCapitalFormation,
+  DrilldownDisclosures,
+  DrilldownPrivateFunds,
+} from './components/PulseDrilldowns.jsx'
 import { BASE, firmPath, navigate, pulsePath, useRoute } from './router.js'
 import { DEAL_FLAG_DEFS, useAllDealFlags } from './dealFlags.js'
 import { useAllAdvisorBios } from './advisorBios.js'
@@ -188,6 +194,7 @@ const PULSE_TITLES = {
   assets: 'Assets & AUM bands — Industry Pulse',
   'private-funds': 'Private funds — Industry Pulse',
   disclosures: 'Disclosures — Industry Pulse',
+  'capital-formation': 'Capital formation — Industry Pulse',
 }
 
 export default function App() {
@@ -338,6 +345,8 @@ export default function App() {
             <DrilldownPrivateFunds />
           ) : pulse === 'disclosures' ? (
             <DrilldownDisclosures />
+          ) : pulse === 'capital-formation' ? (
+            <DrilldownCapitalFormation />
           ) : (
             <PulsePage />
           )}

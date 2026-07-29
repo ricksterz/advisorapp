@@ -19,6 +19,17 @@ describe('formatters', () => {
     expect(fmtCompactUsd(null)).toBe('—')
   })
 
+  it('fmtCompactUsd keeps a decimal in single-digit millions', () => {
+    // Form D medians sit in the $1-2M range; rounding to whole millions made
+    // a nearly-flat series read as if it were swinging between $1M and $2M.
+    expect(fmtCompactUsd(1_311_618)).toBe('$1.3M')
+    expect(fmtCompactUsd(1_600_000)).toBe('$1.6M')
+    expect(fmtCompactUsd(9_900_000)).toBe('$9.9M')
+    // Double-digit millions and up stay whole — unchanged from before.
+    expect(fmtCompactUsd(10_000_000)).toBe('$10M')
+    expect(fmtCompactUsd(48_000_000)).toBe('$48M')
+  })
+
   it('fmtCount and fmtPct', () => {
     expect(fmtCount(17151)).toBe('17,151')
     expect(fmtCount(null)).toBe('—')

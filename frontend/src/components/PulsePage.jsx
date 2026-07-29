@@ -11,6 +11,7 @@ import {
 } from '../pulse.js'
 import { usePrivateFundStats } from '../privateFunds.js'
 import { useIndividualDisclosureStats } from '../individualDisclosures.js'
+import { fmtFormDQuarter, useFormDStats } from '../formD.js'
 
 function AsOfTag({ asOf }) {
   return <span className="as-of">as of {fmtQuarter(asOf)}</span>
@@ -96,6 +97,52 @@ function DisclosuresTile() {
   )
 }
 
+// Form D is filed continuously by issuers and lives on its own quarterly
+// cadence, independent of the ADV-derived snapshots — fetched separately so a
+// missing/stale file degrades to the previous "coming soon" state rather than
+// blocking the KPI strip.
+function FormDKpiCard() {
+  const stats = useFormDStats()
+  const meta = PULSE_META.form_d
+  if (!stats) {
+    return (
+      <div className="kpi-card kpi-coming">
+        <div className="label">{meta.label}</div>
+        <div className="value">—</div>
+        <div className="kpi-definition">{meta.definition}</div>
+      </div>
+    )
+  }
+  const kpi = stats.offerings_kpi
+  return (
+    <div className="kpi-card">
+      <div className="label">{meta.label}</div>
+      <div className="value">{fmtCount(kpi?.value)}</div>
+      <div className="kpi-deltas">
+        <Delta delta={kpi?.qoq} label="QoQ" />
+        <Delta delta={kpi?.yoy} label="YoY" />
+      </div>
+      <div className="kpi-definition">{meta.definition}</div>
+      <span className="as-of">as of {fmtFormDQuarter(stats.as_of)}</span>
+    </div>
+  )
+}
+
+function CapitalFormationTile() {
+  const stats = useFormDStats()
+  if (!stats) return null
+  const latest = stats.series[stats.series.length - 1]
+  const topType = stats.fund_types[0]
+  return (
+    <CategoryTile
+      section="capital-formation"
+      title="Capital formation"
+      stat={`${fmtCount(latest.offerings)} new offerings · median ${fmtCompactUsd(latest.median_raised)} · most common fund type: ${topType?.type ?? '—'}`}
+      series={stats.series.length > 1 ? stats.series.map((s) => s.offerings) : undefined}
+    />
+  )
+}
+
 function CategoryTile({ section, title, stat, series }) {
   const path = pulsePath(section)
   return (
@@ -176,11 +223,7 @@ export default function PulsePage() {
           goodWhenDown
           asOf={asOf}
         />
-        <div className="kpi-card kpi-coming">
-          <div className="label">{PULSE_META.form_d.label}</div>
-          <div className="value">—</div>
-          <div className="kpi-definition">{PULSE_META.form_d.definition}</div>
-        </div>
+        <FormDKpiCard />
       </div>
 
       <div className="pulse-tiles">
@@ -198,6 +241,7 @@ export default function PulsePage() {
         />
         <PrivateFundsTile />
         <DisclosuresTile />
+        <CapitalFormationTile />
       </div>
 
       <MethodologyFootnote metrics={['firms', 'concentration', 'median_aum', 'pct_disclosure', 'registrations']} />

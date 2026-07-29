@@ -24,7 +24,15 @@ def generate(data_path: Path, site: str, out_dir: Path) -> int:
     site = site.rstrip("/")
     lastmod = (payload.get("generated_at") or datetime.now(timezone.utc).isoformat())[:10]
 
-    static_pages = ["", "pulse", "pulse/advisers", "pulse/assets", "pulse/private-funds", "pulse/disclosures"]
+    static_pages = [
+        "",
+        "pulse",
+        "pulse/advisers",
+        "pulse/assets",
+        "pulse/private-funds",
+        "pulse/disclosures",
+        "pulse/capital-formation",
+    ]
     urls = [f"{site}/{p}".rstrip("/") + ("/" if not p else "") for p in static_pages] + [
         f"{site}/firm/{f['crd']}" for f in payload["firms"]
     ]

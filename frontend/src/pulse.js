@@ -38,7 +38,11 @@ export const fmtCompactUsd = (v) => {
   if (v == null || Number.isNaN(v)) return '—'
   if (v >= 1e12) return `$${(v / 1e12).toFixed(1)}T`
   if (v >= 1e9) return `$${(v / 1e9).toFixed(v >= 1e10 ? 0 : 1)}B`
-  if (v >= 1e6) return `$${(v / 1e6).toFixed(0)}M`
+  // Single-digit millions keep a decimal, mirroring the billions rule above:
+  // Form D medians cluster in the $1-2M range, where rounding to whole
+  // millions turned a gentle $1.31M -> $1.60M drift into a column that read
+  // "$1M, $1M, $2M, $1M, $1M, $2M" — noise where the data is nearly flat.
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(v >= 1e7 ? 0 : 1)}M`
   return `$${Math.round(v).toLocaleString()}`
 }
 
@@ -117,8 +121,9 @@ export const PULSE_META = {
       '“Appeared” counts CRDs present in a quarter snapshot but not the prior one (a proxy for new registrants); withdrawals count actual Form ADV-W filings in the quarter. The two measures come from different filings and need not sum to the net change.',
   },
   form_d: {
-    label: 'Form D capital raised',
-    definition: 'Coming in a future update — exempt-offering capital formation from SEC Form D filings.',
-    methodology: '',
+    label: 'New exempt offerings',
+    definition: 'New Form D offerings filed in the quarter (amendments excluded).',
+    methodology:
+      'Form D is filed for securities sold under an exemption from registration. Counts cover NEW offerings only: an amendment (Form D/A) restates an ongoing offering’s cumulative amount sold rather than reporting new capital, so including amendments would count the same dollars once per amendment — in a real quarter that inflated the total roughly 16-fold. Amounts are self-reported and heavily skewed by a few very large offerings, so counts and medians are shown rather than a headline total. Form D data is filed continuously by issuers and is a separate disclosure from the Form ADV private-fund census; the two count different things and will not tie out.',
   },
 }
