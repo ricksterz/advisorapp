@@ -117,8 +117,9 @@ export const PULSE_META = {
       '“Appeared” counts CRDs present in a quarter snapshot but not the prior one (a proxy for new registrants); withdrawals count actual Form ADV-W filings in the quarter. The two measures come from different filings and need not sum to the net change.',
   },
   form_d: {
-    label: 'Form D capital raised',
-    definition: 'Coming in a future update — exempt-offering capital formation from SEC Form D filings.',
-    methodology: '',
+    label: 'New exempt offerings',
+    definition: 'New Form D offerings filed in the quarter (amendments excluded).',
+    methodology:
+      'Form D is filed for securities sold under an exemption from registration. Counts cover NEW offerings only: an amendment (Form D/A) restates an ongoing offering’s cumulative amount sold rather than reporting new capital, so including amendments would count the same dollars once per amendment — in a real quarter that inflated the total roughly 16-fold. Amounts are self-reported and heavily skewed by a few very large offerings, so counts and medians are shown rather than a headline total. Form D data is filed continuously by issuers and is a separate disclosure from the Form ADV private-fund census; the two count different things and will not tie out.',
   },
 }

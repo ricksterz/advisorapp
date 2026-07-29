@@ -289,3 +289,58 @@ CREATE TABLE IF NOT EXISTS brochures (
     text_chars          BIGINT,                   -- extracted text size (null = not extracted)
     bios_extracted_at   TIMESTAMP                 -- etl/advisor_bios.py last scanned this text for Part 2B bios
 );
+
+-- ---------------------------------------------------------------------------
+-- Form D exempt offerings (etl/form_d.py) — SEC's quarterly structured data
+-- sets (six TSVs per quarter, downloaded manually: www.sec.gov WAF-blocks
+-- automated clients, unlike the reports.adviserinfo.sec.gov host the ADV
+-- pipelines use).
+--
+-- CRITICAL, verified against the real 2026Q2 file: an amendment (D/A, ~36% of
+-- rows) RESTATES the cumulative amount sold for an ongoing offering rather
+-- than reporting new capital. Summing TOTALAMOUNTSOLD across all rows
+-- therefore counts the same dollars once per amendment — $2.97T for 2026Q2
+-- vs $186B counting new offerings only, a 16x inflation. Every aggregate in
+-- etl/form_d_stats.py counts NEW offerings only; is_amendment is kept here so
+-- that choice stays visible and auditable rather than baked silently into the
+-- load. Same family of trap as aggregate RAUM and master/feeder fund GAV.
+--
+-- One flat row per offering (submission + offering + primary issuer joined at
+-- load time): unlike the ADV pipelines there is no point-in-time state to
+-- reconstruct — each filing is an event, not a snapshot of a universe.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS form_d_offerings (
+    accession_number        VARCHAR PRIMARY KEY,
+    filing_date             DATE,
+    quarter                 VARCHAR,              -- source file's quarter, e.g. 2026Q2
+    submission_type         VARCHAR,              -- D | D/A
+    is_amendment            BOOLEAN,
+    previous_accession_number VARCHAR,            -- the offering this amends (may predate this quarter)
+    industry_group          VARCHAR,
+    investment_fund_type    VARCHAR,              -- Hedge Fund / PE / VC / Other (pooled funds only)
+    is_pooled_fund          BOOLEAN,
+    total_offering_amount   DOUBLE,               -- may be "indefinite" and hence null
+    total_amount_sold       DOUBLE,
+    min_investment          DOUBLE,
+    has_non_accredited      BOOLEAN,
+    issuer_name             VARCHAR,
+    issuer_state            VARCHAR,
+    entity_type             VARCHAR,
+    source_archive          VARCHAR
+);
+
+-- Placement agents / brokers named on an offering. RECIPIENTCRDNUMBER is a
+-- real CRD, but a 2026Q2 check matched only 137 of ~17K tracked advisers:
+-- recipients are overwhelmingly broker-dealers, not the RIAs this site
+-- covers, so this feeds an aggregate league table only — NOT a per-firm card,
+-- which would be empty for ~99% of firms.
+CREATE TABLE IF NOT EXISTS form_d_recipients (
+    accession_number        VARCHAR,
+    recipient_seq_key       VARCHAR,
+    recipient_name          VARCHAR,
+    recipient_crd           BIGINT,
+    associated_bd_name      VARCHAR,
+    associated_bd_crd       BIGINT,
+    state                   VARCHAR,
+    source_archive          VARCHAR
+);

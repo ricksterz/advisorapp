@@ -21,26 +21,26 @@ SITE="https://open-disclosure.com"
 TMP_FIRMS="$(mktemp -t open-disclosure-firms).json"
 trap 'rm -f "$TMP_FIRMS"' EXIT
 
-echo "== 1/8 fetching the latest ADV feed =="
+echo "== 1/9 fetching the latest ADV feed =="
 $PY -m etl.fetch_latest --dest data/raw/latest_adv.xml.gz
 $PY -m etl.ingest_adv --input data/raw/latest_adv.xml.gz --db data/advisor.duckdb
 
-echo "== 2/8 refreshing the brochure corpus (rescans every firm for new/changed brochures) =="
+echo "== 2/9 refreshing the brochure corpus (rescans every firm for new/changed brochures) =="
 $PY -m etl.brochures run --db data/advisor.duckdb --rescan
 
-echo "== 3/8 extracting advisor bios from newly-cached brochures (Part 2B) =="
+echo "== 3/9 extracting advisor bios from newly-cached brochures (Part 2B) =="
 $PY -m etl.advisor_bios run --db data/advisor.duckdb
 
-echo "== 4/8 refreshing individual disclosure flags (bulk IA_INDVL_Feed) =="
+echo "== 4/9 refreshing individual disclosure flags (bulk IA_INDVL_Feed) =="
 $PY -m etl.individual_disclosures run --db data/advisor.duckdb
 $PY -m etl.individual_disclosures_stats --db data/advisor.duckdb \
     --out frontend/public/individual_disclosures.json
 
-echo "== 5/8 exporting deal_flags.json + advisor_bios.json =="
+echo "== 5/9 exporting deal_flags.json + advisor_bios.json =="
 $PY -m etl.export_json --db data/advisor.duckdb --out "$TMP_FIRMS" \
     --flags-out frontend/public/deal_flags.json --bios-out frontend/public/advisor_bios.json
 
-echo "== 6/8 regenerating sitemap.xml + robots.txt =="
+echo "== 6/9 regenerating sitemap.xml + robots.txt =="
 $PY -m etl.gen_sitemap --data "$TMP_FIRMS" --site "$SITE" --out /tmp/sitemap_out
 $PY - "$SITE" <<'PYEOF'
 import sys
@@ -58,19 +58,23 @@ Path("frontend/public/sitemap.xml").write_text(decl + "\n" + comment + rest)
 Path("frontend/public/robots.txt").write_text(Path("/tmp/sitemap_out/robots.txt").read_text())
 PYEOF
 
-echo "== 7/8 refreshing Industry Pulse (monthly archives -> snapshots -> stats) =="
+echo "== 7/9 refreshing Industry Pulse (monthly archives -> snapshots -> stats) =="
 $PY -m etl.pulse_history run --db data/advisor.duckdb
 $PY -m etl.pulse_stats --db data/advisor.duckdb --out frontend/public/pulse_stats.json
 
-echo "== 8/8 refreshing private funds (Schedule D 7.B.1, reuses Pulse's cached archives) =="
+echo "== 8/9 refreshing private funds (Schedule D 7.B.1, reuses Pulse's cached archives) =="
 $PY -m etl.private_funds run --db data/advisor.duckdb
 $PY -m etl.private_fund_stats --db data/advisor.duckdb \
     --out frontend/public/private_funds.json --firm-out frontend/public/firm_private_funds.json
+
+echo "== 9/9 refreshing Form D capital formation (manual quarterly zips in data/raw/formd/) =="
+$PY -m etl.form_d load --db data/advisor.duckdb
+$PY -m etl.form_d_stats --db data/advisor.duckdb --out frontend/public/form_d.json
 
 echo
 echo "Done. Review the diff, then:"
 echo "  git add frontend/public/deal_flags.json frontend/public/advisor_bios.json \\"
 echo "          frontend/public/sitemap.xml frontend/public/robots.txt frontend/public/pulse_stats.json \\"
 echo "          frontend/public/private_funds.json frontend/public/firm_private_funds.json \\"
-echo "          frontend/public/individual_disclosures.json"
+echo "          frontend/public/individual_disclosures.json frontend/public/form_d.json"
 echo "  git commit -m 'Refresh brochure corpus, advisor bios, private funds, disclosures, and sitemap'"

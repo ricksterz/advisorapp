@@ -3,6 +3,7 @@ import { MethodologyFootnote, PulseDisclaimer, TrendLine } from './PulsePage.jsx
 import { concentrationSeries, deltaView, fmtCompactUsd, fmtCount, fmtPct, fmtQuarter, usePulseStats } from '../pulse.js'
 import { PROVIDER_ROLE_LABELS, usePrivateFundStats } from '../privateFunds.js'
 import { useIndividualDisclosureStats } from '../individualDisclosures.js'
+import { fmtFormDQuarter, useFormDStats } from '../formD.js'
 
 function PulseBackLink() {
   const path = pulsePath()
@@ -456,6 +457,174 @@ export function DrilldownDisclosures() {
           </p>
         </div>
       )}
+    </section>
+  )
+}
+
+export function DrilldownCapitalFormation() {
+  const stats = useFormDStats()
+  if (stats === undefined) return <div className="state">Loading industry data…</div>
+  if (stats === null) return <div className="state">Capital-formation data is not available in this build.</div>
+
+  const { series, fund_types: fundTypes, industries, states, placement_agents: agents } = stats
+  const latest = series[series.length - 1]
+  const maxType = Math.max(...fundTypes.map((t) => t.offerings), 1)
+  const maxIndustry = Math.max(...industries.map((i) => i.offerings), 1)
+  const maxState = Math.max(...states.map((s) => s.offerings), 1)
+  const maxAgent = Math.max(...agents.map((a) => a.offerings), 1)
+
+  return (
+    <section className="pulse" aria-label="Capital formation">
+      <PulseBackLink />
+      <div className="page-head">
+        <h1>Capital formation</h1>
+        <p className="page-tagline">
+          New exempt offerings from SEC Form D filings.{' '}
+          <span className="as-of">as of {fmtFormDQuarter(stats.as_of)}</span>
+        </p>
+        <PulseDisclaimer />
+      </div>
+
+      {series.length > 1 ? (
+        <div className="detail-card">
+          <h2>New offerings by quarter</h2>
+          <table className="pulse-table">
+            <thead>
+              <tr>
+                <th>Quarter</th>
+                <th className="num">New offerings</th>
+                <th className="num">Median raised</th>
+                <th className="num">Pooled funds</th>
+              </tr>
+            </thead>
+            <tbody>
+              {series.map((s) => (
+                <tr key={s.quarter}>
+                  <td>{fmtFormDQuarter(s.quarter)}</td>
+                  <td className="num">{fmtCount(s.offerings)}</td>
+                  <td className="num">{fmtCompactUsd(s.median_raised)}</td>
+                  <td className="num">{fmtCount(s.pooled_fund_offerings)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="detail-card">
+          <h2>{fmtFormDQuarter(latest.quarter)} at a glance</h2>
+          <div className="pulse-bars">
+            <div className="pattern-row">
+              <span className="pattern-label wide">New offerings</span>
+              <span className="pattern-pct wide">{fmtCount(latest.offerings)}</span>
+            </div>
+            <div className="pattern-row">
+              <span className="pattern-label wide">Median raised</span>
+              <span className="pattern-pct wide">{fmtCompactUsd(latest.median_raised)}</span>
+            </div>
+            <div className="pattern-row">
+              <span className="pattern-label wide">Not yet raised</span>
+              <span className="pattern-pct wide">{fmtCount(latest.not_yet_raised)}</span>
+            </div>
+            <div className="pattern-row">
+              <span className="pattern-label wide">Pooled funds</span>
+              <span className="pattern-pct wide">{fmtCount(latest.pooled_fund_offerings)}</span>
+            </div>
+          </div>
+          <p className="detail-note">
+            Only one quarter of Form D data is loaded, so no trend is shown yet. These files are
+            downloaded by hand (SEC blocks automated clients on this dataset); adding more
+            quarters is just a matter of dropping them in and re-running the refresh.
+          </p>
+        </div>
+      )}
+
+      <div className="detail-card">
+        <h2>Pooled funds by type</h2>
+        <div className="pulse-bars">
+          {fundTypes.map((t) => (
+            <div key={t.type} className="pattern-row">
+              <span className="pattern-label wide">{t.type}</span>
+              <span className="track">
+                <span className="fill" style={{ width: `${(t.offerings / maxType) * 100}%` }} />
+              </span>
+              <span className="pattern-pct wide">
+                {fmtCount(t.offerings)} · median {fmtCompactUsd(t.median_raised)}
+              </span>
+            </div>
+          ))}
+        </div>
+        <p className="detail-note">
+          Medians cover offerings that have raised something. An issuer typically files Form D when
+          an offering opens, before any capital is committed, so a large minority report $0 sold —
+          counting those would pull the median to zero for whole categories rather than describing
+          a typical raise.
+        </p>
+        <p className="detail-note">
+          Form D fund types are self-selected by the issuer and are a separate disclosure from the
+          Form ADV Schedule D 7.B.1 private-fund census shown under Private funds — the two count
+          different things and will not tie out.
+        </p>
+      </div>
+
+      <div className="detail-card">
+        <h2>Offerings by industry</h2>
+        <div className="pulse-bars">
+          {industries.map((i) => (
+            <div key={i.industry} className="pattern-row">
+              <span className="pattern-label wide">{i.industry}</span>
+              <span className="track">
+                <span className="fill" style={{ width: `${(i.offerings / maxIndustry) * 100}%` }} />
+              </span>
+              <span className="pattern-pct wide">{fmtCount(i.offerings)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="detail-card">
+        <h2>Issuer home state</h2>
+        <div className="pulse-bars">
+          {states.map((s) => (
+            <div key={s.state} className="pattern-row">
+              <span className="pattern-label">{s.state}</span>
+              <span className="track">
+                <span className="fill" style={{ width: `${(s.offerings / maxState) * 100}%` }} />
+              </span>
+              <span className="pattern-pct wide">{fmtCount(s.offerings)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="detail-card">
+        <h2>Most-named placement agents</h2>
+        <div className="pulse-bars">
+          {agents.map((a) => (
+            <div key={`${a.name}-${a.crd ?? 'nocrd'}`} className="pattern-row">
+              <span className="pattern-label wide">{a.name}</span>
+              <span className="track">
+                <span className="fill" style={{ width: `${(a.offerings / maxAgent) * 100}%` }} />
+              </span>
+              <span className="pattern-pct wide">{fmtCount(a.offerings)}</span>
+            </div>
+          ))}
+        </div>
+        <p className="detail-note">
+          Brokers named as recipients of sales compensation, ranked by number of offerings.
+          Recipients are overwhelmingly broker-dealers rather than the registered investment
+          advisers profiled elsewhere on this site, so this is shown industry-wide only and is not
+          attached to firm pages.
+        </p>
+      </div>
+
+      <p className="pulse-disclaimer">
+        Counts and amounts cover NEW offerings only. A Form D amendment (D/A) restates an ongoing
+        offering’s cumulative amount sold rather than reporting new capital, so including
+        amendments would count the same dollars repeatedly — {fmtCount(stats.amendments_excluded)}{' '}
+        amendment filings are excluded from every figure above. Amounts are self-reported and
+        highly skewed by a handful of very large offerings, which is why counts and medians lead
+        here rather than totals.
+      </p>
     </section>
   )
 }
