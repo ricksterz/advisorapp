@@ -38,7 +38,11 @@ export const fmtCompactUsd = (v) => {
   if (v == null || Number.isNaN(v)) return '—'
   if (v >= 1e12) return `$${(v / 1e12).toFixed(1)}T`
   if (v >= 1e9) return `$${(v / 1e9).toFixed(v >= 1e10 ? 0 : 1)}B`
-  if (v >= 1e6) return `$${(v / 1e6).toFixed(0)}M`
+  // Single-digit millions keep a decimal, mirroring the billions rule above:
+  // Form D medians cluster in the $1-2M range, where rounding to whole
+  // millions turned a gentle $1.31M -> $1.60M drift into a column that read
+  // "$1M, $1M, $2M, $1M, $1M, $2M" — noise where the data is nearly flat.
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(v >= 1e7 ? 0 : 1)}M`
   return `$${Math.round(v).toLocaleString()}`
 }
 
