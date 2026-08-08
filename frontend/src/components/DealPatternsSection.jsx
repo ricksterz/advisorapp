@@ -26,12 +26,14 @@ export default function DealPatternsSection({ patterns }) {
             </div>
             <div className="pattern-bars">
               {band.flags.map((f) => (
-                <div key={f.id} className="pattern-row" title={f.label}>
-                  <span className="pattern-label">{f.short}</span>
-                  <span className="track">
-                    <span className="fill" style={{ width: `${f.pct}%` }} />
+                <div key={f.id} className="pattern-row" title={f.description}>
+                  <span className="pattern-label">{f.label}</span>
+                  <span className="pattern-meter">
+                    <span className="track">
+                      <span className="fill" style={{ width: `${f.pct}%` }} />
+                    </span>
+                    <span className="pattern-pct">{Math.round(f.pct)}%</span>
                   </span>
-                  <span className="pattern-pct">{Math.round(f.pct)}%</span>
                 </div>
               ))}
             </div>

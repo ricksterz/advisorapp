@@ -389,6 +389,28 @@ select {
   font-size: 12.5px;
 }
 
+/* Deal-structuring bars carry full flag names ("Revenue sharing / referrals")
+   rather than the two-letter codes they used to, which cannot fit in the
+   26px side gutter the Pulse drill-downs use — the cards are only 220px wide
+   at their narrowest. Stack the label above its meter here instead. Scoped to
+   .deal-patterns so the shared .pattern-row layout stays side-by-side
+   everywhere else (PulseDrilldowns.jsx relies on it). */
+.deal-patterns .pattern-row {
+  display: block;
+}
+
+.deal-patterns .pattern-label {
+  display: block;
+  flex: none;
+  margin-bottom: 5px;
+}
+
+.deal-patterns .pattern-meter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 /* ---------- methodology panel ---------- */
 .method-panel {
   background: var(--surface);
