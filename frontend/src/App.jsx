@@ -152,8 +152,8 @@ function DealFlagsCell({ crd, data }) {
   return (
     <span className="deal-flag-chips">
       {active.map((d) => (
-        <span key={d.id} className="deal-flag-mini" title={d.label}>
-          {d.short}
+        <span key={d.id} className="deal-flag-mini" title={d.description}>
+          {d.label}
         </span>
       ))}
     </span>
@@ -756,9 +756,9 @@ export default function App() {
                       Altrata’s World Ultra Wealth Report 2025
                     </a>{' '}
                     puts the combined net worth of all 510,810 ultra-high-net-worth individuals
-                    worldwide at $59.8T — roughly a third of what these firms report in RAUM
-                    combined. Exempt reporting advisers (which file no RAUM) are excluded from
-                    this dataset.
+                    worldwide at $59.8T — roughly a third of what these firms report in regulatory
+                    AUM combined. Exempt reporting advisers (which file no regulatory AUM) are
+                    excluded from this dataset.
                   </dd>
                 </div>
                 <div>
@@ -795,11 +795,10 @@ export default function App() {
                   <dd>
                     <strong>AUM</strong> = assets under management. <strong>CRD</strong> = Central
                     Registration Depository number, the SEC/FINRA identifier for a firm or
-                    individual (links to the IAPD page above use it). The deal-structuring flags
-                    shown per firm and banded by scale: <strong>PF</strong> = proprietary funds
-                    (brochure language about placing clients in affiliated funds),{' '}
-                    <strong>RS</strong> = revenue sharing / referrals, <strong>GP / LP</strong> =
-                    affiliated general partner / limited partner fund structures.
+                    individual (links to the IAPD page above use it). <strong>GP / LP</strong> =
+                    general partner / limited partner — in the “Affiliated GP / LP”
+                    deal-structuring flag, the general partner is the entity that manages a fund
+                    and the limited partners are the passive investors in it.
                   </dd>
                 </div>
           </dl>

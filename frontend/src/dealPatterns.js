@@ -69,7 +69,7 @@ export function computeDealPatterns(firms, dealFlagsData, flagDefs) {
       flags: flagDefs.map((d) => ({
         id: d.id,
         label: d.label,
-        short: d.short,
+        description: d.description,
         count: r.counts[d.id],
         pct: (r.counts[d.id] / r.scanned) * 100,
       })),
