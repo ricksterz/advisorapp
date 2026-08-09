@@ -242,8 +242,17 @@ function AdvisorBiosCard({ crd }) {
 const DEFAULT_TITLE = 'Open Disclosure — SEC Form ADV adviser benchmarking'
 const SITE_URL = 'https://open-disclosure.com'
 
-// Per-firm title + meta description: crawlers render JS, so this is what a
-// firm's search result shows.
+// Per-firm title + meta description, applied on client-side navigation.
+//
+// This is NOT what crawlers use. Google rendered the page but judged the
+// canonical it was *served* — the homepage's — and reported every firm URL as
+// "Alternate page with proper canonical tag", consolidating ~17K pages into
+// the homepage. etl/gen_static_pages.py now bakes the correct canonical and
+// title into a real HTML file per route at build time, which is what search
+// engines actually read. These runtime updates still matter for in-app
+// navigation (where no document load happens) and for link-preview scrapers
+// that run JS, so both layers are kept deliberately in sync — change the
+// strings here and in gen_static_pages.py together.
 function usePageMeta(firm) {
   useEffect(() => {
     if (!firm) return undefined
@@ -256,8 +265,8 @@ function usePageMeta(firm) {
       `${name} (CRD ${firm.crd}${firm.state ? `, ${firm.state}` : ''}): regulatory AUM, ` +
         'client mix, fee structure, and disciplinary history from SEC Form ADV filings.',
     )
-    // Without a per-route canonical, every firm page would claim the homepage
-    // as its canonical URL and drop out of the index.
+    // Keeps the canonical correct after in-app navigation; the served HTML
+    // already carries it (see the note above usePageMeta).
     const canonical = document.querySelector('link[rel="canonical"]')
     const prevCanonical = canonical?.getAttribute('href')
     canonical?.setAttribute('href', `${SITE_URL}/firm/${firm.crd}`)
