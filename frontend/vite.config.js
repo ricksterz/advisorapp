@@ -9,6 +9,7 @@ export default defineConfig({
   base: process.env.BASE_PATH || '/',
   plugins: [react()],
   server: {
+    port: process.env.PORT ? Number(process.env.PORT) : 5173,
     proxy: {
       // forward API calls to the FastAPI backend during development
       // (only used once the UI grows API-backed features again)
