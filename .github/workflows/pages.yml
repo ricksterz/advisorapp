@@ -81,6 +81,16 @@ jobs:
           python -m etl.gen_sitemap --data frontend/public/firms.json \
             --site https://open-disclosure.com --out frontend/dist
 
+      - name: Pre-render per-route canonical/title metadata
+        # Every route otherwise inherits the homepage's canonical, which
+        # Search Console flagged as "Alternate page with proper canonical
+        # tag" against all ~17K firm URLs. Points at the canonical domain
+        # even here, so a crawl of the Pages mirror consolidates onto
+        # open-disclosure.com rather than competing with it.
+        run: |
+          python -m etl.gen_static_pages --data frontend/public/firms.json \
+            --site https://open-disclosure.com --out frontend/dist
+
       - uses: actions/configure-pages@v6
         with:
           enablement: true

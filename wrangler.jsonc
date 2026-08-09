@@ -8,9 +8,21 @@
   "compatibility_date": "2026-07-01",
   "assets": {
     "directory": "./frontend/dist",
+    // Serves firm/105958.html at /firm/105958 — no trailing slash, matching
+    // the URLs in sitemap.xml and the canonical tags. This is the current
+    // default, pinned explicitly because the pre-rendered pages are useless
+    // if a future default change routes these to the SPA shell instead.
+    // Unknown CRDs still have no file and fall through to not_found_handling.
+    "html_handling": "auto-trailing-slash",
     "not_found_handling": "single-page-application"
   },
+  // gen_static_pages writes a real HTML file per route with the correct
+  // canonical already in the <head>. Without it every route is served the
+  // homepage's canonical, which Search Console reported as "Alternate page
+  // with proper canonical tag" against all ~17K firm URLs. It runs on the
+  // build image's stock python3 (stdlib only — no pip install needed), and
+  // fails the build if dist would exceed the Free plan's 20,000-file cap.
   "build": {
-    "command": "curl -fsSL https://ricksterz.github.io/advisorapp/firms.json -o frontend/public/firms.json || echo 'live data unavailable, using committed firms.json'; cd frontend && npm ci && npm run build"
+    "command": "curl -fsSL https://ricksterz.github.io/advisorapp/firms.json -o frontend/public/firms.json || echo 'live data unavailable, using committed firms.json'; cd frontend && npm ci && npm run build && cd .. && python3 -m etl.gen_static_pages --data frontend/public/firms.json --site https://open-disclosure.com --out frontend/dist"
   }
 }
