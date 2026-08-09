@@ -57,17 +57,17 @@ PULSE_TITLES = {
 # while Search Console kept dropping the pages. Vite preserves the source's
 # multi-line meta tags, hence the \s+ between attributes.
 _SUBSTITUTIONS = {
-    "title": re.compile(r"<title>.*?</title>", re.S),
-    "description": re.compile(r'<meta\s+name="description"\s+content="[^"]*"\s*/>', re.S),
+    "title": re.compile(r"<title>.*?</title>", re.DOTALL),
+    "description": re.compile(r'<meta\s+name="description"\s+content="[^"]*"\s*/>', re.DOTALL),
     "canonical": re.compile(r'<link rel="canonical" href="[^"]*"\s*/>'),
     "og:title": re.compile(r'<meta property="og:title" content="[^"]*"\s*/>'),
     "og:description": re.compile(
-        r'<meta\s+property="og:description"\s+content="[^"]*"\s*/>', re.S
+        r'<meta\s+property="og:description"\s+content="[^"]*"\s*/>', re.DOTALL
     ),
     "og:url": re.compile(r'<meta property="og:url" content="[^"]*"\s*/>'),
     "twitter:title": re.compile(r'<meta name="twitter:title" content="[^"]*"\s*/>'),
     "twitter:description": re.compile(
-        r'<meta\s+name="twitter:description"\s+content="[^"]*"\s*/>', re.S
+        r'<meta\s+name="twitter:description"\s+content="[^"]*"\s*/>', re.DOTALL
     ),
 }
 
@@ -109,10 +109,13 @@ def firm_meta(firm: dict, site: str) -> tuple[str, str, str]:
     name = firm.get("business_name") or firm.get("legal_name") or f"CRD {firm['crd']}"
     crd = firm["crd"]
     state = f", {firm['state']}" if firm.get("state") else ""
+    description = (
+        f"{name} (CRD {crd}{state}): regulatory AUM, client mix, fee structure, "
+        "and disciplinary history from SEC Form ADV filings."
+    )
     return (
         f"{name} — Form ADV profile · Open Disclosure",
-        f"{name} (CRD {crd}{state}): regulatory AUM, client mix, fee structure, "
-        "and disciplinary history from SEC Form ADV filings.",
+        description,
         f"{site}/firm/{crd}",
     )
 
