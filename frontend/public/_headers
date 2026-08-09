@@ -1,0 +1,28 @@
+# Cache-Control overrides for the Cloudflare Workers static-asset host
+# (wrangler.jsonc serves frontend/dist; Vite copies this file there verbatim).
+# Without it every response inherits the platform default of
+# "public, max-age=0, must-revalidate", which is correct but pays a
+# revalidation round-trip on assets that can never go stale.
+#
+# Only two paths are overridden on purpose. Everything else — firms.json,
+# deal_flags.json and the other data exports, robots.txt, sitemap.xml — is
+# replaced in place by a data refresh without its filename changing, so the
+# revalidate-always default is exactly what those need. Listing them here
+# would mean editing this file every time a new export is added.
+
+# Vite fingerprints these, so the filename changes whenever the bytes do and
+# a cached copy can never be wrong. This is the actual win: on the live site
+# the JS bundle is ~278 kB and the CSS ~19 kB, and both were revalidating on
+# every single page load.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# The entry document is what names the hashed asset files, so a stale copy
+# pins a visitor to a previous deploy's bundle. The platform default already
+# revalidates; this states it outright so a future default change can't
+# silently start caching the one file that must never be cached.
+/
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache
