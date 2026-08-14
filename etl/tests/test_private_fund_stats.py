@@ -10,7 +10,6 @@ from etl.private_fund_stats import (
     export_private_fund_stats,
     fund_count_kpi,
     fund_type_series,
-    provider_leagues,
     quarterly_series,
 )
 
@@ -64,14 +63,6 @@ def test_fund_type_series_excludes_feeder_funds_from_gav(tmp_path):
     assert hedge["count"] == 2  # both funds counted...
     assert hedge["gav"] == 100000000  # ...but GAV sum excludes the feeder
 
-
-def test_provider_leagues_collapses_normalized_names(tmp_path):
-    db = _make_db(tmp_path)
-    con = duckdb.connect(str(db), read_only=True)
-    leagues = provider_leagues(con)
-    con.close()
-    assert leagues["auditor"] == [{"name": "KPMG", "fund_count": 2}]
-    assert leagues["custodian"] == [{"name": "STATE STREET", "fund_count": 1}]
 
 
 def test_export_private_fund_stats_writes_full_payload(tmp_path):

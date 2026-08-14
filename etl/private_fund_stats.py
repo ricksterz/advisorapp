@@ -37,7 +37,6 @@ from etl.pulse_stats import _delta, published_quarters
 DEFAULT_OUT = REPO_ROOT / "frontend" / "public" / "private_funds.json"
 DEFAULT_FIRM_OUT = REPO_ROOT / "frontend" / "public" / "firm_private_funds.json"
 
-TOP_N_PROVIDERS = 10
 TOP_N_FIRMS = 15
 TOP_N_STATES = 10
 # FirmDetail's PrivateFundsCard shows at most this many funds per firm
@@ -104,21 +103,6 @@ def top_firms(con: duckdb.DuckDBPyConnection, top_n: int = TOP_N_FIRMS) -> list[
     ).fetchall()
     return [{"crd": crd, "name": name, "fund_count": n, "gav": gav} for crd, name, n, gav in rows]
 
-
-def provider_leagues(con: duckdb.DuckDBPyConnection, top_n: int = TOP_N_PROVIDERS) -> dict[str, list[dict]]:
-    roles = [r[0] for r in con.execute("SELECT DISTINCT role FROM private_fund_providers").fetchall()]
-    out: dict[str, list[dict]] = {}
-    for role in roles:
-        rows = con.execute(
-            "SELECT provider_name FROM private_fund_providers WHERE role = ?", [role]
-        ).fetchall()
-        counts: dict[str, int] = {}
-        for (name,) in rows:
-            key = _normalize_provider(name)
-            counts[key] = counts.get(key, 0) + 1
-        ranked = sorted(counts.items(), key=lambda kv: kv[1], reverse=True)[:top_n]
-        out[role] = [{"name": name, "fund_count": n} for name, n in ranked]
-    return out
 
 
 def quarterly_series(con: duckdb.DuckDBPyConnection, quarters: list[str]) -> list[dict]:
@@ -187,7 +171,11 @@ def export_private_fund_stats(db_path: Path, out_path: Path) -> int:
             "fund_types": fund_type_series(con),
             "domicile": domicile_series(con),
             "top_firms": top_firms(con),
-            "providers": provider_leagues(con),
+            # Provider league tables moved to etl/provider_stats.py: this one
+            # ranked by fund count under the looser _normalize_provider key,
+            # which split the same firm across spellings ("ERNST & YOUNG" vs
+            # "ERNST & YOUNG LLP"). Keeping both would put two different
+            # numbers for one auditor on the same site.
             "quarters": quarters,
             "series": series,
             "fund_count_kpi": fund_count_kpi(series) if series else None,

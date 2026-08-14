@@ -16,6 +16,7 @@ import {
   DrilldownCapitalFormation,
   DrilldownDisclosures,
   DrilldownPrivateFunds,
+  DrilldownServiceProviders,
 } from './components/PulseDrilldowns.jsx'
 import { BASE, firmPath, navigate, pulsePath, useRoute } from './router.js'
 import { DEAL_FLAG_DEFS, useAllDealFlags } from './dealFlags.js'
@@ -195,6 +196,7 @@ const PULSE_TITLES = {
   'private-funds': 'Private funds — Industry Pulse',
   disclosures: 'Disclosures — Industry Pulse',
   'capital-formation': 'Capital formation — Industry Pulse',
+  'service-providers': 'Service providers — Industry Pulse',
 }
 
 export default function App() {
@@ -347,6 +349,8 @@ export default function App() {
             <DrilldownDisclosures />
           ) : pulse === 'capital-formation' ? (
             <DrilldownCapitalFormation />
+          ) : pulse === 'service-providers' ? (
+            <DrilldownServiceProviders />
           ) : (
             <PulsePage />
           )}

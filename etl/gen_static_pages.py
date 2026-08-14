@@ -49,6 +49,7 @@ PULSE_TITLES = {
     "private-funds": "Private funds — Industry Pulse",
     "disclosures": "Disclosures — Industry Pulse",
     "capital-formation": "Capital formation — Industry Pulse",
+    "service-providers": "Service providers — Industry Pulse",
 }
 
 # Each pattern must match exactly once in the template. A silently-unmatched
