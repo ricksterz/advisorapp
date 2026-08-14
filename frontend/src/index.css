@@ -1554,3 +1554,31 @@ tbody tr:hover {
   font-size: 11.5px;
   white-space: nowrap;
 }
+
+/* Ownership card: Schedule A and B are separate tables inside one card, so
+   the group headings need to read as subordinate to the card's own h2. */
+.owners-card {
+  overflow-x: auto;
+}
+
+.owner-group {
+  margin: 18px 0 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.owner-group:first-of-type {
+  margin-top: 10px;
+}
+
+/* The Schedule B chain ("holds its stake through X") is the row's context,
+   not a second name — it sits under the owner on its own line. */
+.owner-owns {
+  display: block;
+  color: var(--ink-3);
+  font-size: 11.5px;
+  margin-top: 2px;
+}
