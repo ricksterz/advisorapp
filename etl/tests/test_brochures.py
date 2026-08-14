@@ -2,9 +2,23 @@ import json
 from unittest.mock import patch
 
 import duckdb
+import pytest
+import requests
 
 from etl.brochures import find_flags, parse_brochure_response, stage_enumerate
 from etl.config import SCHEMA_PATH
+
+
+@pytest.fixture(autouse=True)
+def _fast_crawl(monkeypatch):
+    """Decouple the suite from the production politeness rate.
+
+    REQUESTS_PER_SECOND is deliberately conservative against the SEC's
+    published ceiling; leaving it in force made these tests sleep for seconds
+    to prove logic that has nothing to do with pacing. The rate limiter's own
+    test builds its own RateLimiter, so it is unaffected by this.
+    """
+    monkeypatch.setattr("etl.brochures.REQUESTS_PER_SECOND", 1000.0)
 
 
 def test_parse_brochure_response():
@@ -225,3 +239,98 @@ def test_stage_enumerate_rescan_rechecks_every_firm(tmp_path):
         stage_enumerate(con, limit=None, rescan=True)
 
     assert len(calls) == 2  # both firms re-checked, including the known one
+
+
+# ---------------------------------------------------------------------------
+# Concurrency + rate limiting
+# ---------------------------------------------------------------------------
+
+
+def test_rate_limiter_enforces_the_aggregate_rate_across_threads():
+    """The SEC's ceiling is per user, not per connection — a limiter that
+    throttled each thread independently would let N workers run at N x the
+    intended rate, which is exactly how you get IP-throttled."""
+    import threading as _threading
+    import time as _time
+
+    from etl.brochures import RateLimiter
+
+    limiter = RateLimiter(per_second=50.0)  # 20ms apart
+    stamps = []
+    lock = _threading.Lock()
+
+    def worker():
+        for _ in range(5):
+            limiter.acquire()
+            with lock:
+                stamps.append(_time.monotonic())
+
+    threads = [_threading.Thread(target=worker) for _ in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert len(stamps) == 20
+    stamps.sort()
+    elapsed = stamps[-1] - stamps[0]
+    # 20 requests at 50/s must span at least ~19 intervals, regardless of the
+    # fact that four threads issued them.
+    assert elapsed >= 19 * 0.02 * 0.9, f"aggregate rate exceeded: 20 reqs in {elapsed:.3f}s"
+
+
+def test_stage_enumerate_writes_every_firms_rows_under_concurrency(tmp_path):
+    con = _db_with_firms(tmp_path, list(range(1, 13)))
+
+    def fake_get(self, url, headers=None, timeout=None):
+        crd = int(url.rsplit("/", 1)[1])
+        return _FakeResponse(_payload_with_brochure(1000 + crd))
+
+    with patch("etl.brochures.requests.Session.get", fake_get):
+        stage_enumerate(con, limit=None, rescan=True)
+
+    rows = con.execute("SELECT firm_crd, version_id FROM brochures ORDER BY firm_crd").fetchall()
+    # one row per firm, each with its own version_id — no interleaving damage
+    assert rows == [(crd, 1000 + crd) for crd in range(1, 13)]
+
+
+def test_stage_enumerate_leaves_failed_firms_unenumerated(tmp_path):
+    """A failure must not write a no-brochure sentinel, or the next run would
+    treat a transient error as 'this firm has no brochures'."""
+    con = _db_with_firms(tmp_path, [1, 2, 3])
+
+    def fake_get(self, url, headers=None, timeout=None):
+        if url.endswith("/2"):
+            raise requests.RequestException("boom")
+        crd = int(url.rsplit("/", 1)[1])
+        return _FakeResponse(_payload_with_brochure(1000 + crd))
+
+    with patch("etl.brochures.requests.Session.get", fake_get):
+        stage_enumerate(con, limit=None, rescan=True)
+
+    seen = {r[0] for r in con.execute("SELECT DISTINCT firm_crd FROM brochures").fetchall()}
+    assert seen == {1, 3}
+
+
+def test_stage_enumerate_aborts_when_every_request_fails(tmp_path):
+    """Guards against silently wiping a refresh when the API blocks us."""
+    con = _db_with_firms(tmp_path, list(range(1, 40)))
+
+    def fake_get(self, url, headers=None, timeout=None):
+        raise requests.RequestException("blocked")
+
+    with patch("etl.brochures.requests.Session.get", fake_get), pytest.raises(SystemExit) as exc:
+        stage_enumerate(con, limit=None, rescan=True)
+    assert "aborting enumerate" in str(exc.value)
+
+
+def test_stage_enumerate_records_a_sentinel_for_brochure_free_firms(tmp_path):
+    con = _db_with_firms(tmp_path, [7])
+
+    def fake_get(self, url, headers=None, timeout=None):
+        return _FakeResponse({"hits": {"hits": []}})
+
+    with patch("etl.brochures.requests.Session.get", fake_get):
+        stage_enumerate(con, limit=None, rescan=True)
+
+    assert con.execute("SELECT version_id FROM brochures").fetchall() == [(-7,)]

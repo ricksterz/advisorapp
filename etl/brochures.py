@@ -26,7 +26,9 @@ import argparse
 import json
 import re
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -42,7 +44,51 @@ BROCHURE_PDF = (
     "crd_iapd_Brochure.aspx?BRCHR_VRSN_ID={version_id}"
 )
 CACHE_DIR = REPO_ROOT / "data" / "brochures"  # gitignored via data/
-THROTTLE_SECONDS = 0.5  # polite crawl of a public regulator API
+
+# The SEC publishes a hard ceiling of 10 requests/second per user, counted
+# across every machine you use, and throttles the offending IP for 10 minutes
+# once it is exceeded (sec.gov "Webmaster FAQ" / developer resources). We
+# target half of it: fast enough to matter, with headroom for the other
+# pipelines that hit adviserinfo, and no risk of pausing the whole crawl.
+#
+# This replaces a flat 0.5s sleep between requests. That sleep was a poor
+# throttle for two reasons: it ignored how long the request itself took (real
+# median latency to the firm API is ~226ms, so the actual rate was ~1.4/s, not
+# the 2/s the constant implies), and being per-request it could not be shared
+# across workers. A token bucket enforces the AGGREGATE rate, which is the
+# thing the SEC actually limits, so concurrency and politeness stop being in
+# tension.
+REQUESTS_PER_SECOND = 5.0
+
+# With ~226ms median latency, one thread tops out near 4.4 req/s, so the
+# target above is unreachable single-threaded. Four workers clear it with room
+# to spare; the limiter, not the pool size, is what bounds the request rate.
+MAX_WORKERS = 4
+
+
+class RateLimiter:
+    """Token bucket enforcing an aggregate requests-per-second ceiling.
+
+    Shared by every worker: the SEC's limit is per user, not per connection,
+    so throttling each thread independently would multiply the real rate by
+    the worker count.
+    """
+
+    def __init__(self, per_second: float) -> None:
+        self._min_interval = 1.0 / per_second
+        self._lock = threading.Lock()
+        self._next_at = 0.0
+
+    def acquire(self) -> None:
+        with self._lock:
+            now = time.monotonic()
+            # Schedule from the later of "now" and the last reservation, so a
+            # burst of threads queues up instead of all firing at once.
+            start = max(now, self._next_at)
+            self._next_at = start + self._min_interval
+        delay = start - now
+        if delay > 0:
+            time.sleep(delay)
 
 # The adviserinfo WAF 403s bot-style User-Agents (including the project's
 # HTTP_HEADERS one and "Mozilla/5.0 (compatible; ...)"); it requires a full
@@ -253,35 +299,56 @@ def stage_enumerate(con: duckdb.DuckDBPyConnection, limit: int | None, rescan: b
     crds = [r[0] for r in con.execute(query).fetchall()]
     if limit:
         crds = crds[:limit]
-    session = requests.Session()
-    new = failed = 0
-    for i, crd in enumerate(crds):
+
+    limiter = RateLimiter(REQUESTS_PER_SECOND)
+    thread_local = threading.local()
+
+    def _session() -> requests.Session:
+        # One Session per worker: Session is not documented as thread-safe,
+        # and a shared one would also serialise the connection pool we are
+        # trying to use in parallel.
+        if not hasattr(thread_local, "session"):
+            thread_local.session = requests.Session()
+        return thread_local.session
+
+    def _inventory(crd: int):
+        """HTTP only — returns (crd, brochures, error). No DB access: DuckDB
+        connections are not safe to write from multiple threads."""
+        limiter.acquire()
         try:
-            resp = session.get(FIRM_API.format(crd=crd), headers=API_HEADERS, timeout=30)
+            resp = _session().get(FIRM_API.format(crd=crd), headers=API_HEADERS, timeout=30)
             resp.raise_for_status()
-            brochures = parse_brochure_response(resp.json())
+            return crd, parse_brochure_response(resp.json()), None
         except (requests.RequestException, ValueError) as exc:
-            # No sentinel on failure — the firm stays un-enumerated so the
-            # next run retries it instead of treating it as brochure-free.
-            failed += 1
-            if failed <= 3:
-                print(f"note: firm {crd} failed ({exc.__class__.__name__})")
-            if failed >= 10 and new == 0:
-                sys.exit("error: every request is failing — API blocked? aborting enumerate")
-            time.sleep(THROTTLE_SECONDS)
-            continue
-        # A no-brochure sentinel row (version_id = -crd) marks a firm that
-        # genuinely reports no brochures, keeping re-runs incremental.
-        rows = brochures or [{"version_id": -crd, "name": None, "date_submitted": None}]
-        for b in rows:
-            con.execute(
-                "INSERT OR REPLACE INTO brochures (version_id, firm_crd, name, date_submitted) VALUES (?, ?, ?, ?)",
-                [b["version_id"], crd, b["name"], b["date_submitted"]],
-            )
-        new += len(brochures)
-        if (i + 1) % 25 == 0:
-            print(f"enumerated {i + 1}/{len(crds)} firms ({new} brochures, {failed} failed)")
-        time.sleep(THROTTLE_SECONDS)
+            return crd, None, exc
+
+    new = failed = 0
+    done = 0
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
+        # map() streams results in submission order, so progress output stays
+        # monotonic and the abort check below sees failures as they happen.
+        for crd, brochures, exc in pool.map(_inventory, crds):
+            done += 1
+            if exc is not None:
+                # No sentinel on failure — the firm stays un-enumerated so the
+                # next run retries it instead of treating it as brochure-free.
+                failed += 1
+                if failed <= 3:
+                    print(f"note: firm {crd} failed ({exc.__class__.__name__})")
+                if failed >= 10 and new == 0:
+                    sys.exit("error: every request is failing — API blocked? aborting enumerate")
+                continue
+            # A no-brochure sentinel row (version_id = -crd) marks a firm that
+            # genuinely reports no brochures, keeping re-runs incremental.
+            rows = brochures or [{"version_id": -crd, "name": None, "date_submitted": None}]
+            for b in rows:
+                con.execute(
+                    "INSERT OR REPLACE INTO brochures (version_id, firm_crd, name, date_submitted) VALUES (?, ?, ?, ?)",
+                    [b["version_id"], crd, b["name"], b["date_submitted"]],
+                )
+            new += len(brochures)
+            if done % 100 == 0:
+                print(f"enumerated {done}/{len(crds)} firms ({new} brochures, {failed} failed)")
     print(f"enumerate done: {len(crds)} firms, {new} brochures, {failed} failed")
 
 
@@ -293,27 +360,49 @@ def stage_fetch(con: duckdb.DuckDBPyConnection, limit: int | None) -> None:
     if limit:
         rows = rows[:limit]
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    session = requests.Session()
-    ok = 0
-    for i, (version_id,) in enumerate(rows):
+
+    limiter = RateLimiter(REQUESTS_PER_SECOND)
+    thread_local = threading.local()
+
+    def _session() -> requests.Session:
+        if not hasattr(thread_local, "session"):
+            thread_local.session = requests.Session()
+        return thread_local.session
+
+    def _download(version_id: int) -> tuple[int, bool]:
+        """Download, cache and textify one brochure. Returns (id, succeeded).
+
+        The PDF write and text extraction happen here rather than on the main
+        thread — they are per-file and independent — but the fetched_at UPDATE
+        does not, because the DuckDB connection has a single writer.
+        """
+        limiter.acquire()
         dest = CACHE_DIR / f"{version_id}.pdf"
         try:
-            resp = session.get(
+            resp = _session().get(
                 BROCHURE_PDF.format(version_id=version_id), headers=API_HEADERS, timeout=120
             )
             if resp.ok and resp.content[:4] == b"%PDF":
                 dest.write_bytes(resp.content)
                 textify(dest)  # keep text, drop the PDF (disk budget)
+                return version_id, True
+        except requests.RequestException:
+            pass
+        return version_id, False
+
+    ok = 0
+    done = 0
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
+        for version_id, succeeded in pool.map(_download, [r[0] for r in rows]):
+            done += 1
+            if succeeded:
                 con.execute(
                     "UPDATE brochures SET fetched_at = ? WHERE version_id = ?",
                     [datetime.now(timezone.utc), version_id],
                 )
                 ok += 1
-        except requests.RequestException:
-            pass
-        if (i + 1) % 25 == 0:
-            print(f"fetched {i + 1}/{len(rows)} ({ok} ok)")
-        time.sleep(THROTTLE_SECONDS)
+            if done % 50 == 0:
+                print(f"fetched {done}/{len(rows)} ({ok} ok)")
     print(f"fetch done: {ok}/{len(rows)} PDFs")
 
 
