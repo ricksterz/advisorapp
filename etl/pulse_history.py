@@ -194,14 +194,29 @@ def _archive_member(zf: zipfile.ZipFile, pattern: str) -> str | None:
     return None
 
 
-def _read_member_csv(zf: zipfile.ZipFile, member: str) -> pd.DataFrame:
+def _read_member_csv(
+    zf: zipfile.ZipFile, member: str, keep_default_na: bool = True
+) -> pd.DataFrame:
     """Read a CSV member, tolerating the occasional malformed row these SEC
     dumps contain (unescaped delimiters). Bad rows are skipped and counted —
     a handful of dropped rows in a monthly file is acceptable for aggregate
-    statistics; silently mangled ones would not be."""
+    statistics; silently mangled ones would not be.
+
+    Pass keep_default_na=False when a column's REAL values collide with
+    pandas' default NA strings. Form ADV Schedule A codes "under 5%
+    ownership" as the literal string "NA", which pandas otherwise reads as
+    missing — silently erasing the single most common ownership band. Default
+    stays True so every existing caller behaves exactly as before.
+    """
     data = zf.read(member)
     try:
-        return pd.read_csv(io.BytesIO(data), dtype=str, low_memory=False, encoding_errors="replace")
+        return pd.read_csv(
+            io.BytesIO(data),
+            dtype=str,
+            low_memory=False,
+            encoding_errors="replace",
+            keep_default_na=keep_default_na,
+        )
     except pd.errors.ParserError:
         bad: list[int] = []
 
@@ -213,6 +228,7 @@ def _read_member_csv(zf: zipfile.ZipFile, member: str) -> pd.DataFrame:
             dtype=str,
             engine="python",
             encoding_errors="replace",
+            keep_default_na=keep_default_na,
             on_bad_lines=_on_bad,
         )
         print(f"note: {member}: skipped {len(bad)} malformed row(s)")
