@@ -43,6 +43,8 @@ def build_history(con: duckdb.DuckDBPyConnection) -> dict | None:
     if not quarters:
         return None
 
+    # placeholders is a fixed-count run of "?" — no external input reaches the
+    # query string; the actual quarter values are bound below as parameters.
     placeholders = ",".join(["?"] * len(quarters))
     rows = con.execute(
         f"""
@@ -50,7 +52,7 @@ def build_history(con: duckdb.DuckDBPyConnection) -> dict | None:
                employees_advisory, disciplinary_flag_count
         FROM firm_snapshots
         WHERE snapshot_quarter IN ({placeholders})
-        """,
+        """,  # nosec B608 — placeholders is "?" repeated, not interpolated data
         quarters,
     ).fetchall()
     if not rows:
