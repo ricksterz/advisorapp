@@ -8,6 +8,7 @@ never resolving because its normalized header keeps the slashes.
 from __future__ import annotations
 
 import io
+import json
 import zipfile
 
 import duckdb
@@ -158,3 +159,110 @@ def test_parse_rejects_an_archive_missing_required_columns():
     bad = pd.DataFrame({"Nope": ["x"]})
     with pytest.raises(SystemExit, match="missing required columns"):
         parse_schedule_ab(bad)
+
+
+def _owners_db(tmp_path, rows):
+    """firm_owners rows: (crd, schedule, name, entity_type, owned_entity,
+    title, acquired, code, control, public)."""
+    path = tmp_path / "own.duckdb"
+    con = duckdb.connect(str(path))
+    con.execute(
+        "CREATE TABLE firm_owners (crd BIGINT, filing_id BIGINT, schedule VARCHAR, "
+        "owner_name VARCHAR, owner_id VARCHAR, entity_type VARCHAR, "
+        "owned_entity VARCHAR, title_or_status VARCHAR, status_acquired VARCHAR, "
+        "ownership_code VARCHAR, is_control_person BOOLEAN, is_public_reporting BOOLEAN)"
+    )
+    if rows:
+        con.executemany(
+            "INSERT INTO firm_owners (crd, schedule, owner_name, entity_type, "
+            "owned_entity, title_or_status, status_acquired, ownership_code, "
+            "is_control_person, is_public_reporting) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            rows,
+        )
+    con.close()
+    return path
+
+
+def test_export_resolves_the_stake_label_per_schedule(tmp_path):
+    from etl.ownership import export_firm_owners
+
+    db = _owners_db(
+        tmp_path,
+        [
+            (1, "A", "DIRECT", "I", None, "CEO", "01/2020", "NA", True, False),
+            (1, "B", "INDIRECT", "I", "PARENT LLC", "TRUSTEE", "01/2020", "F", True, False),
+        ],
+    )
+    out = tmp_path / "firm_owners.json"
+    assert export_firm_owners(db, out) is True
+    owners = {o["name"]: o for o in json.loads(out.read_text())["firms"]["1"]["owners"]}
+    assert owners["DIRECT"]["stake"] == "under 5%"
+    # F is not a percentage and must not be rendered as one
+    assert "%" not in owners["INDIRECT"]["stake"]
+    # the raw code is deliberately not shipped alongside the label
+    assert "_code" not in owners["DIRECT"] and "code" not in owners["DIRECT"]
+
+
+def test_export_omits_falsy_fields(tmp_path):
+    from etl.ownership import export_firm_owners
+
+    db = _owners_db(
+        tmp_path, [(1, "A", "PLAIN ENTITY", "DE", None, None, None, "E", False, False)]
+    )
+    out = tmp_path / "firm_owners.json"
+    export_firm_owners(db, out)
+    owner = json.loads(out.read_text())["firms"]["1"]["owners"][0]
+    for absent in ("title", "since", "owns", "is_individual", "foreign", "control"):
+        assert absent not in owner, f"{absent} should be omitted when falsy"
+    assert owner["name"] == "PLAIN ENTITY"
+
+
+def test_export_sorts_largest_stake_first_within_schedule(tmp_path):
+    from etl.ownership import export_firm_owners
+
+    db = _owners_db(
+        tmp_path,
+        [
+            (1, "A", "SMALL", "I", None, None, None, "NA", False, False),
+            (1, "A", "BIG", "I", None, None, None, "E", False, False),
+            (1, "A", "MID", "I", None, None, None, "C", False, False),
+        ],
+    )
+    out = tmp_path / "firm_owners.json"
+    export_firm_owners(db, out)
+    names = [o["name"] for o in json.loads(out.read_text())["firms"]["1"]["owners"]]
+    assert names == ["BIG", "MID", "SMALL"]
+
+
+def test_export_caps_owners_and_reports_the_remainder(tmp_path):
+    from etl.ownership import MAX_OWNERS_PER_FIRM, export_firm_owners
+
+    rows = [
+        (1, "A", f"OWNER {i:03}", "I", None, None, None, "NA", False, False)
+        for i in range(MAX_OWNERS_PER_FIRM + 7)
+    ]
+    out = tmp_path / "firm_owners.json"
+    export_firm_owners(_owners_db(tmp_path, rows), out)
+    entry = json.loads(out.read_text())["firms"]["1"]
+    assert len(entry["owners"]) == MAX_OWNERS_PER_FIRM
+    assert entry["omitted"] == 7
+
+
+def test_export_skips_when_there_is_no_ownership_data(tmp_path):
+    from etl.ownership import export_firm_owners
+
+    out = tmp_path / "firm_owners.json"
+    out.write_text('{"sentinel": true}')
+    assert export_firm_owners(_owners_db(tmp_path, []), out) is False
+    assert json.loads(out.read_text()) == {"sentinel": True}
+
+
+def test_export_refuses_to_write_past_the_workers_file_limit(tmp_path, monkeypatch):
+    from etl import ownership
+
+    monkeypatch.setattr(ownership, "MAX_EXPORT_MIB", 0.0001)
+    db = _owners_db(tmp_path, [(1, "A", "X", "I", None, None, None, "NA", True, False)])
+    out = tmp_path / "firm_owners.json"
+    with pytest.raises(SystemExit, match="Workers Static Assets"):
+        ownership.export_firm_owners(db, out)
+    assert not out.exists()

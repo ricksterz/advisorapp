@@ -8,6 +8,7 @@ import { DISCLOSURE_FLAG_DEFS, useAdvisorBios } from '../advisorBios.js'
 import { PROVIDER_ROLE_LABELS, useFirmPrivateFunds } from '../privateFunds.js'
 import { fmtCompactUsd, fmtQuarter } from '../pulse.js'
 import { useFirmHistory } from '../firmHistory.js'
+import { useFirmOwners } from '../firmOwners.js'
 import { TrendLine } from './PulsePage.jsx'
 
 // Public IAPD document endpoints (all CORS-enabled, no key required).
@@ -236,6 +237,72 @@ function AdvisorBiosCard({ crd }) {
             actual record.
           </>
         )}
+      </p>
+    </div>
+  )
+}
+
+// Ownership & control (etl/ownership.py) — Schedule A direct owners and
+// officers, then Schedule B's indirect chain above them. Split by schedule
+// because they answer different questions and their ownership-code sets are
+// not the same; the ETL resolves each stake label from the (schedule, code)
+// pair so this only renders what it is given.
+function OwnersCard({ crd }) {
+  const entry = useFirmOwners(crd)
+  if (!entry?.owners?.length) return null
+  const direct = entry.owners.filter((o) => o.schedule === 'A')
+  const indirect = entry.owners.filter((o) => o.schedule === 'B')
+
+  const row = (o, i) => (
+    <tr key={`${o.name}-${o.owns ?? ''}-${i}`}>
+      <td>
+        {o.name}
+        {o.is_individual ? null : <span className="fund-tag">entity</span>}
+        {o.foreign && <span className="fund-tag">foreign</span>}
+        {o.public_reporting && <span className="fund-tag">public co.</span>}
+        {o.owns && <span className="owner-owns">holds its stake through {o.owns}</span>}
+      </td>
+      <td>{o.title ?? '—'}</td>
+      <td className="num">{o.stake ?? '—'}</td>
+      <td className="num">{o.since ?? '—'}</td>
+    </tr>
+  )
+
+  const table = (title, rows) =>
+    rows.length ? (
+      <>
+        <h3 className="owner-group">{title}</h3>
+        <table className="pulse-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Title or status</th>
+              <th className="num">Stake</th>
+              <th className="num">Since</th>
+            </tr>
+          </thead>
+          <tbody>{rows.map(row)}</tbody>
+        </table>
+      </>
+    ) : null
+
+  return (
+    <div className="detail-card owners-card">
+      <h2>Ownership & control</h2>
+      {table('Direct owners & executive officers', direct)}
+      {table('Indirect owners', indirect)}
+      {entry.omitted > 0 && (
+        <p className="detail-note">
+          {entry.omitted} further {entry.omitted === 1 ? 'party' : 'parties'} on this filing are not
+          shown.
+        </p>
+      )}
+      <p className="detail-note">
+        Form ADV Schedule A (direct owners and executive officers) and Schedule B (the indirect
+        owners above them), from this firm’s most recent filing to report them. Stake is the
+        ownership band as filed, not an exact percentage — the SEC collects ranges. On Schedule B,
+        “Other” covers general partners, trustees and elected managers, who hold control without a
+        percentage stake. “Since” is when the person or entity acquired that status, as filed.
       </p>
     </div>
   )
@@ -507,6 +574,7 @@ export default function FirmDetail({ firm, crd, allFirms }) {
       </div>
 
       <FirmHistoryCard crd={firm.crd} />
+      <OwnersCard crd={firm.crd} />
 
       <div className="detail-grid">
         <div className="detail-card">

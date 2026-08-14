@@ -32,15 +32,17 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 import zipfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 import duckdb
 import pandas as pd
 
 from etl.config import DB_PATH as DEFAULT_DB
-from etl.config import SCHEMA_PATH
+from etl.config import REPO_ROOT, SCHEMA_PATH
 from etl.ingest_adv import normalize_header
 from etl.pulse_history import (
     PULSE_RAW_DIR,
@@ -50,6 +52,8 @@ from etl.pulse_history import (
 )
 
 SCHEDULE_AB_RE = r"IA_Schedule_A_B_\d{8}_\d{8}\.csv"
+
+DEFAULT_OWNERS_OUT = REPO_ROOT / "frontend" / "public" / "firm_owners.json"
 
 # (schedule, code) -> human label. Keyed by the pair on purpose: the same
 # letter can be absent from one schedule and mean something non-numeric on
@@ -199,11 +203,139 @@ def stage_snapshot(con: duckdb.DuckDBPyConnection) -> None:
     print(f"snapshot: {n_rows:,} owner rows across {n_firms:,} firms")
 
 
+# Biggest stake first. F is "Other (GP/trustee/elected manager)" rather than a
+# percentage, so it sorts below every percentage band instead of pretending to
+# rank among them.
+_CODE_RANK = {"E": 0, "D": 1, "C": 2, "B": 3, "A": 4, "NA": 5, "F": 6}
+
+# 98.8% of firms have 25 or fewer owner rows; the largest has 137. Capping
+# keeps the export from being dominated by a handful of huge filers, and the
+# card tells the reader how many were withheld.
+MAX_OWNERS_PER_FIRM = 25
+
+# Workers Static Assets caps a single file at 25 MiB; leave real headroom.
+MAX_EXPORT_MIB = 22.0
+
+
+def export_firm_owners(db_path: Path, out_path: Path) -> bool:
+    """Per-firm owner list for the firm detail view — same lazy-loaded,
+    CRD-keyed shape as firm_private_funds.json / advisor_bios.json."""
+    con = duckdb.connect(str(db_path), read_only=True)
+    try:
+        rows = con.execute(
+            """
+            SELECT crd, schedule, owner_name, entity_type, owned_entity,
+                   title_or_status, status_acquired, ownership_code,
+                   is_control_person, is_public_reporting
+            FROM firm_owners
+            """
+        ).fetchall()
+    except duckdb.CatalogException:
+        rows = []
+    finally:
+        con.close()
+
+    if not rows:
+        print(f"no ownership data in {db_path}; leaving {out_path} untouched")
+        return False
+
+    firms: dict[str, list[dict]] = {}
+    for (
+        crd,
+        schedule,
+        name,
+        entity_type,
+        owned_entity,
+        title,
+        acquired,
+        code,
+        control,
+        public,
+    ) in rows:
+        # Falsy and null fields are omitted rather than emitted: across 106,857
+        # rows most owners have no parent entity, no acquisition date and no
+        # public-reporting flag, and writing them out cost 29% of the file for
+        # nothing. Consumers must treat a missing key as false/absent.
+        owner: dict = {"schedule": schedule, "name": name}
+        if title:
+            owner["title"] = title
+        if acquired:
+            owner["since"] = acquired
+        if owned_entity:
+            owner["owns"] = owned_entity
+        # Resolved here rather than in the frontend: the label depends on BOTH
+        # schedule and code, and duplicating that pairing in JS is how the two
+        # would drift apart. `code` itself is not exported — it only drives the
+        # sort below, and shipping both invites them to disagree.
+        stake = OWNERSHIP_LABELS.get((schedule, code))
+        if stake:
+            owner["stake"] = stake
+        if entity_type == "I":
+            owner["is_individual"] = True
+        if entity_type == "FE":
+            owner["foreign"] = True
+        if control:
+            owner["control"] = True
+        if public:
+            owner["public_reporting"] = True
+        owner["_code"] = code  # sort key only; stripped before writing
+        firms.setdefault(str(crd), []).append(owner)
+
+    total = sum(len(v) for v in firms.values())
+    payload_firms: dict[str, dict] = {}
+    for crd, owners in firms.items():
+        owners.sort(
+            key=lambda o: (
+                o["schedule"],
+                _CODE_RANK.get(o["_code"], 9),
+                not o.get("control", False),
+                o["name"] or "",
+            )
+        )
+        kept = owners[:MAX_OWNERS_PER_FIRM]
+        for o in kept:
+            del o["_code"]
+        entry: dict = {"owners": kept}
+        if len(owners) > MAX_OWNERS_PER_FIRM:
+            entry["omitted"] = len(owners) - MAX_OWNERS_PER_FIRM
+        payload_firms[crd] = entry
+
+    body = json.dumps(
+        {
+            "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "firms": payload_firms,
+        },
+        separators=(",", ":"),
+    )
+    # Workers Static Assets rejects any single file over 25 MiB. Fail here,
+    # where the cause is obvious, rather than at deploy time on an opaque
+    # upload error — the adviser universe only grows.
+    size_mb = len(body.encode()) / 1_048_576
+    if size_mb > MAX_EXPORT_MIB:
+        raise SystemExit(
+            f"error: {out_path} would be {size_mb:.1f} MiB, over the {MAX_EXPORT_MIB} MiB "
+            "guard (Workers Static Assets caps a single file at 25 MiB). Lower "
+            "MAX_OWNERS_PER_FIRM or split the export."
+        )
+
+    out_path.write_text(body)
+    print(
+        f"exported {total:,} owner rows for {len(payload_firms):,} firms "
+        f"to {out_path} ({size_mb:.1f} MiB)"
+    )
+    return True
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("stage", choices=["load", "snapshot", "run"])
+    parser.add_argument("stage", choices=["load", "snapshot", "export", "run"])
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
+    parser.add_argument("--out", type=Path, default=DEFAULT_OWNERS_OUT)
     args = parser.parse_args()
+
+    if args.stage == "export":
+        export_firm_owners(args.db, args.out)
+        return 0
 
     con = connect(args.db)
     try:
@@ -213,6 +345,8 @@ def main() -> None:
             stage_snapshot(con)
     finally:
         con.close()
+    if args.stage == "run":
+        export_firm_owners(args.db, args.out)
     return 0
 
 
