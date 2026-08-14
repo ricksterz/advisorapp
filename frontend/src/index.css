@@ -1511,3 +1511,15 @@ tbody tr:hover {
   color: var(--ink);
   background: var(--accent-track);
 }
+
+/* Inline rank bar inside the service-provider tables: the numbers are in
+   adjacent columns, so this only has to convey relative reach at a glance. */
+.provider-bar {
+  display: block;
+  height: 3px;
+  margin-top: 5px;
+  max-width: 260px;
+  border-radius: 2px;
+  background: var(--accent-track);
+  overflow: hidden;
+}

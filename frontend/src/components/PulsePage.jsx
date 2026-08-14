@@ -12,6 +12,7 @@ import {
 import { usePrivateFundStats } from '../privateFunds.js'
 import { useIndividualDisclosureStats } from '../individualDisclosures.js'
 import { fmtFormDQuarter, useFormDStats } from '../formD.js'
+import { useServiceProviders } from '../serviceProviders.js'
 
 function AsOfTag({ asOf }) {
   return <span className="as-of">as of {fmtQuarter(asOf)}</span>
@@ -143,6 +144,22 @@ function CapitalFormationTile() {
   )
 }
 
+// Schedule D 7.B.1's named providers — its own data file, fetched
+// independently so a slow/missing file never blocks the rest of the page.
+function ServiceProvidersTile() {
+  const stats = useServiceProviders()
+  if (!stats?.roles?.length) return null
+  const auditors = stats.roles.find((r) => r.role === 'auditor') ?? stats.roles[0]
+  const lead = auditors.providers[0]
+  return (
+    <CategoryTile
+      section="service-providers"
+      title="Service providers"
+      stat={`${stats.roles.length} roles ranked · most-used ${auditors.label.toLowerCase().replace(/s$/, '')}: ${lead?.name ?? '—'} (${fmtCount(lead?.firms)} advisers)`}
+    />
+  )
+}
+
 function CategoryTile({ section, title, stat, series }) {
   const path = pulsePath(section)
   return (
@@ -242,6 +259,7 @@ export default function PulsePage() {
         <PrivateFundsTile />
         <DisclosuresTile />
         <CapitalFormationTile />
+        <ServiceProvidersTile />
       </div>
 
       <MethodologyFootnote metrics={['firms', 'concentration', 'median_aum', 'pct_disclosure', 'registrations']} />

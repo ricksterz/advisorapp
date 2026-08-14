@@ -1,7 +1,8 @@
 import { firmPath, navigate, pulsePath } from '../router.js'
 import { MethodologyFootnote, PulseDisclaimer, TrendLine } from './PulsePage.jsx'
 import { concentrationSeries, deltaView, fmtCompactUsd, fmtCount, fmtPct, fmtQuarter, usePulseStats } from '../pulse.js'
-import { PROVIDER_ROLE_LABELS, usePrivateFundStats } from '../privateFunds.js'
+import { usePrivateFundStats } from '../privateFunds.js'
+import { useServiceProviders } from '../serviceProviders.js'
 import { useIndividualDisclosureStats } from '../individualDisclosures.js'
 import { fmtFormDQuarter, useFormDStats } from '../formD.js'
 
@@ -35,6 +36,109 @@ function DrilldownShell({ title, tagline, methodology, children }) {
 }
 
 const qLabel = (s) => fmtQuarter(s.quarter)
+
+// Shown on the private-funds page, where service providers are a sub-topic.
+// The full league tables live on their own page — this is the entry point,
+// not a second copy of them, so the two can never disagree.
+function ProviderTeaser() {
+  const stats = useServiceProviders()
+  if (!stats?.roles?.length) return null
+  const path = pulsePath('service-providers')
+  return (
+    <div className="detail-card">
+      <h2>Service-provider concentration</h2>
+      <div className="pulse-bars">
+        {stats.roles.map((r) => {
+          const lead = r.providers[0]
+          if (!lead) return null
+          return (
+            <div key={r.role} className="pattern-row">
+              <span className="pattern-label wide">{r.label}</span>
+              <span className="pattern-pct wide">
+                {lead.name} · {fmtCount(lead.firms)} advisers
+              </span>
+            </div>
+          )
+        })}
+      </div>
+      <p className="detail-note">
+        The most-used provider in each role.{' '}
+        <a href={path} onClick={(e) => navigate(e, path)}>
+          See the full league tables →
+        </a>
+      </p>
+    </div>
+  )
+}
+
+export function DrilldownServiceProviders() {
+  const stats = useServiceProviders()
+  if (stats === undefined) return <div className="state">Loading service-provider data…</div>
+  if (stats === null) {
+    return <div className="state">Service-provider statistics are not available in this build.</div>
+  }
+
+  return (
+    <section className="pulse" aria-label="Service providers">
+      <PulseBackLink />
+      <div className="page-head">
+        <h1>Service providers</h1>
+        <p className="page-tagline">
+          The auditors, custodians, prime brokers, administrators and marketers named in private-fund
+          filings, ranked by how many advisers use each.
+        </p>
+        <PulseDisclaimer />
+      </div>
+
+      {stats.roles.map((role) => {
+        const maxFirms = Math.max(...role.providers.map((p) => p.firms))
+        return (
+          <div className="detail-card" key={role.role}>
+            <h2>{role.label}</h2>
+            <table className="pulse-table">
+              <thead>
+                <tr>
+                  <th>Provider</th>
+                  <th className="num">Advisers</th>
+                  <th className="num">Funds</th>
+                  <th className="num">Gross asset value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {role.providers.map((p) => (
+                  <tr key={p.name}>
+                    <td>
+                      {p.name}
+                      <span className="track provider-bar" aria-hidden="true">
+                        <span className="fill" style={{ width: `${(p.firms / maxFirms) * 100}%` }} />
+                      </span>
+                    </td>
+                    <td className="num">{fmtCount(p.firms)}</td>
+                    <td className="num">{fmtCount(p.funds)}</td>
+                    <td className="num">{p.gav ? fmtCompactUsd(p.gav) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      })}
+
+      <p className="pulse-disclaimer">
+        Every private fund names its service providers on Form ADV Schedule D 7.B.1; these tables
+        count those filings. “Advisers” counts distinct advisory firms naming that provider — the
+        honest measure of reach, since one adviser can route hundreds of funds to the same
+        custodian. Gross asset value excludes feeder funds, because a master fund and its feeders
+        report the same underlying capital, and it reflects the size of the funds serviced rather
+        than assets the provider itself holds. Providers are grouped as the legal entities that
+        appear in filings, not rolled up into parent brands: “Goldman Sachs &amp; Co. LLC”, “Goldman
+        Sachs Bank USA” and “Goldman Sachs International” do different jobs and are counted apart.
+        Spelling, spacing and punctuation variants of one entity are merged for grouping only — the
+        stored filings keep their exact wording.
+      </p>
+    </section>
+  )
+}
 
 export function DrilldownAdvisers() {
   return (
@@ -218,7 +322,6 @@ export function DrilldownPrivateFunds() {
     fund_types: fundTypes,
     domicile,
     top_firms: topFirms,
-    providers,
     total_funds: totalFunds,
     total_firms: totalFirms,
     quarters,
@@ -344,29 +447,7 @@ export function DrilldownPrivateFunds() {
         </table>
       </div>
 
-      <div className="detail-card">
-        <h2>Service-provider concentration</h2>
-        <div className="provider-leagues">
-          {Object.entries(providers).map(([role, list]) => (
-            <div key={role} className="provider-league">
-              <h3>{PROVIDER_ROLE_LABELS[role] ?? role}</h3>
-              <ol>
-                {list.map((p) => (
-                  <li key={p.name}>
-                    <span>{p.name}</span>
-                    <span className="pattern-pct">{fmtCount(p.fund_count)}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          ))}
-        </div>
-        <p className="detail-note">
-          Ranked by number of funds naming that provider (not assets serviced). Provider names are
-          normalized to collapse legal-suffix variants of the same firm (“KPMG LLP” / “KPMG, LLP” /
-          “KPMG”) for grouping only — the underlying data keeps each filing’s exact wording.
-        </p>
-      </div>
+      <ProviderTeaser />
 
       <p className="pulse-disclaimer">
         Fund counts and GAV reflect each adviser’s most recent Schedule D 7.B.1 filing on file,

@@ -1,0 +1,1436 @@
+{
+ "generated_at": "2026-08-13T03:54:04+00:00",
+ "roles": [
+  {
+   "label": "Auditors",
+   "providers": [
+    {
+     "firms": 894,
+     "funds": 8589,
+     "gav": 4421660621706.0,
+     "name": "KPMG LLP",
+     "variants": 9
+    },
+    {
+     "firms": 826,
+     "funds": 11414,
+     "gav": 8811465328154.0,
+     "name": "ERNST & YOUNG LLP",
+     "variants": 35
+    },
+    {
+     "firms": 780,
+     "funds": 10965,
+     "gav": 7341875325154.0,
+     "name": "PRICEWATERHOUSECOOPERS LLP",
+     "variants": 25
+    },
+    {
+     "firms": 610,
+     "funds": 8619,
+     "gav": 4206002397855.0,
+     "name": "DELOITTE & TOUCHE LLP",
+     "variants": 17
+    },
+    {
+     "firms": 314,
+     "funds": 2250,
+     "gav": 518313903978.0,
+     "name": "RSM US LLP",
+     "variants": 7
+    },
+    {
+     "firms": 253,
+     "funds": 1499,
+     "gav": 102962587671.0,
+     "name": "COHNREZNICK LLP",
+     "variants": 10
+    },
+    {
+     "firms": 244,
+     "funds": 1222,
+     "gav": 270715353850.0,
+     "name": "EISNERAMPER LLP",
+     "variants": 13
+    },
+    {
+     "firms": 236,
+     "funds": 1728,
+     "gav": 337681630590.0,
+     "name": "BDO USA, P.C.",
+     "variants": 16
+    },
+    {
+     "firms": 219,
+     "funds": 1537,
+     "gav": 615848824719.0,
+     "name": "GRANT THORNTON LLP",
+     "variants": 9
+    },
+    {
+     "firms": 131,
+     "funds": 313,
+     "gav": 11527892474.0,
+     "name": "SPICER JEFFRIES LLP",
+     "variants": 4
+    },
+    {
+     "firms": 124,
+     "funds": 722,
+     "gav": 46241656522.0,
+     "name": "WEAVER AND TIDWELL, L.L.P.",
+     "variants": 17
+    },
+    {
+     "firms": 106,
+     "funds": 483,
+     "gav": 28483755398.0,
+     "name": "RICHEY, MAY & CO., LLP",
+     "variants": 18
+    },
+    {
+     "firms": 105,
+     "funds": 327,
+     "gav": 31081670285.0,
+     "name": "COHEN & COMPANY, LTD.",
+     "variants": 13
+    },
+    {
+     "firms": 98,
+     "funds": 1007,
+     "gav": 345448500605.0,
+     "name": "DELOITTE",
+     "variants": 8
+    },
+    {
+     "firms": 97,
+     "funds": 696,
+     "gav": 64906186083.0,
+     "name": "BAKER TILLY US, LLP",
+     "variants": 10
+    },
+    {
+     "firms": 79,
+     "funds": 492,
+     "gav": 40881459756.0,
+     "name": "WITHUMSMITH+BROWN, PC",
+     "variants": 24
+    },
+    {
+     "firms": 78,
+     "funds": 221,
+     "gav": 13035422608.0,
+     "name": "CHERRY BEKAERT LLP",
+     "variants": 4
+    },
+    {
+     "firms": 70,
+     "funds": 672,
+     "gav": 95307657198.0,
+     "name": "PLANTE & MORAN, PLLC",
+     "variants": 7
+    },
+    {
+     "firms": 68,
+     "funds": 1053,
+     "gav": 85518024322.0,
+     "name": "FRANK, RIMERMAN & CO. LLP",
+     "variants": 25
+    },
+    {
+     "firms": 66,
+     "funds": 431,
+     "gav": 38817075349.0,
+     "name": "CBIZ CPAS P.C.",
+     "variants": 8
+    },
+    {
+     "firms": 52,
+     "funds": 275,
+     "gav": 42504743175.0,
+     "name": "FORVIS MAZARS, LLP",
+     "variants": 6
+    },
+    {
+     "firms": 46,
+     "funds": 278,
+     "gav": 165392551055.0,
+     "name": "PRICEWATERHOUSECOOPERS SOCIETE COOPERATIVE",
+     "variants": 4
+    },
+    {
+     "firms": 45,
+     "funds": 409,
+     "gav": 121592328453.0,
+     "name": "PWC",
+     "variants": 2
+    },
+    {
+     "firms": 45,
+     "funds": 275,
+     "gav": 31083479800.0,
+     "name": "CROWE LLP",
+     "variants": 3
+    },
+    {
+     "firms": 44,
+     "funds": 178,
+     "gav": 75027144266.0,
+     "name": "ERNST & YOUNG S.A.",
+     "variants": 5
+    },
+    {
+     "firms": 42,
+     "funds": 139,
+     "gav": 72846135775.0,
+     "name": "BDO CAYMAN LTD.",
+     "variants": 5
+    },
+    {
+     "firms": 41,
+     "funds": 257,
+     "gav": 25747847044.0,
+     "name": "CITRIN COOPERMAN & COMPANY, LLP",
+     "variants": 10
+    },
+    {
+     "firms": 33,
+     "funds": 241,
+     "gav": 138691510678.0,
+     "name": "DELOITTE IRELAND LLP",
+     "variants": 4
+    },
+    {
+     "firms": 33,
+     "funds": 63,
+     "gav": 18610004697.0,
+     "name": "RSM CAYMAN LTD.",
+     "variants": 4
+    },
+    {
+     "firms": 32,
+     "funds": 114,
+     "gav": 15021647198.0,
+     "name": "BDO",
+     "variants": 5
+    },
+    {
+     "firms": 30,
+     "funds": 257,
+     "gav": 71734862345.0,
+     "name": "RSM",
+     "variants": 4
+    },
+    {
+     "firms": 30,
+     "funds": 190,
+     "gav": 12768587509.0,
+     "name": "MOSS ADAMS LLP",
+     "variants": 3
+    },
+    {
+     "firms": 29,
+     "funds": 139,
+     "gav": 14099272517.0,
+     "name": "ANCHIN, BLOCK & ANCHIN LLP",
+     "variants": 11
+    },
+    {
+     "firms": 25,
+     "funds": 145,
+     "gav": 16932801328.0,
+     "name": "BAKER TILLY",
+     "variants": 6
+    },
+    {
+     "firms": 24,
+     "funds": 83,
+     "gav": 1790809503.0,
+     "name": "BERKOWER LLC",
+     "variants": 4
+    },
+    {
+     "firms": 23,
+     "funds": 269,
+     "gav": 10093486623.0,
+     "name": "BENNETT THRASHER, LLP",
+     "variants": 4
+    },
+    {
+     "firms": 21,
+     "funds": 125,
+     "gav": 3541045333.0,
+     "name": "SANVILLE & COMPANY LLC",
+     "variants": 5
+    },
+    {
+     "firms": 21,
+     "funds": 89,
+     "gav": 13359912223.0,
+     "name": "GRANT THORTON LLP",
+     "variants": 3
+    },
+    {
+     "firms": 21,
+     "funds": 74,
+     "gav": 4923441026.0,
+     "name": "PLANTE MORAN",
+     "variants": 5
+    },
+    {
+     "firms": 21,
+     "funds": 64,
+     "gav": 19266040302.0,
+     "name": "DELOITTE AUDIT",
+     "variants": 1
+    }
+   ],
+   "role": "auditor"
+  },
+  {
+   "label": "Custodians",
+   "providers": [
+    {
+     "firms": 844,
+     "funds": 9742,
+     "gav": 7524047518542.0,
+     "name": "JPMORGAN CHASE BANK, N.A.",
+     "variants": 38
+    },
+    {
+     "firms": 744,
+     "funds": 2718,
+     "gav": 5270735895882.0,
+     "name": "GOLDMAN SACHS & CO. LLC",
+     "variants": 7
+    },
+    {
+     "firms": 620,
+     "funds": 3158,
+     "gav": 6224948231105.0,
+     "name": "J.P. MORGAN SECURITIES LLC",
+     "variants": 12
+    },
+    {
+     "firms": 619,
+     "funds": 1903,
+     "gav": 4978577153120.0,
+     "name": "MORGAN STANLEY & CO. LLC",
+     "variants": 7
+    },
+    {
+     "firms": 351,
+     "funds": 3298,
+     "gav": 3466029501249.0,
+     "name": "CITIBANK, N.A.",
+     "variants": 18
+    },
+    {
+     "firms": 346,
+     "funds": 3959,
+     "gav": 3858716730773.0,
+     "name": "BANK OF AMERICA, N.A.",
+     "variants": 10
+    },
+    {
+     "firms": 331,
+     "funds": 544,
+     "gav": 147466402524.0,
+     "name": "INTERACTIVE BROKERS LLC",
+     "variants": 6
+    },
+    {
+     "firms": 281,
+     "funds": 3192,
+     "gav": 4580259128801.0,
+     "name": "STATE STREET BANK AND TRUST COMPANY",
+     "variants": 12
+    },
+    {
+     "firms": 274,
+     "funds": 3263,
+     "gav": 2809243243606.0,
+     "name": "MERRILL LYNCH, PIERCE, FENNER & SMITH INCORPORATED",
+     "variants": 1
+    },
+    {
+     "firms": 271,
+     "funds": 2605,
+     "gav": 4202790499617.0,
+     "name": "THE BANK OF NEW YORK MELLON",
+     "variants": 6
+    },
+    {
+     "firms": 269,
+     "funds": 2186,
+     "gav": 1028073320044.0,
+     "name": "U.S. BANK NATIONAL ASSOCIATION",
+     "variants": 10
+    },
+    {
+     "firms": 255,
+     "funds": 796,
+     "gav": 84299120056.0,
+     "name": "CHARLES SCHWAB & CO., INC.",
+     "variants": 6
+    },
+    {
+     "firms": 254,
+     "funds": 711,
+     "gav": 460643255817.0,
+     "name": "PERSHING LLC",
+     "variants": 3
+    },
+    {
+     "firms": 253,
+     "funds": 1938,
+     "gav": 594523557673.0,
+     "name": "JP MORGAN CHASE",
+     "variants": 31
+    },
+    {
+     "firms": 229,
+     "funds": 1929,
+     "gav": 1992890127493.0,
+     "name": "WELLS FARGO BANK, N.A.",
+     "variants": 12
+    },
+    {
+     "firms": 216,
+     "funds": 2624,
+     "gav": 653346453071.0,
+     "name": "SILICON VALLEY BANK",
+     "variants": 4
+    },
+    {
+     "firms": 216,
+     "funds": 1015,
+     "gav": 418275919792.0,
+     "name": "US BANK",
+     "variants": 16
+    },
+    {
+     "firms": 210,
+     "funds": 950,
+     "gav": 1616782966192.0,
+     "name": "NATIONAL FINANCIAL SERVICES LLC",
+     "variants": 4
+    },
+    {
+     "firms": 207,
+     "funds": 1135,
+     "gav": 1445043449230.0,
+     "name": "THE NORTHERN TRUST COMPANY",
+     "variants": 3
+    },
+    {
+     "firms": 184,
+     "funds": 365,
+     "gav": 251682504261.0,
+     "name": "JEFFERIES LLC",
+     "variants": 5
+    },
+    {
+     "firms": 181,
+     "funds": 2080,
+     "gav": 590478490634.0,
+     "name": "FIRST-CITIZENS BANK & TRUST COMPANY",
+     "variants": 13
+    },
+    {
+     "firms": 180,
+     "funds": 820,
+     "gav": 4228109608471.0,
+     "name": "BOFA SECURITIES, INC.",
+     "variants": 3
+    },
+    {
+     "firms": 175,
+     "funds": 855,
+     "gav": 857079826164.0,
+     "name": "THE NORTHERN TRUST INTERNATIONAL BANKING CORPORATION",
+     "variants": 2
+    },
+    {
+     "firms": 173,
+     "funds": 899,
+     "gav": 446092512005.0,
+     "name": "MORGAN STANLEY SMITH BARNEY LLC",
+     "variants": 4
+    },
+    {
+     "firms": 155,
+     "funds": 408,
+     "gav": 2787917808363.0,
+     "name": "UBS SECURITIES LLC",
+     "variants": 2
+    },
+    {
+     "firms": 153,
+     "funds": 693,
+     "gav": 5699945353314.0,
+     "name": "CITIGROUP GLOBAL MARKETS INC.",
+     "variants": 6
+    },
+    {
+     "firms": 150,
+     "funds": 1355,
+     "gav": 309007237709.0,
+     "name": "CITIZENS BANK, N.A.",
+     "variants": 9
+    },
+    {
+     "firms": 146,
+     "funds": 422,
+     "gav": 1998877253596.0,
+     "name": "GOLDMAN SACHS INTERNATIONAL",
+     "variants": 2
+    },
+    {
+     "firms": 138,
+     "funds": 1243,
+     "gav": 1935806155759.0,
+     "name": "BANK OF NEW YORK MELLON",
+     "variants": 5
+    },
+    {
+     "firms": 126,
+     "funds": 678,
+     "gav": 410942026730.0,
+     "name": "CIBC BANK USA",
+     "variants": 2
+    },
+    {
+     "firms": 112,
+     "funds": 401,
+     "gav": 3425699728411.0,
+     "name": "BARCLAYS CAPITAL INC.",
+     "variants": 1
+    },
+    {
+     "firms": 109,
+     "funds": 831,
+     "gav": 169969122532.0,
+     "name": "CITY NATIONAL BANK",
+     "variants": 5
+    },
+    {
+     "firms": 108,
+     "funds": 253,
+     "gav": 1213394264424.0,
+     "name": "MORGAN STANLEY & CO. INTERNATIONAL PLC",
+     "variants": 5
+    },
+    {
+     "firms": 107,
+     "funds": 521,
+     "gav": 346418374475.0,
+     "name": "COMPUTERSHARE TRUST COMPANY, N.A.",
+     "variants": 17
+    },
+    {
+     "firms": 107,
+     "funds": 453,
+     "gav": 1167147353391.0,
+     "name": "WELLS FARGO SECURITIES, LLC",
+     "variants": 3
+    },
+    {
+     "firms": 104,
+     "funds": 1526,
+     "gav": 687463503896.0,
+     "name": "JPMORGAN CHASE BANK, NATIONAL ASSOCIATION",
+     "variants": 6
+    },
+    {
+     "firms": 99,
+     "funds": 423,
+     "gav": 559342111874.0,
+     "name": "NORTHERN TRUST",
+     "variants": 5
+    },
+    {
+     "firms": 98,
+     "funds": 291,
+     "gav": 2488002323304.0,
+     "name": "UBS AG",
+     "variants": 4
+    },
+    {
+     "firms": 93,
+     "funds": 1209,
+     "gav": 350151953716.0,
+     "name": "SILICON VALLEY BANK, A DIVISION OF FIRST CITIZENS BANK",
+     "variants": 9
+    },
+    {
+     "firms": 84,
+     "funds": 584,
+     "gav": 3886822147348.0,
+     "name": "BARCLAYS BANK PLC",
+     "variants": 3
+    }
+   ],
+   "role": "custodian"
+  },
+  {
+   "label": "Prime brokers",
+   "providers": [
+    {
+     "firms": 664,
+     "funds": 2101,
+     "gav": 6115609546667.0,
+     "name": "GOLDMAN SACHS & CO. LLC",
+     "variants": 6
+    },
+    {
+     "firms": 659,
+     "funds": 1884,
+     "gav": 5753224669862.0,
+     "name": "MORGAN STANLEY & CO. LLC",
+     "variants": 9
+    },
+    {
+     "firms": 460,
+     "funds": 1654,
+     "gav": 6845560627663.0,
+     "name": "J.P. MORGAN SECURITIES LLC",
+     "variants": 8
+    },
+    {
+     "firms": 283,
+     "funds": 454,
+     "gav": 146847575869.0,
+     "name": "INTERACTIVE BROKERS LLC",
+     "variants": 4
+    },
+    {
+     "firms": 188,
+     "funds": 361,
+     "gav": 279807102258.0,
+     "name": "JEFFERIES LLC",
+     "variants": 3
+    },
+    {
+     "firms": 182,
+     "funds": 515,
+     "gav": 3803395454747.0,
+     "name": "BOFA SECURITIES, INC.",
+     "variants": 3
+    },
+    {
+     "firms": 165,
+     "funds": 416,
+     "gav": 3304841301543.0,
+     "name": "UBS SECURITIES LLC",
+     "variants": 2
+    },
+    {
+     "firms": 140,
+     "funds": 525,
+     "gav": 6180177778233.0,
+     "name": "CITIGROUP GLOBAL MARKETS INC.",
+     "variants": 6
+    },
+    {
+     "firms": 137,
+     "funds": 274,
+     "gav": 1633433150693.0,
+     "name": "NATIONAL FINANCIAL SERVICES LLC",
+     "variants": 3
+    },
+    {
+     "firms": 135,
+     "funds": 484,
+     "gav": 4509485908026.0,
+     "name": "BARCLAYS CAPITAL INC.",
+     "variants": 2
+    },
+    {
+     "firms": 127,
+     "funds": 271,
+     "gav": 70525521772.0,
+     "name": "BTIG, LLC",
+     "variants": 3
+    },
+    {
+     "firms": 104,
+     "funds": 257,
+     "gav": 2698678500651.0,
+     "name": "GOLDMAN SACHS INTERNATIONAL",
+     "variants": 2
+    },
+    {
+     "firms": 96,
+     "funds": 194,
+     "gav": 2088932178320.0,
+     "name": "MORGAN STANLEY & CO. INTERNATIONAL PLC",
+     "variants": 7
+    },
+    {
+     "firms": 94,
+     "funds": 220,
+     "gav": 1083836300878.0,
+     "name": "PERSHING LLC",
+     "variants": 1
+    },
+    {
+     "firms": 86,
+     "funds": 288,
+     "gav": 3779589788751.0,
+     "name": "BNP PARIBAS SECURITIES CORP.",
+     "variants": 2
+    },
+    {
+     "firms": 85,
+     "funds": 211,
+     "gav": 940043861033.0,
+     "name": "WELLS FARGO SECURITIES, LLC",
+     "variants": 2
+    },
+    {
+     "firms": 79,
+     "funds": 176,
+     "gav": 2062295655866.0,
+     "name": "MERRILL LYNCH PROFESSIONAL CLEARING CORP.",
+     "variants": 2
+    },
+    {
+     "firms": 70,
+     "funds": 202,
+     "gav": 2301157711975.0,
+     "name": "UBS AG",
+     "variants": 3
+    },
+    {
+     "firms": 61,
+     "funds": 121,
+     "gav": 25820928184.0,
+     "name": "CHARLES SCHWAB & CO., INC.",
+     "variants": 3
+    },
+    {
+     "firms": 60,
+     "funds": 100,
+     "gav": 100444542014.0,
+     "name": "MAREX CAPITAL MARKETS INC.",
+     "variants": 2
+    },
+    {
+     "firms": 59,
+     "funds": 127,
+     "gav": 2309552672029.0,
+     "name": "J.P. MORGAN SECURITIES PLC",
+     "variants": 8
+    },
+    {
+     "firms": 56,
+     "funds": 145,
+     "gav": 4506496492346.0,
+     "name": "BARCLAYS BANK PLC",
+     "variants": 2
+    },
+    {
+     "firms": 52,
+     "funds": 121,
+     "gav": 66161376697.0,
+     "name": "CLEAR STREET LLC",
+     "variants": 3
+    },
+    {
+     "firms": 51,
+     "funds": 252,
+     "gav": 1075164529178.0,
+     "name": "J.P. MORGAN CLEARING CORP.",
+     "variants": 3
+    },
+    {
+     "firms": 49,
+     "funds": 260,
+     "gav": 2375188374431.0,
+     "name": "J.P. MORGAN CHASE BANK, N.A.",
+     "variants": 14
+    },
+    {
+     "firms": 49,
+     "funds": 221,
+     "gav": 200634518200.0,
+     "name": "MERRILL LYNCH, PIERCE, FENNER & SMITH INCORPORATED",
+     "variants": 1
+    },
+    {
+     "firms": 49,
+     "funds": 106,
+     "gav": 2086024423782.0,
+     "name": "MERRILL LYNCH INTERNATIONAL",
+     "variants": 1
+    },
+    {
+     "firms": 40,
+     "funds": 107,
+     "gav": 324038871716.0,
+     "name": "CANTOR FITZGERALD & CO.",
+     "variants": 3
+    },
+    {
+     "firms": 37,
+     "funds": 75,
+     "gav": 1617442093981.0,
+     "name": "SG AMERICAS SECURITIES, LLC",
+     "variants": 1
+    },
+    {
+     "firms": 32,
+     "funds": 88,
+     "gav": 142167494816.0,
+     "name": "WELLS FARGO PRIME SERVICES, LLC",
+     "variants": 2
+    },
+    {
+     "firms": 32,
+     "funds": 65,
+     "gav": 23965834195.0,
+     "name": "STONEX FINANCIAL INC.",
+     "variants": 2
+    },
+    {
+     "firms": 31,
+     "funds": 141,
+     "gav": 1713566147298.0,
+     "name": "HSBC BANK PLC",
+     "variants": 1
+    },
+    {
+     "firms": 29,
+     "funds": 75,
+     "gav": 59247957620.0,
+     "name": "FIDELITY BROKERAGE SERVICES LLC",
+     "variants": 1
+    },
+    {
+     "firms": 29,
+     "funds": 72,
+     "gav": 97626448237.0,
+     "name": "BNP PARIBAS PRIME BROKERAGE, INC.",
+     "variants": 1
+    },
+    {
+     "firms": 25,
+     "funds": 125,
+     "gav": 1864899834415.0,
+     "name": "BNP PARIBAS",
+     "variants": 1
+    },
+    {
+     "firms": 25,
+     "funds": 62,
+     "gav": 148873216370.0,
+     "name": "TD SECURITIES (USA) LLC",
+     "variants": 1
+    },
+    {
+     "firms": 25,
+     "funds": 45,
+     "gav": 306147805802.0,
+     "name": "CF SECURED, LLC",
+     "variants": 1
+    },
+    {
+     "firms": 24,
+     "funds": 55,
+     "gav": 60873582166.0,
+     "name": "TD PRIME SERVICES LLC",
+     "variants": 2
+    },
+    {
+     "firms": 22,
+     "funds": 148,
+     "gav": 1689778054339.0,
+     "name": "DEUTSCHE BANK AG",
+     "variants": 5
+    },
+    {
+     "firms": 22,
+     "funds": 115,
+     "gav": 1772919547541.0,
+     "name": "CITIBANK, N.A.",
+     "variants": 4
+    }
+   ],
+   "role": "prime_broker"
+  },
+  {
+   "label": "Administrators",
+   "providers": [
+    {
+     "firms": 530,
+     "funds": 3199,
+     "gav": 1576392800800.0,
+     "name": "SS&C TECHNOLOGIES, INC.",
+     "variants": 11
+    },
+    {
+     "firms": 363,
+     "funds": 1944,
+     "gav": 155257281853.0,
+     "name": "NAV CONSULTING, INC.",
+     "variants": 8
+    },
+    {
+     "firms": 235,
+     "funds": 3252,
+     "gav": 979271297760.0,
+     "name": "GEN II FUND SERVICES, LLC",
+     "variants": 9
+    },
+    {
+     "firms": 191,
+     "funds": 2142,
+     "gav": 648518128289.0,
+     "name": "STANDISH MANAGEMENT",
+     "variants": 3
+    },
+    {
+     "firms": 153,
+     "funds": 479,
+     "gav": 588626003595.0,
+     "name": "MORGAN STANLEY FUND SERVICES USA LLC",
+     "variants": 5
+    },
+    {
+     "firms": 128,
+     "funds": 1180,
+     "gav": 1078618476484.0,
+     "name": "CITCO FUND ADMINISTRATION (CAYMAN ISLANDS) LIMITED",
+     "variants": 7
+    },
+    {
+     "firms": 128,
+     "funds": 295,
+     "gav": 494024409813.0,
+     "name": "MORGAN STANLEY FUND SERVICES (CAYMAN) LTD.",
+     "variants": 7
+    },
+    {
+     "firms": 122,
+     "funds": 887,
+     "gav": 175139171804.0,
+     "name": "ALTER DOMUS",
+     "variants": 7
+    },
+    {
+     "firms": 121,
+     "funds": 778,
+     "gav": 677278594923.0,
+     "name": "HEDGESERV (CAYMAN) LTD.",
+     "variants": 7
+    },
+    {
+     "firms": 118,
+     "funds": 2240,
+     "gav": 1048880103893.0,
+     "name": "SEI GLOBAL SERVICES, INC.",
+     "variants": 6
+    },
+    {
+     "firms": 107,
+     "funds": 501,
+     "gav": 1776443254177.0,
+     "name": "SS&C FUND SERVICES (CAYMAN) LTD.",
+     "variants": 8
+    },
+    {
+     "firms": 106,
+     "funds": 537,
+     "gav": 112499042612.0,
+     "name": "UMB FUND SERVICES",
+     "variants": 8
+    },
+    {
+     "firms": 104,
+     "funds": 1008,
+     "gav": 451746144169.0,
+     "name": "STATE STREET BANK AND TRUST COMPANY",
+     "variants": 13
+    },
+    {
+     "firms": 93,
+     "funds": 341,
+     "gav": 113212160662.0,
+     "name": "U.S. BANCORP FUND SERVICES, LLC",
+     "variants": 14
+    },
+    {
+     "firms": 82,
+     "funds": 592,
+     "gav": 174797084676.0,
+     "name": "APEX GROUP",
+     "variants": 7
+    },
+    {
+     "firms": 73,
+     "funds": 597,
+     "gav": 529000839060.0,
+     "name": "INTERNATIONAL FUND SERVICES (N.A.), L.L.C.",
+     "variants": 17
+    },
+    {
+     "firms": 73,
+     "funds": 568,
+     "gav": 52248900136.0,
+     "name": "JUNIPER SQUARE",
+     "variants": 6
+    },
+    {
+     "firms": 73,
+     "funds": 564,
+     "gav": 746426797165.0,
+     "name": "CITCO FUND SERVICES (CAYMAN ISLANDS) LIMITED",
+     "variants": 11
+    },
+    {
+     "firms": 72,
+     "funds": 632,
+     "gav": 456975763545.0,
+     "name": "CITCO FUND SERVICES (USA) INC.",
+     "variants": 6
+    },
+    {
+     "firms": 72,
+     "funds": 381,
+     "gav": 156345820579.0,
+     "name": "THE NORTHERN TRUST COMPANY",
+     "variants": 1
+    },
+    {
+     "firms": 69,
+     "funds": 229,
+     "gav": 116577280318.0,
+     "name": "STONE COAST FUND SERVICES",
+     "variants": 9
+    },
+    {
+     "firms": 68,
+     "funds": 541,
+     "gav": 86702725241.0,
+     "name": "ALTER DOMUS (US) LLC",
+     "variants": 12
+    },
+    {
+     "firms": 68,
+     "funds": 431,
+     "gav": 15845225093.0,
+     "name": "CARTA",
+     "variants": 5
+    },
+    {
+     "firms": 68,
+     "funds": 152,
+     "gav": 16744569008.0,
+     "name": "OPUS FUND SERVICES",
+     "variants": 5
+    },
+    {
+     "firms": 66,
+     "funds": 183,
+     "gav": 11024020711.0,
+     "name": "NAV FUND ADMINISTRATION GROUP",
+     "variants": 1
+    },
+    {
+     "firms": 65,
+     "funds": 453,
+     "gav": 80622143983.0,
+     "name": "IQ-EQ",
+     "variants": 4
+    },
+    {
+     "firms": 63,
+     "funds": 346,
+     "gav": 314602986652.0,
+     "name": "THE BANK OF NEW YORK MELLON",
+     "variants": 1
+    },
+    {
+     "firms": 60,
+     "funds": 395,
+     "gav": 1705871897960.0,
+     "name": "NORTHERN TRUST HEDGE FUND SERVICES LLC",
+     "variants": 4
+    },
+    {
+     "firms": 59,
+     "funds": 689,
+     "gav": 60421541736.0,
+     "name": "CARTA INVESTOR SERVICES, INC.",
+     "variants": 6
+    },
+    {
+     "firms": 58,
+     "funds": 411,
+     "gav": 156780010063.0,
+     "name": "PETRA FUNDS GROUP, LLC",
+     "variants": 4
+    },
+    {
+     "firms": 57,
+     "funds": 280,
+     "gav": 20826170544.0,
+     "name": "HC GLOBAL FUND SERVICES, LLC",
+     "variants": 3
+    },
+    {
+     "firms": 56,
+     "funds": 562,
+     "gav": 181737374349.0,
+     "name": "U.S. BANK NATIONAL ASSOCIATION",
+     "variants": 5
+    },
+    {
+     "firms": 50,
+     "funds": 235,
+     "gav": 254147766924.0,
+     "name": "MUFG FUND SERVICES (CAYMAN) LIMITED",
+     "variants": 5
+    },
+    {
+     "firms": 49,
+     "funds": 215,
+     "gav": 44393518919.0,
+     "name": "SS&C",
+     "variants": 7
+    },
+    {
+     "firms": 47,
+     "funds": 597,
+     "gav": 37421805983.0,
+     "name": "ADURO ADVISORS, LLC",
+     "variants": 5
+    },
+    {
+     "firms": 46,
+     "funds": 411,
+     "gav": 122201289556.0,
+     "name": "ULTIMUS LEVERPOINT PRIVATE FUND SOLUTIONS",
+     "variants": 5
+    },
+    {
+     "firms": 46,
+     "funds": 386,
+     "gav": 135367832681.0,
+     "name": "APEX FUND SERVICES",
+     "variants": 8
+    },
+    {
+     "firms": 46,
+     "funds": 95,
+     "gav": 9011818776.0,
+     "name": "NAV FUND SERVICES",
+     "variants": 4
+    },
+    {
+     "firms": 45,
+     "funds": 237,
+     "gav": 1133127718268.0,
+     "name": "SS&C FINANCIAL SERVICES LLC",
+     "variants": 4
+    },
+    {
+     "firms": 45,
+     "funds": 143,
+     "gav": 16857514939.0,
+     "name": "FORMIDIUM CORP.",
+     "variants": 3
+    }
+   ],
+   "role": "administrator"
+  },
+  {
+   "label": "Marketers",
+   "providers": [
+    {
+     "firms": 168,
+     "funds": 581,
+     "gav": 824992474326.0,
+     "name": "MORGAN STANLEY",
+     "variants": 2
+    },
+    {
+     "firms": 150,
+     "funds": 575,
+     "gav": 727090811077.0,
+     "name": "J.P. MORGAN SECURITIES LLC",
+     "variants": 3
+    },
+    {
+     "firms": 81,
+     "funds": 1328,
+     "gav": 862353119541.0,
+     "name": "GOLDMAN SACHS & CO. LLC",
+     "variants": 4
+    },
+    {
+     "firms": 77,
+     "funds": 225,
+     "gav": 168726955625.0,
+     "name": "JEFFERIES LLC",
+     "variants": 2
+    },
+    {
+     "firms": 73,
+     "funds": 179,
+     "gav": 81545474453.0,
+     "name": "OLD CITY SECURITIES LLC",
+     "variants": 1
+    },
+    {
+     "firms": 70,
+     "funds": 373,
+     "gav": 494142792173.0,
+     "name": "UBS FINANCIAL SERVICES INC.",
+     "variants": 5
+    },
+    {
+     "firms": 65,
+     "funds": 221,
+     "gav": 209478380828.0,
+     "name": "CITIGROUP GLOBAL MARKETS INC.",
+     "variants": 4
+    },
+    {
+     "firms": 65,
+     "funds": 168,
+     "gav": 124617959836.0,
+     "name": "PJT PARTNERS LP",
+     "variants": 2
+    },
+    {
+     "firms": 64,
+     "funds": 155,
+     "gav": 164686335273.0,
+     "name": "STIFEL, NICOLAUS & COMPANY, INCORPORATED",
+     "variants": 1
+    },
+    {
+     "firms": 62,
+     "funds": 197,
+     "gav": 153105030647.0,
+     "name": "EVERCORE GROUP L.L.C.",
+     "variants": 4
+    },
+    {
+     "firms": 61,
+     "funds": 166,
+     "gav": 173514921897.0,
+     "name": "RAYMOND JAMES & ASSOCIATES, INC.",
+     "variants": 1
+    },
+    {
+     "firms": 56,
+     "funds": 161,
+     "gav": 244915070508.0,
+     "name": "MERRILL LYNCH, PIERCE, FENNER & SMITH INCORPORATED",
+     "variants": 2
+    },
+    {
+     "firms": 55,
+     "funds": 135,
+     "gav": 76163046618.0,
+     "name": "LAZARD FRERES & CO. LLC",
+     "variants": 2
+    },
+    {
+     "firms": 53,
+     "funds": 116,
+     "gav": 82128379081.0,
+     "name": "HOLLISTER ASSOCIATES, LLC",
+     "variants": 2
+    },
+    {
+     "firms": 47,
+     "funds": 119,
+     "gav": 108725846308.0,
+     "name": "UBS SECURITIES LLC",
+     "variants": 2
+    },
+    {
+     "firms": 43,
+     "funds": 176,
+     "gav": 117957585817.0,
+     "name": "CREDIT SUISSE SECURITIES (USA) LLC",
+     "variants": 2
+    },
+    {
+     "firms": 43,
+     "funds": 152,
+     "gav": 229768509267.0,
+     "name": "CAIS CAPITAL LLC",
+     "variants": 2
+    },
+    {
+     "firms": 41,
+     "funds": 105,
+     "gav": 90551547908.0,
+     "name": "RBC CAPITAL MARKETS, LLC",
+     "variants": 2
+    },
+    {
+     "firms": 40,
+     "funds": 133,
+     "gav": 71718163914.0,
+     "name": "CAMPBELL LUTYENS & CO. INC.",
+     "variants": 6
+    },
+    {
+     "firms": 36,
+     "funds": 148,
+     "gav": 144909672169.0,
+     "name": "ROCKEFELLER CAPITAL MANAGEMENT",
+     "variants": 1
+    },
+    {
+     "firms": 36,
+     "funds": 71,
+     "gav": 17342677540.0,
+     "name": "STONEHAVEN, LLC",
+     "variants": 2
+    },
+    {
+     "firms": 34,
+     "funds": 106,
+     "gav": 22859346244.0,
+     "name": "EQUUS FINANCIAL CONSULTING LLC",
+     "variants": 2
+    },
+    {
+     "firms": 31,
+     "funds": 60,
+     "gav": 35468695777.0,
+     "name": "BOFA SECURITIES, INC.",
+     "variants": 2
+    },
+    {
+     "firms": 29,
+     "funds": 81,
+     "gav": 26054887726.0,
+     "name": "BARCLAYS CAPITAL INC.",
+     "variants": 1
+    },
+    {
+     "firms": 28,
+     "funds": 93,
+     "gav": 25189350499.0,
+     "name": "WILLIAM BLAIR & COMPANY L.L.C.",
+     "variants": 3
+    },
+    {
+     "firms": 28,
+     "funds": 60,
+     "gav": 12393718276.0,
+     "name": "FRONTIER SECURITIES",
+     "variants": 1
+    },
+    {
+     "firms": 26,
+     "funds": 66,
+     "gav": 8563365274.0,
+     "name": "CASTLE HILL CAPITAL PARTNERS, INC.",
+     "variants": 2
+    },
+    {
+     "firms": 25,
+     "funds": 70,
+     "gav": 135903318450.0,
+     "name": "MORGAN STANLEY SMITH BARNEY LLC",
+     "variants": 3
+    },
+    {
+     "firms": 24,
+     "funds": 80,
+     "gav": 24295022667.0,
+     "name": "EATON PARTNERS, LLC",
+     "variants": 2
+    },
+    {
+     "firms": 24,
+     "funds": 53,
+     "gav": 9761699990.0,
+     "name": "M2O PRIVATE FUND ADVISORS LLC",
+     "variants": 2
+    },
+    {
+     "firms": 24,
+     "funds": 47,
+     "gav": 27607367502.0,
+     "name": "WELLS FARGO SECURITIES, LLC",
+     "variants": 2
+    },
+    {
+     "firms": 24,
+     "funds": 46,
+     "gav": 8276928513.0,
+     "name": "FINALIS SECURITIES LLC",
+     "variants": 1
+    },
+    {
+     "firms": 24,
+     "funds": 45,
+     "gav": 17590053647.0,
+     "name": "PROBITAS FUNDS GROUP, LLC",
+     "variants": 1
+    },
+    {
+     "firms": 24,
+     "funds": 43,
+     "gav": 9042113049.0,
+     "name": "INVICTA CAPITAL LLC",
+     "variants": 2
+    },
+    {
+     "firms": 23,
+     "funds": 143,
+     "gav": 110290812861.0,
+     "name": "RAYMOND JAMES FINANCIAL SERVICES, INC.",
+     "variants": 1
+    },
+    {
+     "firms": 23,
+     "funds": 91,
+     "gav": 32370865367.0,
+     "name": "PARK HILL GROUP LLC",
+     "variants": 1
+    },
+    {
+     "firms": 23,
+     "funds": 81,
+     "gav": 88512788251.0,
+     "name": "DEUTSCHE BANK SECURITIES INC.",
+     "variants": 1
+    },
+    {
+     "firms": 23,
+     "funds": 58,
+     "gav": 18909004972.0,
+     "name": "PIPER SANDLER & CO.",
+     "variants": 2
+    },
+    {
+     "firms": 22,
+     "funds": 60,
+     "gav": 22257146274.0,
+     "name": "OPPENHEIMER & CO. INC.",
+     "variants": 1
+    },
+    {
+     "firms": 22,
+     "funds": 41,
+     "gav": 5129298335.0,
+     "name": "SILVER LEAF PARTNERS, LLC",
+     "variants": 1
+    }
+   ],
+   "role": "marketer"
+  }
+ ],
+ "total_relationships": 282530
+}
