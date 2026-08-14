@@ -62,6 +62,7 @@ echo "== 7/10 refreshing Industry Pulse (monthly archives -> snapshots -> stats)
 $PY -m etl.pulse_history run --db data/advisor.duckdb
 $PY -m etl.pulse_stats --db data/advisor.duckdb --out frontend/public/pulse_stats.json
 $PY -m etl.firm_history --db data/advisor.duckdb --out frontend/public/firm_history.json
+$PY -m etl.ownership run --db data/advisor.duckdb
 
 echo "== 8/10 refreshing private funds (Schedule D 7.B.1, reuses Pulse's cached archives) =="
 $PY -m etl.private_funds run --db data/advisor.duckdb

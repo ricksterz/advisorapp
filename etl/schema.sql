@@ -344,3 +344,58 @@ CREATE TABLE IF NOT EXISTS form_d_recipients (
     state                   VARCHAR,
     source_archive          VARCHAR
 );
+
+-- ---------------------------------------------------------------------------
+-- Ownership & control (etl/ownership.py) — Form ADV Schedule A (direct owners
+-- and executive officers) and Schedule B (indirect owners), from the SAME
+-- monthly advFilingData archives etl/pulse_history.py already downloads. No
+-- new data source.
+--
+-- Two DIFFERENT ownership-code sets, verified against both the SEC/IARD
+-- instructions and a real 2026-06 pull (19,055 rows), which agreed exactly:
+--   Schedule A: NA (<5%), A (5-10%), B (10-25%), C (25-50%), D (50-75%),
+--               E (75%+)
+--   Schedule B: C, D, E as above, plus F = "Other (general partner, trustee,
+--               or elected manager)" — a non-percentage category that exists
+--               ONLY on Schedule B. In the real pull, F appeared on 1,428
+--               Schedule B rows and zero Schedule A rows, and every sampled
+--               F row carried a TRUSTEE/MEMBER title, matching the
+--               instruction text. Treating F as a percentage band, or
+--               applying Schedule A's NA/A/B to Schedule B, would both be
+--               wrong.
+--
+-- Same filing-window-not-snapshot problem as adv_filings: ownership_filings
+-- holds every raw row across all cached archives; firm_owners is the
+-- reconstructed latest-known-state per firm.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS ownership_filings (
+    filing_id           BIGINT,
+    crd                 BIGINT,                   -- joined in from IA_ADV_Base_A
+    date_submitted      DATE,
+    schedule            VARCHAR,                  -- 'A' (direct) | 'B' (indirect)
+    owner_name          VARCHAR,
+    owner_id            VARCHAR,                  -- SEC OwnerID; blank for many entities
+    entity_type         VARCHAR,                  -- DE (domestic) | FE (foreign) | I (individual)
+    owned_entity        VARCHAR,                  -- Schedule B: the entity this party owns
+    title_or_status     VARCHAR,
+    status_acquired     VARCHAR,                  -- MM/YYYY as filed
+    ownership_code      VARCHAR,
+    is_control_person   BOOLEAN,
+    is_public_reporting BOOLEAN,
+    source_archive      VARCHAR
+);
+
+CREATE TABLE IF NOT EXISTS firm_owners (
+    crd                 BIGINT,
+    filing_id           BIGINT,                   -- the winning (most recent) filing
+    schedule            VARCHAR,
+    owner_name          VARCHAR,
+    owner_id            VARCHAR,
+    entity_type         VARCHAR,
+    owned_entity        VARCHAR,
+    title_or_status     VARCHAR,
+    status_acquired     VARCHAR,
+    ownership_code      VARCHAR,
+    is_control_person   BOOLEAN,
+    is_public_reporting BOOLEAN
+);
