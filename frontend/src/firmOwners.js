@@ -21,6 +21,34 @@ function fetchOwners() {
   return ownersPromise
 }
 
+// Ownership change timeline (etl/ownership_changes.py) — a separate, much
+// smaller file than firm_owners.json, so a firm page that only needs the
+// current roster never pays for the history.
+let changesPromise = null
+function fetchChanges() {
+  changesPromise ??= fetch(`${BASE}ownership_changes.json`)
+    .then((r) => (r.ok ? r.json() : null))
+    .catch(() => null)
+  return changesPromise
+}
+
+// Newest-first list of { date, filing_id, events[] }: undefined while
+// loading, null if this firm has no detected changes. Most firms genuinely
+// have none — only ~6.5K of ~17K filed a second time in the window.
+export function useOwnershipChanges(crd) {
+  const [timeline, setTimeline] = useState(undefined)
+  useEffect(() => {
+    let alive = true
+    fetchChanges().then((data) => {
+      if (alive) setTimeline(data?.firms?.[String(crd)] ?? null)
+    })
+    return () => {
+      alive = false
+    }
+  }, [crd])
+  return timeline
+}
+
 // A single firm's owners: undefined while loading, null once resolved if the
 // firm has none on file (or the file is unavailable, e.g. the dev fixture).
 export function useFirmOwners(crd) {

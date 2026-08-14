@@ -1582,3 +1582,96 @@ tbody tr:hover {
   font-size: 11.5px;
   margin-top: 2px;
 }
+
+/* ---------- ownership change timeline ---------- */
+.change-timeline {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.change-timeline > li + li {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--grid);
+}
+
+.change-date {
+  color: var(--ink-3);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 7px;
+}
+
+.change-events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.change-events > li {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+
+/* +/-/± marker: colour carries the meaning, the title attribute and the
+   .sr-label text carry it for anyone not seeing colour. */
+.change-mark {
+  flex: none;
+  width: 16px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.change-added { color: var(--good); }
+.change-removed { color: var(--critical); }
+.change-stake { color: var(--ink-3); }
+
+.change-body {
+  min-width: 0;
+}
+
+.change-name {
+  font-weight: 550;
+  font-size: 13.5px;
+}
+
+/* Role lists run to ~600 chars at the tail of the distribution (a party with
+   many managerships), which would dominate the card. Clamp to two lines; the
+   title attribute keeps the full text reachable. */
+.change-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--ink-2);
+  font-size: 12px;
+  margin-top: 1px;
+}
+
+.change-meta {
+  display: block;
+  color: var(--ink-3);
+  font-size: 11.5px;
+  margin-top: 2px;
+}
+
+/* Visible only to assistive tech: "joined"/"left" so the +/- glyph is not the
+   sole carrier of meaning. */
+.sr-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
