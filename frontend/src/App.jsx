@@ -19,6 +19,7 @@ import {
   DrilldownServiceProviders,
 } from './components/PulseDrilldowns.jsx'
 import { BASE, firmPath, navigate, pulsePath, useRoute } from './router.js'
+import { fmtCount } from './pulse.js'
 import { DEAL_FLAG_DEFS, useAllDealFlags } from './dealFlags.js'
 import { useAllAdvisorBios } from './advisorBios.js'
 import { computeDealPatterns } from './dealPatterns.js'
@@ -30,9 +31,6 @@ const compactUsd = (v) => {
   if (v >= 1e6) return `$${(v / 1e6).toFixed(v >= 1e7 ? 0 : 1)}M`
   return `$${Math.round(v).toLocaleString()}`
 }
-
-const compactCount = (v) =>
-  v == null ? '—' : v >= 10000 ? `${(v / 1000).toFixed(1)}K` : v.toLocaleString()
 
 const iapdUrl = (crd) => `https://adviserinfo.sec.gov/firm/summary/${crd}`
 
@@ -372,10 +370,10 @@ export default function App() {
 
         {stats && (
           <section className="tiles" aria-label="Industry totals">
-            <StatTile label="Firms tracked" value={compactCount(data.count)} sub="SEC-registered advisers" />
+            <StatTile label="Firms tracked" value={fmtCount(data.count)} sub="SEC-registered advisers" />
             <StatTile
               label="Firms managing ≥ $1B"
-              value={compactCount(stats.billionCount)}
+              value={fmtCount(stats.billionCount)}
               sub={`hold ${Math.round(stats.billionShare * 100)}% of reported AUM`}
             />
             <StatTile label="Median firm AUM" value={compactUsd(stats.median)} />
@@ -386,7 +384,7 @@ export default function App() {
             />
             <StatTile
               label="Disciplinary disclosures"
-              value={compactCount(stats.flagged)}
+              value={fmtCount(stats.flagged)}
               sub="firms with > 3 flags"
             />
           </section>
