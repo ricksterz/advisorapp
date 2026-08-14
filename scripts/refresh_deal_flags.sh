@@ -61,6 +61,7 @@ PYEOF
 echo "== 7/10 refreshing Industry Pulse (monthly archives -> snapshots -> stats) =="
 $PY -m etl.pulse_history run --db data/advisor.duckdb
 $PY -m etl.pulse_stats --db data/advisor.duckdb --out frontend/public/pulse_stats.json
+$PY -m etl.firm_history --db data/advisor.duckdb --out frontend/public/firm_history.json
 
 echo "== 8/10 refreshing private funds (Schedule D 7.B.1, reuses Pulse's cached archives) =="
 $PY -m etl.private_funds run --db data/advisor.duckdb
@@ -80,5 +81,5 @@ echo "  git add frontend/public/deal_flags.json frontend/public/advisor_bios.jso
 echo "          frontend/public/sitemap.xml frontend/public/robots.txt frontend/public/pulse_stats.json \\"
 echo "          frontend/public/private_funds.json frontend/public/firm_private_funds.json \\"
 echo "          frontend/public/individual_disclosures.json frontend/public/form_d.json \\
-          frontend/public/service_providers.json"
+          frontend/public/service_providers.json frontend/public/firm_history.json"
 echo "  git commit -m 'Refresh brochure corpus, advisor bios, private funds, disclosures, and sitemap'"

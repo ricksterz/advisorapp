@@ -6,7 +6,9 @@ import { BASE, navigate } from '../router.js'
 import { DEAL_FLAG_DEFS, useDealFlags } from '../dealFlags.js'
 import { DISCLOSURE_FLAG_DEFS, useAdvisorBios } from '../advisorBios.js'
 import { PROVIDER_ROLE_LABELS, useFirmPrivateFunds } from '../privateFunds.js'
-import { fmtCompactUsd } from '../pulse.js'
+import { fmtCompactUsd, fmtQuarter } from '../pulse.js'
+import { useFirmHistory } from '../firmHistory.js'
+import { TrendLine } from './PulsePage.jsx'
 
 // Public IAPD document endpoints (all CORS-enabled, no key required).
 const firmApiUrl = (crd) => `https://api.adviserinfo.sec.gov/search/firm/${crd}`
@@ -239,6 +241,54 @@ function AdvisorBiosCard({ crd }) {
   )
 }
 
+// Trend across published Pulse quarters (etl/firm_history.py) — the same
+// firm_snapshots rows pulse_stats.py aggregates into industry medians,
+// unaggregated and looked up by CRD. A single-quarter firm has nothing to
+// trend, so it renders nothing rather than a one-row table.
+function FirmHistoryCard({ crd }) {
+  const history = useFirmHistory(crd)
+  if (!history) return null
+  const { quarters, aum_total: aum, employees_advisory: staff, disciplinary_flag_count: disc } = history
+  if (quarters.filter((_, i) => aum[i] != null).length < 2) return null
+
+  return (
+    <div className="detail-card firm-history-card">
+      <h2>History</h2>
+      <div className="firm-history-head">
+        <TrendLine values={aum} width={140} height={28} />
+      </div>
+      <table className="pulse-table">
+        <thead>
+          <tr>
+            <th>Quarter</th>
+            <th className="num">Regulatory AUM</th>
+            <th className="num">Advisory staff</th>
+            <th className="num">Disciplinary</th>
+          </tr>
+        </thead>
+        <tbody>
+          {quarters.map((q, i) => (
+            <tr key={q}>
+              <td>{fmtQuarter(q)}</td>
+              <td className="num">{aum[i] != null ? fmtCompactUsd(aum[i]) : '—'}</td>
+              <td className="num">{staff[i] ?? '—'}</td>
+              <td className="num">{disc[i] ?? '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="detail-note">
+        From the same quarterly snapshots Industry Pulse aggregates — published only for quarters
+        meeting Pulse’s completeness threshold, so a gap means the firm fell below it that quarter,
+        not that nothing changed. Advisory-staff counts can swing sharply between quarters for
+        reasons unrelated to hiring or layoffs: Form ADV Item 5.B’s basis for the count is not
+        always applied consistently filing to filing, so a jump is a prompt to check the underlying
+        filing, not evidence of a real event on its own.
+      </p>
+    </div>
+  )
+}
+
 const DEFAULT_TITLE = 'Open Disclosure — SEC Form ADV adviser benchmarking'
 const SITE_URL = 'https://open-disclosure.com'
 
@@ -444,6 +494,8 @@ export default function FirmDetail({ firm, crd, allFirms }) {
           <div className="sub">Form ADV Item 11 — see IAPD for the underlying records</div>
         </div>
       </div>
+
+      <FirmHistoryCard crd={firm.crd} />
 
       <div className="detail-grid">
         <div className="detail-card">
