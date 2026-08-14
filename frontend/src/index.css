@@ -1523,3 +1523,15 @@ tbody tr:hover {
   background: var(--accent-track);
   overflow: hidden;
 }
+
+/* Firm-detail history card: sparkline sits top-right of the card heading. */
+.firm-history-card {
+  position: relative;
+  overflow-x: auto;
+}
+
+.firm-history-head {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+}
