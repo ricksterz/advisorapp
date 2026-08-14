@@ -1526,12 +1526,31 @@ tbody tr:hover {
 
 /* Firm-detail history card: sparkline sits top-right of the card heading. */
 .firm-history-card {
-  position: relative;
   overflow-x: auto;
 }
 
+/* Heading row: title left, captioned sparkline right. Absolute positioning
+   floated the sparkline over the table header on narrow cards. */
 .firm-history-head {
-  position: absolute;
-  top: 18px;
-  right: 18px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.firm-history-head h2 {
+  margin: 0;
+}
+
+.firm-history-spark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.firm-history-spark-label {
+  color: var(--ink-3);
+  font-size: 11.5px;
+  white-space: nowrap;
 }

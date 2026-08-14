@@ -253,9 +253,15 @@ function FirmHistoryCard({ crd }) {
 
   return (
     <div className="detail-card firm-history-card">
-      <h2>History</h2>
+      {/* The sparkline is captioned and sits on the heading row: floated
+          unlabelled at the card's top-right it read as a stray blue line and
+          collided with the table header beneath it. */}
       <div className="firm-history-head">
-        <TrendLine values={aum} width={140} height={28} />
+        <h2>History</h2>
+        <span className="firm-history-spark">
+          <span className="firm-history-spark-label">Regulatory AUM trend</span>
+          <TrendLine values={aum} width={110} height={22} />
+        </span>
       </div>
       <table className="pulse-table">
         <thead>
@@ -474,10 +480,15 @@ export default function FirmDetail({ firm, crd, allFirms }) {
       <div className="tiles">
         <div className="tile">
           <div className="label">Regulatory AUM</div>
-          <div className="value">{fmtUsd(firm.aum_total)}</div>
-          {discShare != null && (
-            <div className="sub">{Math.round(discShare * 100)}% discretionary</div>
-          )}
+          {/* Compact headline, exact figure below: the largest advisers report
+              13-digit AUM ("$2,196,452,587,467"), which overflowed the tile
+              and clipped mid-number. This also matches how AUM reads in the
+              History table directly beneath it. */}
+          <div className="value">{fmtCompactUsd(firm.aum_total)}</div>
+          <div className="sub">
+            {fmtUsd(firm.aum_total)}
+            {discShare != null && <> · {Math.round(discShare * 100)}% discretionary</>}
+          </div>
         </div>
         <div className="tile">
           <div className="label">Advisory professionals</div>
