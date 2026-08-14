@@ -16,7 +16,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-PY=.venv/bin/python
+PY=".venv/bin/python -u"
 SITE="https://open-disclosure.com"
 TMP_FIRMS="$(mktemp -t open-disclosure-firms).json"
 trap 'rm -f "$TMP_FIRMS"' EXIT
@@ -63,6 +63,7 @@ $PY -m etl.pulse_history run --db data/advisor.duckdb
 $PY -m etl.pulse_stats --db data/advisor.duckdb --out frontend/public/pulse_stats.json
 $PY -m etl.firm_history --db data/advisor.duckdb --out frontend/public/firm_history.json
 $PY -m etl.ownership run --db data/advisor.duckdb --out frontend/public/firm_owners.json
+$PY -m etl.ownership_changes --db data/advisor.duckdb --out frontend/public/ownership_changes.json
 
 echo "== 8/10 refreshing private funds (Schedule D 7.B.1, reuses Pulse's cached archives) =="
 $PY -m etl.private_funds run --db data/advisor.duckdb
@@ -83,5 +84,5 @@ echo "          frontend/public/sitemap.xml frontend/public/robots.txt frontend/
 echo "          frontend/public/private_funds.json frontend/public/firm_private_funds.json \\"
 echo "          frontend/public/individual_disclosures.json frontend/public/form_d.json \\
           frontend/public/service_providers.json frontend/public/firm_history.json \\
-          frontend/public/firm_owners.json"
+          frontend/public/firm_owners.json frontend/public/ownership_changes.json"
 echo "  git commit -m 'Refresh brochure corpus, advisor bios, private funds, disclosures, and sitemap'"
