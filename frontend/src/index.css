@@ -1675,3 +1675,66 @@ tbody tr:hover {
   white-space: nowrap;
   border: 0;
 }
+
+/* ---------------------------------------------------------------------------
+   Tablet grid gaps.
+
+   repeat(auto-fit, minmax(...)) collapses EMPTY tracks, but it cannot fix a
+   WRAP: once the item count exceeds the tracks that fit, the final row is
+   orphaned and the leftover cells render as a hole. Measured on the live site,
+   the stat strips (5 items) and the pattern grid (4) both landed on column
+   counts that do not divide their item count anywhere between 768px and
+   ~1100px — worst at iPad landscape, where 5 tiles in 4 columns left three
+   empty cells. Phones (1 column) and desktop (5 and 4 columns) were always
+   fine, which is why this only ever showed up on a tablet.
+
+   Five is prime, so no column count except 1 or 5 divides it. Rather than
+   chase a magic minmax, the mid range is pinned to two columns and any odd
+   last item is stretched across the row. That works for 3, 4 and 5 items
+   alike, which matters because .tiles is shared: the homepage passes five,
+   the firm detail page four.
+   --------------------------------------------------------------------------- */
+.tiles,
+.kpi-strip,
+.pattern-grid {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 560px) {
+  .tiles,
+  .kpi-strip,
+  .pattern-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* An odd number of items leaves the last one alone in its row; span it so
+     the row is full instead of half empty. Even counts are untouched. */
+  .tiles > :last-child:nth-child(odd),
+  .kpi-strip > :last-child:nth-child(odd),
+  .pattern-grid > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* 1120px is where five 200px tracks plus their gaps finally fit inside the
+   1200px shell (1064px of content). Below it, auto-fit would give four
+   tracks and orphan the fifth tile. */
+@media (min-width: 1120px) {
+  .tiles {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+
+  .kpi-strip {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+
+  .pattern-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .tiles > :last-child:nth-child(odd),
+  .kpi-strip > :last-child:nth-child(odd),
+  .pattern-grid > :last-child:nth-child(odd) {
+    grid-column: auto;
+  }
+}
