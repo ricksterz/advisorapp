@@ -8,7 +8,7 @@ import { DISCLOSURE_FLAG_DEFS, useAdvisorBios } from '../advisorBios.js'
 import { PROVIDER_ROLE_LABELS, useFirmPrivateFunds } from '../privateFunds.js'
 import { fmtCompactUsd, fmtQuarter } from '../pulse.js'
 import { useFirmHistory } from '../firmHistory.js'
-import { useFirmOwners } from '../firmOwners.js'
+import { useFirmOwners, useOwnershipChanges } from '../firmOwners.js'
 import { TrendLine } from './PulsePage.jsx'
 
 // Public IAPD document endpoints (all CORS-enabled, no key required).
@@ -308,6 +308,75 @@ function OwnersCard({ crd }) {
   )
 }
 
+const CHANGE_KINDS = {
+  added: { mark: '+', label: 'joined', className: 'change-added' },
+  removed: { mark: '−', label: 'left', className: 'change-removed' },
+  stake_changed: { mark: '±', label: 'stake changed', className: 'change-stake' },
+}
+
+// Ownership changes over time (etl/ownership_changes.py), diffed between
+// consecutive filings. Grouped by filing date because that is the unit the
+// data actually has — the SEC records what a filing said, not the day a
+// person started, so a date here means "first filing that reported this".
+function OwnershipChangesCard({ crd }) {
+  const timeline = useOwnershipChanges(crd)
+  if (!timeline?.length) return null
+
+  return (
+    <div className="detail-card ownership-changes-card">
+      <h2>Ownership changes</h2>
+      <ol className="change-timeline">
+        {timeline.map((entry) => (
+          <li key={entry.filing_id}>
+            <div className="change-date">{entry.date}</div>
+            <ul className="change-events">
+              {entry.events.map((e, i) => {
+                const kind = CHANGE_KINDS[e.type] ?? CHANGE_KINDS.stake_changed
+                return (
+                  <li key={`${e.name}-${e.type}-${i}`}>
+                    <span className={`change-mark ${kind.className}`} title={kind.label} aria-hidden="true">
+                      {kind.mark}
+                    </span>
+                    <span className="change-body">
+                      <span className="change-name">
+                        {e.name}
+                        {!e.is_individual && <span className="fund-tag">entity</span>}
+                      </span>
+                      {/* long role lists (up to ~600 chars) are clamped by CSS;
+                          the full text stays available on hover */}
+                      {e.title && (
+                        <span className="change-title" title={e.title}>
+                          {e.title}
+                        </span>
+                      )}
+                      <span className="change-meta">
+                        <span className="sr-label">{kind.label}</span>
+                        {e.type === 'stake_changed' && e.from_stake
+                          ? ` · ${e.from_stake} → ${e.stake}`
+                          : e.stake
+                            ? ` · ${e.stake}`
+                            : ''}
+                        {e.owns && ` · via ${e.owns}`}
+                      </span>
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          </li>
+        ))}
+      </ol>
+      <p className="detail-note">
+        Differences between this firm’s consecutive Form ADV filings, so each date is the first
+        filing to report the change, not necessarily the day it happened — a firm that amends
+        annually can report a departure months after the fact. Stakes are the filed bands, and a
+        party is matched across filings by its SEC OwnerID where one exists, otherwise by name,
+        always within the same schedule and parent entity.
+      </p>
+    </div>
+  )
+}
+
 // Trend across published Pulse quarters (etl/firm_history.py) — the same
 // firm_snapshots rows pulse_stats.py aggregates into industry medians,
 // unaggregated and looked up by CRD. A single-quarter firm has nothing to
@@ -575,6 +644,7 @@ export default function FirmDetail({ firm, crd, allFirms }) {
 
       <FirmHistoryCard crd={firm.crd} />
       <OwnersCard crd={firm.crd} />
+      <OwnershipChangesCard crd={firm.crd} />
 
       <div className="detail-grid">
         <div className="detail-card">
