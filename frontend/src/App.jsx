@@ -650,9 +650,10 @@ export default function App() {
                             CRD {f.crd}
                           </a>
                           {(() => {
-                            // Link where the filed URL resolves today — a
-                            // rebranded or acquired firm still files its old
-                            // domain (see etl/website_check.py).
+                            // Link where the filed URL actually leads today.
+                            // A rebranded or acquired firm still files its old
+                            // domain, and some file a Reddit or podcast page
+                            // instead of a website (see etl/website_check.py).
                             const site = resolveWebsite(siteOverrides, f.crd, f.website_url)
                             const h = site.url ? websiteHost(site.url) : null
                             if (!h) return null
@@ -664,7 +665,7 @@ export default function App() {
                                   href={site.url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  title={site.redirected ? `Filed as ${site.filed} — now redirects here` : undefined}
+                                  title={site.redirected ? `Filed as ${site.filed}` : undefined}
                                 >
                                   {h} ↗
                                 </a>

@@ -9,7 +9,7 @@ import { PROVIDER_ROLE_LABELS, useFirmPrivateFunds } from '../privateFunds.js'
 import { fmtCompactUsd, fmtQuarter } from '../pulse.js'
 import { useFirmHistory } from '../firmHistory.js'
 import { useFirmOwners, useOwnershipChanges } from '../firmOwners.js'
-import { resolveWebsite, useWebsiteOverrides } from '../websiteOverrides.js'
+import { resolveWebsite, useWebsiteOverrides, websiteNote } from '../websiteOverrides.js'
 import { TrendLine } from './PulsePage.jsx'
 
 // Public IAPD document endpoints (all CORS-enabled, no key required).
@@ -588,7 +588,7 @@ export default function FirmDetail({ firm, crd, allFirms }) {
         {host && (
           <OutboundLink
             href={site.url}
-            sub={site.redirected ? 'firm website · redirected' : 'firm website'}
+            sub={websiteNote(site)}
           >
             <img
               className="site-favicon"

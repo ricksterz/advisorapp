@@ -10,6 +10,14 @@ this module records where it resolves today; the export carries only the
 subset worth acting on, so the site can link somewhere that works while still
 showing what the firm actually filed.
 
+A second, hand-curated layer sits alongside the crawl. 149 firms file a
+social or content platform as their website -- Vanguard files a Reddit user
+profile, Bridgewater a SoundCloud page -- and no redirect will ever fix those,
+because the filed link works fine, it is just not a firm website. Those firms'
+real sites were researched on the web and live in etl/researched_websites.json.
+They are merged into the same export and marked with via="research" so the UI
+can say why the link differs from what was filed.
+
 Two things this deliberately does NOT act on:
 
   * Timeouts. A timeout is not evidence a site is dead. Re-checking the
@@ -50,6 +58,7 @@ from etl.config import HTTP_HEADERS, REPO_ROOT, SCHEMA_PATH
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 DEFAULT_OUT = REPO_ROOT / "frontend" / "public" / "website_overrides.json"
+RESEARCHED_PATH = Path(__file__).parent / "researched_websites.json"
 
 TIMEOUT = (6, 10)
 MAX_WORKERS = 16
@@ -210,12 +219,33 @@ def stage_import(con: duckdb.DuckDBPyConnection, path: Path) -> None:
     print(f"imported {len(rows):,} check results from {path}")
 
 
-def export_overrides(db_path: Path, out_path: Path) -> bool:
-    """Firms whose filed URL now redirects to a working site on another domain.
+def load_researched() -> dict[str, str]:
+    """Hand-researched real websites, keyed by CRD.
 
-    Only cross-domain redirects that returned 2xx are exported. Broken links
-    are left alone on purpose (see the module docstring on timeouts), and a
-    redirect landing on a non-firm platform is skipped rather than followed.
+    Kept as data rather than code so a correction is a one-line edit and the
+    provenance note travels with the file.
+    """
+    if not RESEARCHED_PATH.exists():
+        return {}
+    doc = json.loads(RESEARCHED_PATH.read_text())
+    return {crd: e["url"] for crd, e in doc.get("firms", {}).items() if e.get("url")}
+
+
+def export_overrides(db_path: Path, out_path: Path) -> bool:
+    """Where each firm's website link should actually point, and why.
+
+    Two sources, both keyed by CRD:
+
+      * redirect -- the filed URL 2xx-redirects to a different domain. A
+        redirect landing on a non-firm platform is skipped rather than
+        followed, and broken links are left alone on purpose (see the module
+        docstring on timeouts).
+      * research -- the filed URL is a social or content platform, so the
+        firm's real site was looked up on the web.
+
+    Research wins where both exist: AP WEALTH MANAGEMENT's filed Yelp page
+    tells you nothing, and the domain that matches its name belongs to an
+    unrelated Asset Protection Group.
     """
     con = duckdb.connect(str(db_path), read_only=True)
     try:
@@ -229,8 +259,14 @@ def export_overrides(db_path: Path, out_path: Path) -> bool:
               AND c.final_url IS NOT NULL
             """
         ).fetchall()
+        filed_by_crd = dict(
+            con.execute(
+                "SELECT CAST(crd AS VARCHAR), trim(website_url) FROM firms "
+                "WHERE website_url IS NOT NULL AND trim(website_url) <> ''"
+            ).fetchall()
+        )
     except duckdb.CatalogException:
-        rows = []
+        rows, filed_by_crd = [], {}
     finally:
         con.close()
 
@@ -240,11 +276,31 @@ def export_overrides(db_path: Path, out_path: Path) -> bool:
         if NON_FIRM.search(final_domain or ""):
             skipped_non_firm += 1
             continue
-        firms[str(crd)] = {"filed": filed, "resolved": final, "domain": final_domain}
+        firms[str(crd)] = {
+            "filed": filed,
+            "resolved": final,
+            "domain": final_domain,
+            "via": "redirect",
+        }
 
-    if not firms:
-        print(f"no website overrides to write; leaving {out_path} untouched")
+    # Skip on an empty crawl, not on an empty result: the researched list alone
+    # would otherwise overwrite hundreds of redirect entries during a CI run
+    # that never crawled.
+    if not rows:
+        print(f"no crawl results to export; leaving {out_path} untouched")
         return False
+
+    researched = load_researched()
+    for crd, url in researched.items():
+        filed = filed_by_crd.get(crd)
+        if not filed:
+            continue  # firm dropped out of the data since the list was built
+        firms[crd] = {
+            "filed": filed,
+            "resolved": url,
+            "domain": norm_domain(url),
+            "via": "research",
+        }
 
     out_path.write_text(
         json.dumps(
@@ -257,8 +313,10 @@ def export_overrides(db_path: Path, out_path: Path) -> bool:
         )
         + "\n"
     )
+    n_research = sum(1 for e in firms.values() if e["via"] == "research")
     print(
-        f"wrote {out_path} ({len(firms):,} firms redirected"
+        f"wrote {out_path} ({len(firms):,} firms: {len(firms) - n_research:,} redirected, "
+        f"{n_research:,} researched"
         f"{f', {skipped_non_firm} skipped as non-firm destinations' if skipped_non_firm else ''})"
     )
     return True
