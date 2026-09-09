@@ -1738,3 +1738,40 @@ tbody tr:hover {
     grid-column: auto;
   }
 }
+
+/* Firm-page share button: sits beside the firm name, wrapping below it on
+   narrow screens rather than squeezing a long legal name. */
+.detail-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.detail-title-row h1 {
+  margin: 0;
+}
+
+.share-link {
+  flex: none;
+}
+
+/* Manual-copy fallback, shown only when the clipboard write actually failed
+   (no user activation, restrictive permissions policy). */
+.copy-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.copy-link-fallback {
+  border: 1px solid var(--hairline);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 12px;
+  min-width: min(280px, 60vw);
+}

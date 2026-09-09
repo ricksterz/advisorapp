@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
-
 import { FACTORS } from '../benchmarking/factors.js'
 import { RISK_SIGNALS } from '../benchmarking/screens.js'
 import { normalizedWeights } from '../benchmarking/engine.js'
 import { DIMENSION_ORDER, MIN_COHORT_SIZE } from '../benchmarking/cohort.js'
 import { PRESETS, PRESET_BY_ID, cloneConfig, matchingPresetId } from '../benchmarking/presets.js'
 import { urlForConfig } from '../benchmarking/url.js'
+import CopyLinkButton from './CopyLinkButton.jsx'
 
 const AUM_FLOOR_OPTIONS = [
   { label: 'Any AUM', value: 0 },
@@ -60,9 +59,6 @@ function NumberField({ label, value, onChange, min = 0, max = 999, step = 1 }) {
 export default function MethodologyPanel({ config, onChange }) {
   const presetId = matchingPresetId(config)
   const weights = normalizedWeights(config.weights)
-  const [copied, setCopied] = useState(false)
-  const copyTimer = useRef(null)
-  useEffect(() => () => clearTimeout(copyTimer.current), [])
 
   const set = (path, value) => {
     const next = cloneConfig(config)
@@ -73,18 +69,9 @@ export default function MethodologyPanel({ config, onChange }) {
     onChange(next)
   }
 
-  const copyLink = async () => {
-    const url = urlForConfig(config)
-    window.history.replaceState(null, '', url)
-    try {
-      await navigator.clipboard.writeText(url)
-      setCopied(true)
-      clearTimeout(copyTimer.current)
-      copyTimer.current = setTimeout(() => setCopied(false), 1600)
-    } catch {
-      // clipboard unavailable (e.g. insecure context) — URL is in the address bar
-    }
-  }
+  // Reflect the current config in the address bar whenever the link is
+  // copied, so what the user shares and what they see agree.
+  const syncUrl = () => window.history.replaceState(null, '', urlForConfig(config))
 
   return (
     <div className="method-panel">
@@ -104,9 +91,11 @@ export default function MethodologyPanel({ config, onChange }) {
         </select>
         {!presetId && <span className="mp-custom-badge">Custom</span>}
         <span className="spacer" />
-        <button type="button" className="chip" onClick={copyLink}>
-          {copied ? 'Copied ✓' : 'Copy link to this view'}
-        </button>
+        <CopyLinkButton
+          url={urlForConfig(config)}
+          label="Copy link to this view"
+          onCopy={syncUrl}
+        />
       </div>
 
       <div className="mp-groups">
