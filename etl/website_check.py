@@ -125,7 +125,14 @@ def check_url(url: str, session_factory) -> dict:
         out["status"] = "not_a_firm_site"
         return out
 
-    for method in ("head", "get"):
+    # TLS is verified on the first attempt and only dropped after it fails, so
+    # an expired certificate is recorded as an expired certificate instead of
+    # being lumped in with dead hosts. Dropping it is safe here and nowhere
+    # else: this reads a status code and a final URL off a public homepage,
+    # sends no credentials, and never uses the response body.
+    for method, verify in (("head", True), ("head", False), ("get", True), ("get", False)):
+        if not verify and out.get("error") != "ssl":
+            continue  # only retry unverified when verification is what failed
         try:
             r = session_factory().request(
                 method,
@@ -133,17 +140,20 @@ def check_url(url: str, session_factory) -> dict:
                 headers=HTTP_HEADERS,
                 timeout=TIMEOUT,
                 allow_redirects=True,
-                verify=False,  # stale sites routinely have expired certs
+                verify=verify,  # codeql[py/request-without-cert-validation]
                 stream=(method == "get"),
             )
             if method == "get":
                 r.close()
             if method == "head" and r.status_code in (400, 403, 405, 501):
+                out.pop("error", None)
                 continue  # some servers reject HEAD; judge on the GET instead
             out["http"] = r.status_code
             out["final_url"] = str(r.url)
             out["final_domain"] = norm_domain(str(r.url))
             out["status"] = classify(r.status_code, out["start_domain"], out["final_domain"])
+            if not verify:
+                out["error"] = "bad_cert"
             return out
         except requests.exceptions.SSLError:
             out["error"] = "ssl"

@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 import duckdb
 import pytest
+import requests
 
 from etl import website_check
 from etl.config import SCHEMA_PATH
@@ -128,3 +129,60 @@ def test_shipped_researched_list_is_well_formed():
 )
 def test_classify(code, start, final, expected):
     assert website_check.classify(code, start, final) == expected
+
+
+class _FakeResponse:
+    def __init__(self, status_code, url):
+        self.status_code = status_code
+        self.url = url
+
+    def close(self):
+        pass
+
+
+class _FakeSession:
+    """Records every (method, verify) pair and fails TLS until asked not to."""
+
+    def __init__(self, ssl_fails=True, status=200, final=None):
+        self.calls = []
+        self.ssl_fails = ssl_fails
+        self.status = status
+        self.final = final
+
+    def request(self, method, url, **kw):
+        self.calls.append((method, kw["verify"]))
+        if kw["verify"] and self.ssl_fails:
+            raise requests.exceptions.SSLError("expired")
+        return _FakeResponse(self.status, self.final or url)
+
+
+
+def test_check_url_verifies_tls_first():
+    s = _FakeSession(ssl_fails=False)
+    out = website_check.check_url("https://good.example/", lambda: s)
+    assert s.calls == [("head", True)]
+    assert out["status"] == "ok"
+    assert "error" not in out
+
+
+def test_check_url_retries_unverified_only_after_a_cert_failure():
+    # An expired certificate should be reported as an expired certificate, not
+    # as a dead host — plenty of stale firm sites still serve fine over it.
+    s = _FakeSession(ssl_fails=True)
+    out = website_check.check_url("https://expired.example/", lambda: s)
+    assert s.calls == [("head", True), ("head", False)]
+    assert out["status"] == "ok"
+    assert out["error"] == "bad_cert"
+
+
+def test_check_url_does_not_drop_verification_for_other_failures():
+    class Timeouts(_FakeSession):
+        def request(self, method, url, **kw):
+            self.calls.append((method, kw["verify"]))
+            raise requests.exceptions.ConnectTimeout("nope")
+
+    s = Timeouts()
+    out = website_check.check_url("https://gone.example/", lambda: s)
+    assert s.calls == [("head", True), ("get", True)]
+    assert out["status"] == "unreachable"
+    assert out["error"] == "connect_timeout"
