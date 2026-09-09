@@ -399,3 +399,30 @@ CREATE TABLE IF NOT EXISTS firm_owners (
     is_control_person   BOOLEAN,
     is_public_reporting BOOLEAN
 );
+
+-- ---------------------------------------------------------------------------
+-- Website link checks (etl/website_check.py) — the result of resolving each
+-- firm's filed Item 1.I website_url.
+--
+-- The filed URL is never overwritten. Firms file a website once and rarely
+-- amend it, so a link goes stale the moment the firm rebrands or is acquired
+-- (PATHSTONE FAMILY OFFICE still lists hallcapital.com). Showing the filed
+-- value verbatim sends visitors to a dead or wrong site; silently replacing
+-- it would misrepresent the filing. So both are kept: website_url stays as
+-- filed, and this table records where it actually resolves to today.
+--
+-- final_url is only trusted for cross-domain redirects that returned 2xx. A
+-- timeout is NOT evidence a site is dead: large institutions behind bot
+-- protection (nuveen.com, goldman's am.gs.com) time out from a datacenter
+-- while being perfectly live in a browser, so 'unreachable' rows are recorded
+-- but deliberately not acted on.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS website_checks (
+    url                 VARCHAR PRIMARY KEY,      -- the filed URL, verbatim
+    status              VARCHAR,                  -- ok | cross_domain_redirect | not_found | ...
+    http_status         INTEGER,
+    final_url           VARCHAR,
+    final_domain        VARCHAR,
+    error               VARCHAR,
+    checked_at          TIMESTAMP
+);

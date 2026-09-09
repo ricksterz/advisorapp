@@ -9,6 +9,7 @@ import { PROVIDER_ROLE_LABELS, useFirmPrivateFunds } from '../privateFunds.js'
 import { fmtCompactUsd, fmtQuarter } from '../pulse.js'
 import { useFirmHistory } from '../firmHistory.js'
 import { useFirmOwners, useOwnershipChanges } from '../firmOwners.js'
+import { resolveWebsite, useWebsiteOverrides, websiteNote } from '../websiteOverrides.js'
 import { TrendLine } from './PulsePage.jsx'
 import CopyLinkButton from './CopyLinkButton.jsx'
 
@@ -546,6 +547,7 @@ function OutboundLink({ href, children, sub }) {
 
 export default function FirmDetail({ firm, crd, allFirms }) {
   const docs = useFirmDocs(crd)
+  const overrides = useWebsiteOverrides()
   usePageMeta(firm)
 
   if (!firm) {
@@ -557,7 +559,11 @@ export default function FirmDetail({ firm, crd, allFirms }) {
     )
   }
 
-  const host = firm.website_url ? websiteHost(firm.website_url) : null
+  // Link where the filed URL actually resolves today. A firm that rebranded
+  // or was acquired still files its old domain, so linking the filed value
+  // verbatim sends people to the wrong company — or nowhere.
+  const site = resolveWebsite(overrides, firm.crd, firm.website_url)
+  const host = site.url ? websiteHost(site.url) : null
   const mixReported = CLIENT_MIX_FIELDS.some(([f]) => firm[f] != null)
   const discShare = firm.aum_total
     ? Math.max(0, Math.min(1, (firm.aum_discretionary ?? 0) / firm.aum_total))
@@ -592,7 +598,10 @@ export default function FirmDetail({ firm, crd, allFirms }) {
 
       <div className="doc-links">
         {host && (
-          <OutboundLink href={firm.website_url} sub="firm website">
+          <OutboundLink
+            href={site.url}
+            sub={websiteNote(site)}
+          >
             <img
               className="site-favicon"
               src={`https://icons.duckduckgo.com/ip3/${host}.ico`}

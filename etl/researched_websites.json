@@ -1,0 +1,569 @@
+{
+ "_note": "Real websites for firms whose filed Form ADV website is a social or content platform (Reddit, LinkedIn, Apple Podcasts, Medium, SoundCloud, Substack, Yelp). Every URL here was read off the firm's own site or off a web search result that named the firm. None is guessed from the firm's name: a name-guessing pass matched CAPITAL GROUP PRIVATE CLIENT SERVICES to a pornography site and FISHER INVESTMENTS to Emerson's Fisher valve brand, so that approach was discarded. Keyed by CRD. The filed website_url is never overwritten; this is a display layer on top of it.",
+ "firms": {
+  "105958": {
+   "name": "VANGUARD GROUP INC",
+   "url": "https://investor.vanguard.com/"
+  },
+  "104555": {
+   "name": "STRATEGIC ADVISERS LLC",
+   "url": "https://www.fidelity.com/"
+  },
+  "104973": {
+   "name": "ALLSPRING GLOBAL INVESTMENTS, LLC",
+   "url": "https://www.allspringglobal.com/"
+  },
+  "107342": {
+   "name": "FISHER INVESTMENTS",
+   "url": "https://www.fisherinvestments.com/"
+  },
+  "283077": {
+   "name": "POINT72 ASSET MANAGEMENT, L.P.",
+   "url": "https://point72.com/"
+  },
+  "108679": {
+   "name": "D. E. SHAW & CO., L.P.",
+   "url": "https://www.deshaw.com/"
+  },
+  "289202": {
+   "name": "BLACKSTONE ISG-I ADVISORS L.L.C.",
+   "url": "https://www.blackstone.com/"
+  },
+  "105129": {
+   "name": "BRIDGEWATER ASSOCIATES, LP",
+   "url": "https://www.bridgewater.com/"
+  },
+  "142979": {
+   "name": "BLACKSTONE REAL ESTATE ADVISORS L.P.",
+   "url": "https://www.blackstone.com/"
+  },
+  "105080": {
+   "name": "VAN ECK ASSOCIATES CORP.",
+   "url": "https://www.vaneck.com/us/en/"
+  },
+  "109591": {
+   "name": "NEW YORK LIFE INVESTMENT MANAGEMENT LLC",
+   "url": "https://www.nylim.com/"
+  },
+  "107580": {
+   "name": "BLACKSTONE ALTERNATIVE ASSET MANAGEMENT L.P.",
+   "url": "https://www.blackstone.com/"
+  },
+  "157373": {
+   "name": "SEQUOIA CAPITAL OPERATIONS, LLC",
+   "url": "https://www.sequoiacap.com/"
+  },
+  "120934": {
+   "name": "BLACKSTONE ASSET BASED FINANCE ADVISORS LP",
+   "url": "https://www.blackstone.com/"
+  },
+  "146043": {
+   "name": "BLACKSTONE REAL ESTATE SPECIAL SITUATIONS ADVISORS L.L.C.",
+   "url": "https://www.blackstone.com/"
+  },
+  "113042": {
+   "name": "HARBOR CAPITAL ADVISORS, INC.",
+   "url": "https://www.harborcapital.com/"
+  },
+  "152294": {
+   "name": "BLACKSTONE LIQUID CREDIT ADVISORS I LLC",
+   "url": "https://www.blackstone.com/"
+  },
+  "312837": {
+   "name": "CAPITAL GROUP PRIVATE CLIENT SERVICES, INC.",
+   "url": "https://www.capitalgroup.com/pcs/"
+  },
+  "159215": {
+   "name": "ALPINVEST PARTNERS B.V.",
+   "url": "https://www.alpinvest.com/"
+  },
+  "132377": {
+   "name": "ALLSPRING GLOBAL INVESTMENTS (UK) LIMITED",
+   "url": "https://www.allspringglobal.com/"
+  },
+  "109875": {
+   "name": "AAM",
+   "url": "https://aamcompany.com/"
+  },
+  "110689": {
+   "name": "COMMONFUND OCIO, INC.",
+   "url": "https://www.commonfund.org/"
+  },
+  "288050": {
+   "name": "BXMT ADVISORS L.L.C.",
+   "url": "https://www.bxmt.com/"
+  },
+  "144537": {
+   "name": "BLACKSTONE LIQUID CREDIT STRATEGIES LLC",
+   "url": "https://www.blackstone.com/"
+  },
+  "3496": {
+   "name": "STEPHENS",
+   "url": "https://www.stephens.com/"
+  },
+  "308960": {
+   "name": "MERCURY ADVISORY, LLC",
+   "url": "https://mercury.com/"
+  },
+  "292803": {
+   "name": "FS/KKR ADVISOR, LLC",
+   "url": "https://www.fskkrcapitalcorp.com/"
+  },
+  "108262": {
+   "name": "MAVERICK CAPITAL LTD",
+   "url": "https://maverickcapital.com/"
+  },
+  "160921": {
+   "name": "BATTERY MANAGEMENT CORP.",
+   "url": "https://www.battery.com/"
+  },
+  "292121": {
+   "name": "BLACKSTONE IRELAND LIMITED",
+   "url": "https://www.blackstone.com/"
+  },
+  "304477": {
+   "name": "BLACKSTONE LIFE SCIENCES ADVISORS L.L.C.",
+   "url": "https://www.blackstone.com/"
+  },
+  "106975": {
+   "name": "VAUGHAN NELSON INVESTMENT MANAGEMENT, L.P.",
+   "url": "https://www.vaughannelson.com/"
+  },
+  "132728": {
+   "name": "GENERATION INVESTMENT MANAGEMENT US LLP",
+   "url": "https://www.generationim.com/"
+  },
+  "154425": {
+   "name": "HARVEST FUND ADVISORS LLC",
+   "url": "https://www.blackstone.com/harvest/"
+  },
+  "289550": {
+   "name": "BLACKSTONE ISG-II ADVISORS L.L.C.",
+   "url": "https://www.blackstone.com/"
+  },
+  "285961": {
+   "name": "FACET",
+   "url": "https://facet.com/"
+  },
+  "143440": {
+   "name": "BELPOINTE ASSET MANAGEMENT LLC",
+   "url": "https://www.belpointeasset.com/"
+  },
+  "287485": {
+   "name": "HOF CAPITAL",
+   "url": "https://hofcapital.com/"
+  },
+  "104720": {
+   "name": "SHELTON CAPITAL MANAGEMENT",
+   "url": "https://www.sheltoncap.com/"
+  },
+  "169288": {
+   "name": "VENROCK ADVISER, LLC",
+   "url": "https://www.venrock.com/"
+  },
+  "164728": {
+   "name": "STAR MOUNTAIN FUND MANAGEMENT, LLC",
+   "url": "https://starmountaincapital.com/"
+  },
+  "307632": {
+   "name": "CLOVER CREDIT MANAGEMENT, LLC",
+   "url": "https://www.blackstone.com/"
+  },
+  "142136": {
+   "name": "RIDGEWOOD ENERGY CORPORATION",
+   "url": "https://ridgewoodenergy.com/"
+  },
+  "157720": {
+   "name": "VMG PARTNERS II, LLC",
+   "url": "https://www.vmgpartners.com/"
+  },
+  "296943": {
+   "name": "ELECTRIC CAPITAL PARTNERS, LLC",
+   "url": "https://electriccapital.com/"
+  },
+  "292144": {
+   "name": "BLACKSTONE IRELAND FUND MANAGEMENT LIMITED",
+   "url": "https://www.blackstone.com/"
+  },
+  "171118": {
+   "name": "RETHINK CAPITAL PARTNERS, LLC",
+   "url": "https://rethink-capital.com/"
+  },
+  "282059": {
+   "name": "3EDGE ASSET MANAGEMENT, LP",
+   "url": "https://3edgeam.com/"
+  },
+  "110291": {
+   "name": "AMI ASSET MANAGEMENT CORP",
+   "url": "https://amiassetmanagement.com/"
+  },
+  "282851": {
+   "name": "NUMERAI",
+   "url": "https://numer.ai/"
+  },
+  "150661": {
+   "name": "RIA ADVISORS",
+   "url": "https://realinvestmentadvice.com/"
+  },
+  "110268": {
+   "name": "PLANNING ALTERNATIVES LTD",
+   "url": "https://planningalt.com/"
+  },
+  "323736": {
+   "name": "ROBINHOOD ASSET MANAGEMENT",
+   "url": "https://robinhood.com/us/en/"
+  },
+  "104928": {
+   "name": "NOTTINGHAM ADVISORS INC.",
+   "url": "https://nottinghamadvisors.com/"
+  },
+  "297324": {
+   "name": "PRINCIPAL ADVISED SERVICES",
+   "url": "https://www.principal.com/"
+  },
+  "313052": {
+   "name": "HEARTWOOD PARTNERS, LLC",
+   "url": "https://heartwoodpartners.com/"
+  },
+  "171365": {
+   "name": "ADVANTAGE CAPITAL",
+   "url": "https://www.advantagecap.com/"
+  },
+  "151222": {
+   "name": "BRONTE CAPITAL",
+   "url": "https://www.brontecapital.com/"
+  },
+  "106050": {
+   "name": "SHARKEY HOWES & JAVER INC",
+   "url": "https://shjwealthadvisors.com/"
+  },
+  "277131": {
+   "name": "QUONA CAPITAL MANAGEMENT LLC",
+   "url": "https://quona.com/"
+  },
+  "331812": {
+   "name": "VISTASHARES",
+   "url": "https://www.vistashares.com/"
+  },
+  "323063": {
+   "name": "CACHE ADVISORS LLC",
+   "url": "https://usecache.com/"
+  },
+  "173822": {
+   "name": "COYLE CAPITAL, LLC",
+   "url": "https://coylecap.com/"
+  },
+  "110116": {
+   "name": "ASSET MANAGEMENT GROUP, INC.",
+   "url": "https://assetmanagementgroup.com/"
+  },
+  "324043": {
+   "name": "ALLSPRING GLOBAL INVESTMENTS (SINGAPORE) PTE. LTD.",
+   "url": "https://www.allspringglobal.com/"
+  },
+  "299965": {
+   "name": "OPTAS, LLC",
+   "url": "https://www.optascapital.com/"
+  },
+  "290887": {
+   "name": "CHICORY WEALTH",
+   "url": "https://chicorywealth.com/"
+  },
+  "110900": {
+   "name": "INVESTMENT MANAGEMENT ASSOCIATES",
+   "url": "https://imausa.com/"
+  },
+  "325089": {
+   "name": "STENGER FAMILY OFFICE, LLC",
+   "url": "https://www.stengerfamilyoffice.com/"
+  },
+  "147082": {
+   "name": "GREAT POINT WEALTH ADVISORS, LLC",
+   "url": "https://greatpointwealth.com/"
+  },
+  "108678": {
+   "name": "HIGH FALLS ADVISORS, INC.",
+   "url": "https://highfallsadvisors.com/"
+  },
+  "113799": {
+   "name": "FAMILY INVESTMENT CENTER",
+   "url": "https://www.familyinvestmentcenter.com/"
+  },
+  "109114": {
+   "name": "SK WEALTH MANAGEMENT, LLC",
+   "url": "https://skwealth.com/"
+  },
+  "297942": {
+   "name": "MERKLE RETIREMENT PLANNING",
+   "url": "https://merkleretirementplanning.com/"
+  },
+  "325982": {
+   "name": "FREC",
+   "url": "https://frec.com/"
+  },
+  "113563": {
+   "name": "QUANTUM FINANCIAL ADVISORS INC",
+   "url": "https://qfainc.com/"
+  },
+  "286211": {
+   "name": "PENOBSCOT FINANCIAL ADVISORS",
+   "url": "https://penobscotfa.com/"
+  },
+  "106336": {
+   "name": "WBI INVESTMENTS, LLC",
+   "url": "https://www.wbiinvestments.com/"
+  },
+  "284868": {
+   "name": "DENVER WEALTH MANAGEMENT, INC.",
+   "url": "https://www.denverwealthmanagement.com/"
+  },
+  "173262": {
+   "name": "RUEDI WEALTH MANAGEMENT, INC.",
+   "url": "https://ruediwealth.com/"
+  },
+  "170392": {
+   "name": "ONE DEGREE ADVISORS, INC.",
+   "url": "https://onedegreeadvisors.com/"
+  },
+  "281955": {
+   "name": "WATEREQUITY LLC",
+   "url": "https://waterequity.com/"
+  },
+  "312099": {
+   "name": "DESTINY ADVISORS LLC",
+   "url": "https://destiny.xyz/"
+  },
+  "316395": {
+   "name": "PAVAKI CAPITAL MANAGEMENT, LLC",
+   "url": "https://www.pavakicapital.com/"
+  },
+  "169278": {
+   "name": "SECURE FINANCIAL MANAGEMENT",
+   "url": "https://sfmplanning.com/"
+  },
+  "326261": {
+   "name": "LUMINVEST WEALTH MANAGEMENT LLC",
+   "url": "https://www.luminvest.com/"
+  },
+  "145457": {
+   "name": "TONY WALKER FINANCIAL",
+   "url": "https://www.tonywalkerfinancial.com/"
+  },
+  "297268": {
+   "name": "4J WEALTH MANAGEMENT, LLC",
+   "url": "https://www.4jwealth.com/"
+  },
+  "156417": {
+   "name": "AP WEALTH MANAGEMENT",
+   "url": "https://apwealth.com/"
+  },
+  "309133": {
+   "name": "COLLAB+CURRENCY MANAGEMENT, LLC",
+   "url": "https://www.collabcurrency.com/"
+  },
+  "169687": {
+   "name": "EKS ASSOCIATES",
+   "url": "https://eksassociates.com/"
+  },
+  "130243": {
+   "name": "ARROYO INVESTMENT GROUP, LLC",
+   "url": "https://arroyoinvestmentgroup.com/"
+  },
+  "131205": {
+   "name": "TIMBERCHASE FINANCIAL, LLC",
+   "url": "https://www.timberchase.net/"
+  },
+  "289483": {
+   "name": "FIRSTMETRIC",
+   "url": "https://www.firstmetric.com/"
+  },
+  "161803": {
+   "name": "BERINGEA, LLC",
+   "url": "https://www.beringea.com/"
+  },
+  "317580": {
+   "name": "DOGWOOD WEALTH MANAGEMENT, LLC",
+   "url": "https://www.dogwoodwealthmanagement.com/"
+  },
+  "309411": {
+   "name": "TEAM WEALTH & TAX ADVISORS",
+   "url": "https://www.wealthandtax.com/"
+  },
+  "142617": {
+   "name": "TAYLOR FRIGON CAPITAL MANAGEMENT LLC",
+   "url": "https://taylorfrigon.com/"
+  },
+  "105255": {
+   "name": "BOYAR ASSET MANAGEMENT, INC.",
+   "url": "https://boyarassetmanagement.com/"
+  },
+  "321735": {
+   "name": "ALIGNE WEALTH ADVISORS INVESTMENT MANAGEMENT (AWAIM)",
+   "url": "https://www.alignewealth.com/"
+  },
+  "168228": {
+   "name": "PHILLIP JAMES FINANCIAL CO.",
+   "url": "https://phillipjamesfinancial.com/"
+  },
+  "129415": {
+   "name": "FINANCIAL LIFE PLANNERS",
+   "url": "https://www.financiallifeplanners.com/"
+  },
+  "128688": {
+   "name": "SECHREST FINANCIAL SERVICES",
+   "url": "https://www.sechrestcpa.com/"
+  },
+  "157424": {
+   "name": "BALANCED ROCK INVESTMENT ADVISORS",
+   "url": "https://balancedrockinvestmentadvisors.com/"
+  },
+  "170307": {
+   "name": "OCEANSIDE ADVISORS LLC",
+   "url": "https://www.oceansideadvisors.com/"
+  },
+  "310275": {
+   "name": "FREEDOM FAMILY OFFICE, LLC",
+   "url": "https://freedomfamilyoffice.com/"
+  },
+  "167653": {
+   "name": "TFS ADVISORS, LLC",
+   "url": "https://tfsadvisors.com/"
+  },
+  "156331": {
+   "name": "STEWARD ADVISORS, LLC",
+   "url": "https://www.stewardadvisors.com/"
+  },
+  "171788": {
+   "name": "FC360 WEALTH MANAGEMENT, INC.",
+   "url": "https://www.fc360.com/"
+  },
+  "318714": {
+   "name": "ARTA FINANCE",
+   "url": "https://artafinance.com/"
+  },
+  "169799": {
+   "name": "APPLEWHITE & BUYS FINANCIAL ADVISORS",
+   "url": "https://www.applewhiteandbuys.com/"
+  },
+  "155254": {
+   "name": "INTEGRATED WEALTH STRATEGIES, LLC",
+   "url": "https://integratedwealthstrategies.com/"
+  },
+  "150953": {
+   "name": "AXOS INVEST, INC",
+   "url": "https://www.axos.com/invest"
+  },
+  "112641": {
+   "name": "LUCIEN STIRLING & GRAY ADVISORY GROUP INC",
+   "url": "https://www.lsggroup.com/"
+  },
+  "283632": {
+   "name": "MERCURIO WEALTH ADVISORS",
+   "url": "https://mercurioadvisors.com/"
+  },
+  "301214": {
+   "name": "ALTUM WEALTH ADVISORS",
+   "url": "https://www.altumwealth.com/"
+  },
+  "286086": {
+   "name": "CANDIDE GROUP",
+   "url": "https://www.candidegroup.com/"
+  },
+  "169670": {
+   "name": "MOSAIC FI LLC",
+   "url": "https://mosaicfi.com/"
+  },
+  "104793": {
+   "name": "LEEB CAPITAL MANAGEMENT, INC.",
+   "url": "https://www.leeb.net/"
+  },
+  "125800": {
+   "name": "ALPHA FINANCIAL MANAGEMENT, INC.",
+   "url": "https://alpha-sav.com/"
+  },
+  "305726": {
+   "name": "WAVE DIGITAL ASSETS LLC",
+   "url": "https://wavegp.com/"
+  },
+  "159331": {
+   "name": "WEISS FINANCIAL GROUP LLC",
+   "url": "https://weiss-financial.com/"
+  },
+  "175233": {
+   "name": "CLOCKWISE CAPITAL LLC",
+   "url": "https://clockwisecapital.com/"
+  },
+  "311782": {
+   "name": "ALINEA ADVISORY SERVICES LLC",
+   "url": "https://www.alinea-invest.com/"
+  },
+  "138208": {
+   "name": "BLACKSTONE REAL ESTATE ADVISORS V L.P.",
+   "url": "https://www.blackstone.com/"
+  },
+  "306005": {
+   "name": "MAGNIFINA, LLC",
+   "url": "https://magnifina.com/"
+  },
+  "316434": {
+   "name": "DOMAIN MONEY ADVISORS, LLC",
+   "url": "https://www.domainmoney.com/"
+  },
+  "305353": {
+   "name": "ORIGIN INVESTMENT ADVISORY LLC",
+   "url": "https://useorigin.com/"
+  },
+  "319690": {
+   "name": "BUNKER",
+   "url": "https://www.bunkerinvest.us/"
+  },
+  "306816": {
+   "name": "ICON FINANCIAL SERVICES LLC",
+   "url": "https://iconsavingsplan.com/"
+  },
+  "329835": {
+   "name": "FUTUREMONEY RIA",
+   "url": "https://www.futuremoney.co/"
+  },
+  "332063": {
+   "name": "MOSTT INC.",
+   "url": "https://mostt.co/"
+  },
+  "338656": {
+   "name": "MARY & PIP",
+   "url": "https://www.maryandpip.com/"
+  },
+  "337485": {
+   "name": "TALKABOUTHEALTH DBA ADVIZMO",
+   "url": "https://advizmo.com/"
+  },
+  "329306": {
+   "name": "THOUGHTFUL MONEY LLC",
+   "url": "https://thoughtfulmoney.com/"
+  },
+  "337941": {
+   "name": "8FIGURES",
+   "url": "https://8figures.com/"
+  },
+  "300418": {
+   "name": "INTEREST FINANCIAL, LLC",
+   "url": "https://www.grifin.com/"
+  },
+  "340245": {
+   "name": "ANCHR TECHNOLOGIES RIA LLC",
+   "url": "https://anchrtech.com/"
+  },
+  "327155": {
+   "name": "NECTARINE",
+   "url": "https://hellonectarine.com/"
+  },
+  "318018": {
+   "name": "ADDITION WEALTH",
+   "url": "https://www.additionwealth.com/"
+  },
+  "339458": {
+   "name": "ULTRA CAPITAL MANAGEMENT LLC",
+   "url": "https://www.ultracapital.com/"
+  }
+ }
+}
