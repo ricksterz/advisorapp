@@ -10,6 +10,7 @@ import { fmtCompactUsd, fmtQuarter } from '../pulse.js'
 import { useFirmHistory } from '../firmHistory.js'
 import { useFirmOwners, useOwnershipChanges } from '../firmOwners.js'
 import { TrendLine } from './PulsePage.jsx'
+import CopyLinkButton from './CopyLinkButton.jsx'
 
 // Public IAPD document endpoints (all CORS-enabled, no key required).
 const firmApiUrl = (crd) => `https://api.adviserinfo.sec.gov/search/firm/${crd}`
@@ -567,7 +568,18 @@ export default function FirmDetail({ firm, crd, allFirms }) {
       <BackLink />
 
       <div className="detail-head">
-        <h1>{firm.business_name || firm.legal_name}</h1>
+        <div className="detail-title-row">
+          <h1>{firm.business_name || firm.legal_name}</h1>
+          {/* Share the canonical absolute URL, not window.location: the page
+              is reachable on the Pages mirror and on localhost, and a link
+              pasted into an email should point at the indexed page. */}
+          <CopyLinkButton
+            url={`${SITE_URL}/firm/${firm.crd}`}
+            label="Copy link"
+            className="chip share-link"
+            title={`Copy a shareable link to ${firm.business_name || firm.legal_name}`}
+          />
+        </div>
         <p className="detail-sub">
           {firm.business_name && firm.business_name !== firm.legal_name && (
             <>{firm.legal_name} · </>
