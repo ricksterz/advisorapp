@@ -1,10 +1,10 @@
 # ETL
 pandas>=3.0.5
-lxml>=6.1.1
+lxml>=6.1.2
 requests>=2.34.2
 duckdb>=1.5.5
-pypdf>=6.15.0
+pypdf>=6.16.2
 
 # Backend
 fastapi>=0.141.1
-uvicorn[standard]>=0.52.1
+uvicorn[standard]>=0.52.4
