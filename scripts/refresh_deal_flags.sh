@@ -21,26 +21,26 @@ SITE="https://open-disclosure.com"
 TMP_FIRMS="$(mktemp -t open-disclosure-firms).json"
 trap 'rm -f "$TMP_FIRMS"' EXIT
 
-echo "== 1/10 fetching the latest ADV feed =="
+echo "== 1/11 fetching the latest ADV feed =="
 $PY -m etl.fetch_latest --dest data/raw/latest_adv.xml.gz
 $PY -m etl.ingest_adv --input data/raw/latest_adv.xml.gz --db data/advisor.duckdb
 
-echo "== 2/10 refreshing the brochure corpus (rescans every firm for new/changed brochures) =="
+echo "== 2/11 refreshing the brochure corpus (rescans every firm for new/changed brochures) =="
 $PY -m etl.brochures run --db data/advisor.duckdb --rescan
 
-echo "== 3/10 extracting advisor bios from newly-cached brochures (Part 2B) =="
+echo "== 3/11 extracting advisor bios from newly-cached brochures (Part 2B) =="
 $PY -m etl.advisor_bios run --db data/advisor.duckdb
 
-echo "== 4/10 refreshing individual disclosure flags (bulk IA_INDVL_Feed) =="
+echo "== 4/11 refreshing individual disclosure flags (bulk IA_INDVL_Feed) =="
 $PY -m etl.individual_disclosures run --db data/advisor.duckdb
 $PY -m etl.individual_disclosures_stats --db data/advisor.duckdb \
     --out frontend/public/individual_disclosures.json
 
-echo "== 5/10 exporting deal_flags.json + advisor_bios.json =="
+echo "== 5/11 exporting deal_flags.json + advisor_bios.json =="
 $PY -m etl.export_json --db data/advisor.duckdb --out "$TMP_FIRMS" \
     --flags-out frontend/public/deal_flags.json --bios-out frontend/public/advisor_bios.json
 
-echo "== 6/10 regenerating sitemap.xml + robots.txt =="
+echo "== 6/11 regenerating sitemap.xml + robots.txt =="
 $PY -m etl.gen_sitemap --data "$TMP_FIRMS" --site "$SITE" --out /tmp/sitemap_out
 $PY - "$SITE" <<'PYEOF'
 import sys
@@ -58,24 +58,30 @@ Path("frontend/public/sitemap.xml").write_text(decl + "\n" + comment + rest)
 Path("frontend/public/robots.txt").write_text(Path("/tmp/sitemap_out/robots.txt").read_text())
 PYEOF
 
-echo "== 7/10 refreshing Industry Pulse (monthly archives -> snapshots -> stats) =="
+echo "== 7/11 refreshing Industry Pulse (monthly archives -> snapshots -> stats) =="
 $PY -m etl.pulse_history run --db data/advisor.duckdb
 $PY -m etl.pulse_stats --db data/advisor.duckdb --out frontend/public/pulse_stats.json
 $PY -m etl.firm_history --db data/advisor.duckdb --out frontend/public/firm_history.json
 $PY -m etl.ownership run --db data/advisor.duckdb --out frontend/public/firm_owners.json
 $PY -m etl.ownership_changes --db data/advisor.duckdb --out frontend/public/ownership_changes.json
 
-echo "== 8/10 refreshing private funds (Schedule D 7.B.1, reuses Pulse's cached archives) =="
+echo "== 8/11 refreshing private funds (Schedule D 7.B.1, reuses Pulse's cached archives) =="
 $PY -m etl.private_funds run --db data/advisor.duckdb
 $PY -m etl.private_fund_stats --db data/advisor.duckdb \
     --out frontend/public/private_funds.json --firm-out frontend/public/firm_private_funds.json
 
-echo "== 9/10 refreshing Form D capital formation (manual quarterly zips in data/raw/formd/) =="
+echo "== 9/11 refreshing Form D capital formation (manual quarterly zips in data/raw/formd/) =="
 $PY -m etl.form_d load --db data/advisor.duckdb
 $PY -m etl.form_d_stats --db data/advisor.duckdb --out frontend/public/form_d.json
 
-echo "== 10/10 refreshing the service-provider league table (Schedule D 7.B.1, reuses step 8's data) =="
+echo "== 10/11 refreshing the service-provider league table (Schedule D 7.B.1, reuses step 8's data) =="
 $PY -m etl.provider_stats --db data/advisor.duckdb --out frontend/public/service_providers.json
+
+echo "== 11/11 re-checking firm website links (~16 min; 15K URLs, external sites) =="
+# Filed websites rot as firms rebrand or get acquired; this records where each
+# one resolves today. The filed URL is never overwritten — see etl/website_check.py.
+$PY -m etl.website_check crawl --db data/advisor.duckdb
+$PY -m etl.website_check export --db data/advisor.duckdb --out frontend/public/website_overrides.json
 
 echo
 echo "Done. Review the diff, then:"
@@ -84,5 +90,6 @@ echo "          frontend/public/sitemap.xml frontend/public/robots.txt frontend/
 echo "          frontend/public/private_funds.json frontend/public/firm_private_funds.json \\"
 echo "          frontend/public/individual_disclosures.json frontend/public/form_d.json \\
           frontend/public/service_providers.json frontend/public/firm_history.json \\
-          frontend/public/firm_owners.json frontend/public/ownership_changes.json"
+          frontend/public/firm_owners.json frontend/public/ownership_changes.json \\
+          frontend/public/website_overrides.json"
 echo "  git commit -m 'Refresh brochure corpus, advisor bios, private funds, disclosures, and sitemap'"

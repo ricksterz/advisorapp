@@ -23,6 +23,7 @@ import { fmtCount } from './pulse.js'
 import { DEAL_FLAG_DEFS, useAllDealFlags } from './dealFlags.js'
 import { useAllAdvisorBios } from './advisorBios.js'
 import { computeDealPatterns } from './dealPatterns.js'
+import { resolveWebsite, useWebsiteOverrides } from './websiteOverrides.js'
 
 const compactUsd = (v) => {
   if (v == null || Number.isNaN(v)) return '—'
@@ -245,6 +246,7 @@ export default function App() {
   // ~12% of firms have any bios on file, so a filter/column here is what
   // actually lets someone find one instead of guessing at random firms.
   const advisorBiosData = useAllAdvisorBios()
+  const siteOverrides = useWebsiteOverrides()
 
   const stats = useMemo(() => {
     if (!data) return null
@@ -647,14 +649,28 @@ export default function App() {
                           <a className="crd-link" href={iapdUrl(f.crd)} target="_blank" rel="noreferrer">
                             CRD {f.crd}
                           </a>
-                          {f.website_url && websiteHost(f.website_url) && (
-                            <>
-                              {' · '}
-                              <a className="crd-link" href={f.website_url} target="_blank" rel="noreferrer">
-                                {websiteHost(f.website_url)} ↗
-                              </a>
-                            </>
-                          )}
+                          {(() => {
+                            // Link where the filed URL resolves today — a
+                            // rebranded or acquired firm still files its old
+                            // domain (see etl/website_check.py).
+                            const site = resolveWebsite(siteOverrides, f.crd, f.website_url)
+                            const h = site.url ? websiteHost(site.url) : null
+                            if (!h) return null
+                            return (
+                              <>
+                                {' · '}
+                                <a
+                                  className="crd-link"
+                                  href={site.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  title={site.redirected ? `Filed as ${site.filed} — now redirects here` : undefined}
+                                >
+                                  {h} ↗
+                                </a>
+                              </>
+                            )
+                          })()}
                         </div>
                       </td>
                       <td className="num">{compactUsd(f.aum_total)}</td>
