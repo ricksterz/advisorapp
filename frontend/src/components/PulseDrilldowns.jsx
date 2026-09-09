@@ -399,10 +399,12 @@ export function DrilldownPrivateFunds() {
         </div>
         <p className="detail-note">
           No total gross asset value is shown across fund types: a fund complex's master fund and its
-          feeder funds both report GAV for largely the same underlying capital (~4% of total GAV in a
-          real pull), so feeder funds are excluded from every GAV figure here. A fund whose adviser
-          discloses it as a subadviser could in theory also appear on another firm's schedule — a
-          smaller, unresolved edge case.
+          feeder funds both report the same underlying capital, so feeder funds are excluded from
+          every count and GAV figure here — a fund counted once, not once per feeder. Verified against
+          the SEC's own published figures: with feeders included this count overstates the SEC's
+          number by 5.6%; excluding them lands within 0.2%. A fund whose adviser discloses it as a
+          subadviser could in theory also appear on another firm's schedule — a smaller, unresolved
+          edge case.
         </p>
       </div>
 

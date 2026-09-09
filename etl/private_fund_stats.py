@@ -13,6 +13,17 @@ discloses it as a subadviser (rather than primary adviser) could in theory
 also appear on another filer's schedule — a smaller, unresolved edge case,
 noted in the methodology text rather than silently ignored.
 
+Feeder funds are excluded from every FUND COUNT here too, not only GAV. A
+feeder is a distinct filed row, but it is the same capital as its master
+counted a second time, so leaving it in count(*) inflates "how many funds"
+by the same double-count the GAV rule already avoids -- verified against the
+SEC's own published figures (IAA/Comply Investment Adviser Industry Snapshot
+2026, sourced from Form ADV): with feeders included this pipeline overstated
+the private-fund count by 5.6% against the SEC's 67,881; excluding them
+lands within 0.2%. Adviser counts (count(DISTINCT crd)) deliberately do NOT
+get this filter -- a real pull has 44 advisers whose entire private-fund
+book is feeder-only, and they are still genuine private-fund advisers.
+
 Usage:
     python -m etl.private_fund_stats --db data/advisor.duckdb \
         --out frontend/public/private_funds.json \
@@ -64,7 +75,7 @@ def _normalize_provider(name: str) -> str:
 def fund_type_series(con: duckdb.DuckDBPyConnection) -> list[dict]:
     rows = con.execute(
         """
-        SELECT fund_type, count(*),
+        SELECT fund_type, count(*) FILTER (NOT is_feeder_fund),
                sum(gross_asset_value) FILTER (NOT is_feeder_fund),
                median(gross_asset_value) FILTER (NOT is_feeder_fund)
         FROM private_funds
@@ -83,6 +94,7 @@ def domicile_series(con: duckdb.DuckDBPyConnection, top_n: int = TOP_N_STATES) -
         """
         SELECT coalesce(nullif(state, ''), country), count(*)
         FROM private_funds
+        WHERE NOT is_feeder_fund
         GROUP BY 1 ORDER BY 2 DESC LIMIT ?
         """,
         [top_n],
@@ -94,7 +106,8 @@ def top_firms(con: duckdb.DuckDBPyConnection, top_n: int = TOP_N_FIRMS) -> list[
     rows = con.execute(
         """
         SELECT pf.crd, coalesce(f.business_name, f.legal_name) AS name,
-               count(*), sum(pf.gross_asset_value) FILTER (NOT pf.is_feeder_fund)
+               count(*) FILTER (NOT pf.is_feeder_fund),
+               sum(pf.gross_asset_value) FILTER (NOT pf.is_feeder_fund)
         FROM private_funds pf
         LEFT JOIN firms f ON f.crd = pf.crd
         GROUP BY 1, 2 ORDER BY 3 DESC LIMIT ?
@@ -114,13 +127,15 @@ def quarterly_series(con: duckdb.DuckDBPyConnection, quarters: list[str]) -> lis
     series = []
     for q in quarters:
         total = con.execute(
-            "SELECT count(*) FROM private_fund_snapshots WHERE snapshot_quarter = ?", [q]
+            "SELECT count(*) FROM private_fund_snapshots "
+            "WHERE snapshot_quarter = ? AND NOT is_feeder_fund",
+            [q],
         ).fetchone()[0]
         rows = con.execute(
             """
             SELECT fund_type, count(*), sum(gross_asset_value) FILTER (NOT is_feeder_fund)
             FROM private_fund_snapshots
-            WHERE snapshot_quarter = ? AND fund_type IS NOT NULL
+            WHERE snapshot_quarter = ? AND fund_type IS NOT NULL AND NOT is_feeder_fund
             GROUP BY 1 ORDER BY 2 DESC
             """,
             [q],
@@ -153,8 +168,13 @@ def export_private_fund_stats(db_path: Path, out_path: Path) -> int:
             print("no private-fund snapshot in this database — private fund stats export skipped")
             return 0
 
+        # count(*) is feeder-filtered, count(DISTINCT crd) deliberately is not:
+        # 44 real advisers in a live pull have a private-fund book that is
+        # 100% feeder funds, and excluding feeders from BOTH columns of one
+        # query would have silently dropped them from total_firms even though
+        # they are genuinely advisers to a private fund.
         n_funds, n_firms = con.execute(
-            "SELECT count(*), count(DISTINCT crd) FROM private_funds"
+            "SELECT count(*) FILTER (NOT is_feeder_fund), count(DISTINCT crd) FROM private_funds"
         ).fetchone()
 
         try:
