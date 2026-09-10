@@ -77,9 +77,15 @@ $PY -m etl.form_d_stats --db data/advisor.duckdb --out frontend/public/form_d.js
 echo "== 10/11 refreshing the service-provider league table (Schedule D 7.B.1, reuses step 8's data) =="
 $PY -m etl.provider_stats --db data/advisor.duckdb --out frontend/public/service_providers.json
 
-echo "== 11/11 re-checking firm website links (~16 min; 15K URLs, external sites) =="
+echo "== 11/11 re-checking firm website links (~30 min; 15K URLs, external sites) =="
 # Filed websites rot as firms rebrand or get acquired; this records where each
 # one resolves today. The filed URL is never overwritten — see etl/website_check.py.
+#
+# The crawl ends with a slow, narrow retry of anything that never got a verdict:
+# 16 concurrent workers cause timeouts and TLS handshake errors against sites
+# that answer fine on a quiet connection. That pass recovered 37 of 388 stuck
+# URLs on its first run. To repair a crawl after the fact without redoing the
+# whole thing: python -m etl.website_check retry --db data/advisor.duckdb
 $PY -m etl.website_check crawl --db data/advisor.duckdb
 $PY -m etl.website_check export --db data/advisor.duckdb --out frontend/public/website_overrides.json
 

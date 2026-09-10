@@ -186,3 +186,71 @@ def test_check_url_does_not_drop_verification_for_other_failures():
     assert s.calls == [("head", True), ("get", True)]
     assert out["status"] == "unreachable"
     assert out["error"] == "connect_timeout"
+
+
+def test_is_transient_only_flags_a_missing_verdict():
+    assert website_check.is_transient({"status": "unreachable", "error": "ssl"})
+    assert website_check.is_transient({"status": "server_error", "http": 503})
+    # Real answers, however unwelcome, are answers.
+    assert not website_check.is_transient({"status": "not_found", "http": 404})
+    assert not website_check.is_transient({"status": "blocked_by_site", "http": 403})
+    assert not website_check.is_transient({"status": "server_error", "http": 500})
+    assert not website_check.is_transient({"status": "ok", "http": 200})
+
+
+def test_retry_replaces_only_the_rows_that_recover(monkeypatch):
+    # nvestfinancial.com is the real case: 'unreachable/ssl' under 16 workers,
+    # 200 on every serial attempt right after, which cost it a live override.
+    rows = [
+        {"url": "https://ok.example/", "status": "ok", "http": 200},
+        {"url": "https://flaky.example/", "status": "unreachable", "error": "ssl"},
+        {"url": "https://dead.example/", "status": "unreachable", "error": "dns"},
+    ]
+    seen = []
+
+    def fake_check(url, _session, timeout=None):
+        seen.append((url, timeout))
+        if url == "https://flaky.example/":
+            return {"url": url, "status": "cross_domain_redirect", "http": 200}
+        return {"url": url, "status": "unreachable", "error": "dns"}
+
+    monkeypatch.setattr(website_check, "check_url", fake_check)
+    out, recovered = website_check.retry_transient(rows, lambda: None)
+
+    assert recovered == 1
+    assert [u for u, _ in seen] == ["https://flaky.example/", "https://dead.example/"]
+    assert all(t == website_check.RETRY_TIMEOUT for _, t in seen), "retry should be more patient"
+    assert out[0] == rows[0], "a healthy row is left untouched"
+    assert out[1]["status"] == "cross_domain_redirect"
+    assert out[2] == rows[2], "a retry that fails again must not overwrite the original"
+
+
+def test_retry_is_a_no_op_when_everything_answered(monkeypatch):
+    monkeypatch.setattr(
+        website_check, "check_url", lambda *a, **k: pytest.fail("must not re-check")
+    )
+    rows = [{"url": "https://ok.example/", "status": "ok", "http": 200}]
+    assert website_check.retry_transient(rows, lambda: None) == (rows, 0)
+
+
+def test_retry_stage_stores_only_recoveries(tmp_path, monkeypatch):
+    db = _make_db(tmp_path, [REDIRECT, ("https://flaky.example/", "unreachable", None, None, None)])
+    monkeypatch.setattr(
+        website_check,
+        "check_url",
+        lambda url, *a, **k: {
+            "url": url, "status": "ok", "http": 200,
+            "final_url": url, "final_domain": "flaky.example",
+        },
+    )
+    con = duckdb.connect(str(db))
+    website_check.stage_retry(con)
+    got = con.execute(
+        "SELECT status, http_status FROM website_checks WHERE url = 'https://flaky.example/'"
+    ).fetchone()
+    # The redirect row was never transient, so it must be untouched.
+    assert con.execute(
+        "SELECT status FROM website_checks WHERE url = ?", [REDIRECT[0]]
+    ).fetchone()[0] == "cross_domain_redirect"
+    con.close()
+    assert got == ("ok", 200)
