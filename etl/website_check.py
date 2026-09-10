@@ -30,6 +30,7 @@ Two things this deliberately does NOT act on:
 
 Usage:
     python -m etl.website_check crawl  --db data/advisor.duckdb   # slow, network
+    python -m etl.website_check retry  --db data/advisor.duckdb   # just the stuck rows
     python -m etl.website_check import --db data/advisor.duckdb --from results.jsonl
     python -m etl.website_check export --db data/advisor.duckdb \
         --out frontend/public/website_overrides.json
@@ -62,6 +63,25 @@ RESEARCHED_PATH = Path(__file__).parent / "researched_websites.json"
 
 TIMEOUT = (6, 10)
 MAX_WORKERS = 16
+
+# A URL that never got a verdict is re-checked once the crawl has finished.
+# The failures worth retrying are the ones the crawl itself causes: 16 workers
+# resolving and handshaking at once produce timeouts and TLS handshake errors
+# against sites that answer fine on a quiet connection. nvestfinancial.com came
+# back 'unreachable/ssl' in a full crawl and 200 on every serial attempt right
+# after, which cost it a working redirect override.
+#
+# Retrying at the same concurrency would just reproduce the contention, so the
+# second pass runs narrower and more patiently, after the storm.
+#
+# 6 workers is a measured compromise. A 3-worker pass over 388 stuck URLs
+# recovered 37 of them but took ~30 minutes, a third again on top of the
+# 82-minute refresh. Six is still under half the crawl's concurrency, which is
+# what the recovery depends on, and roughly halves the wall clock.
+RETRY_WORKERS = 6
+RETRY_TIMEOUT = (12, 25)
+# Gateway responses mean a server answered but not about the site itself.
+TRANSIENT_HTTP = frozenset({502, 503, 504})
 
 # Platforms that are not a firm's own website. ingest_adv.pick_website already
 # screens the obvious social hosts, but the real filings reach further: a real
@@ -117,7 +137,7 @@ def classify(status_code: int, start_domain: str, final_domain: str) -> str:
     return "ok"
 
 
-def check_url(url: str, session_factory) -> dict:
+def check_url(url: str, session_factory, timeout: tuple[int, int] = TIMEOUT) -> dict:
     raw = url.strip()
     target = raw if "://" in raw else "https://" + raw
     out: dict = {"url": raw, "start_domain": norm_domain(target)}
@@ -138,7 +158,7 @@ def check_url(url: str, session_factory) -> dict:
                 method,
                 target,
                 headers=HTTP_HEADERS,
-                timeout=TIMEOUT,
+                timeout=timeout,
                 allow_redirects=True,
                 verify=verify,  # codeql[py/request-without-cert-validation]
                 stream=(method == "get"),
@@ -196,6 +216,83 @@ def store(con: duckdb.DuckDBPyConnection, rows: list[dict]) -> None:
     )
 
 
+def is_transient(row: dict) -> bool:
+    """Did this check fail to reach a verdict about the site itself?
+
+    'unreachable' means no response arrived at all. A 502/503/504 means some
+    server answered, but about its own capacity rather than about the site.
+    Everything else -- a 404, a 403, a redirect, a 200 -- is a real answer and
+    is never retried.
+    """
+    if row.get("status") == "unreachable":
+        return True
+    return row.get("http") in TRANSIENT_HTTP
+
+
+def _thread_sessions():
+    local = threading.local()
+
+    def session():
+        if not hasattr(local, "s"):
+            local.s = requests.Session()
+        return local.s
+
+    return session
+
+
+def retry_transient(rows: list[dict], session_factory=None) -> tuple[list[dict], int]:
+    """Re-check the rows that never got a verdict, narrow and patient.
+
+    Returns the full row list with recoveries substituted in, plus how many
+    recovered. A retry that fails again is discarded rather than stored: it
+    carries no more information than the original and would only churn the
+    error field.
+    """
+    session_factory = session_factory or _thread_sessions()
+    stuck = [r for r in rows if is_transient(r)]
+    if not stuck:
+        return rows, 0
+
+    print(f"  retrying {len(stuck):,} transient failures at {RETRY_WORKERS} workers", flush=True)
+    t0 = time.time()
+    retried: list[dict] = []
+    with ThreadPoolExecutor(max_workers=RETRY_WORKERS) as pool:
+        for i, res in enumerate(
+            pool.map(lambda r: check_url(r["url"], session_factory, RETRY_TIMEOUT), stuck), 1
+        ):
+            retried.append(res)
+            # Few workers and long timeouts make this pass slow; without a
+            # heartbeat a legitimately busy run is indistinguishable from a hang.
+            if i % 50 == 0:
+                done = sum(1 for r in retried if not is_transient(r))
+                print(
+                    f"    retried {i}/{len(stuck)} ({done} recovered, "
+                    f"{time.time() - t0:.0f}s)",
+                    flush=True,
+                )
+
+    recovered = {r["url"]: r for r in retried if not is_transient(r)}
+    if not recovered:
+        return rows, 0
+    return [recovered.get(r["url"], r) for r in rows], len(recovered)
+
+
+def crawl_urls(urls: list[str], label: str = "checked") -> list[dict]:
+    session = _thread_sessions()
+    results: list[dict] = []
+    t0 = time.time()
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
+        for i, res in enumerate(pool.map(lambda u: check_url(u, session), urls), 1):
+            results.append(res)
+            if i % 500 == 0:
+                print(f"  {label} {i}/{len(urls)} ({i/(time.time()-t0):.1f}/s)", flush=True)
+    results, recovered = retry_transient(results, session)
+    if recovered:
+        print(f"  recovered {recovered:,} of them on the quiet retry")
+    print(f"crawled {len(results):,} urls in {(time.time()-t0)/60:.1f}m")
+    return results
+
+
 def stage_crawl(con: duckdb.DuckDBPyConnection) -> None:
     urls = [
         r[0]
@@ -204,22 +301,29 @@ def stage_crawl(con: duckdb.DuckDBPyConnection) -> None:
             "WHERE website_url IS NOT NULL AND trim(website_url) <> ''"
         ).fetchall()
     ]
-    local = threading.local()
+    store(con, crawl_urls(urls))
 
-    def session():
-        if not hasattr(local, "s"):
-            local.s = requests.Session()
-        return local.s
 
-    results: list[dict] = []
-    t0 = time.time()
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
-        for i, res in enumerate(pool.map(lambda u: check_url(u, session), urls), 1):
-            results.append(res)
-            if i % 500 == 0:
-                print(f"  checked {i}/{len(urls)} ({i/(time.time()-t0):.1f}/s)", flush=True)
-    store(con, results)
-    print(f"crawled {len(results):,} urls in {(time.time()-t0)/60:.1f}m")
+def stage_retry(con: duckdb.DuckDBPyConnection) -> None:
+    """Re-check the transient failures already sitting in the database.
+
+    Lets a crawl that hit a rough patch be repaired in a couple of minutes
+    instead of re-running the full 16-minute pass.
+    """
+    rows = [
+        {"url": url, "status": status, "http": http}
+        for url, status, http in con.execute(
+            "SELECT url, status, http_status FROM website_checks "
+            "WHERE status = 'unreachable' OR http_status IN (502, 503, 504)"
+        ).fetchall()
+    ]
+    if not rows:
+        print("nothing to retry")
+        return
+    updated, recovered = retry_transient(rows)
+    if recovered:
+        store(con, [r for r in updated if not is_transient(r)])
+    print(f"retried {len(rows):,}, recovered {recovered:,}")
 
 
 def stage_import(con: duckdb.DuckDBPyConnection, path: Path) -> None:
@@ -334,7 +438,7 @@ def export_overrides(db_path: Path, out_path: Path) -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("stage", choices=["crawl", "import", "export"])
+    parser.add_argument("stage", choices=["crawl", "retry", "import", "export"])
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--from", dest="src", type=Path, help="JSONL for the import stage")
@@ -348,6 +452,8 @@ def main() -> int:
     try:
         if args.stage == "crawl":
             stage_crawl(con)
+        elif args.stage == "retry":
+            stage_retry(con)
         else:
             if not args.src:
                 sys.exit("error: import needs --from <results.jsonl>")
