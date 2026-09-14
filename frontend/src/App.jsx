@@ -184,12 +184,32 @@ function FirmNameCell({ firm, siteOverrides }) {
   )
 }
 
-function FirmLink({ firm }) {
+// Same favicon treatment as the dense table's FirmNameCell and the firm
+// detail page's title row — every place a firm's name renders should carry
+// the same icon, resolved from the same website-overrides source, or a
+// missing favicon on one surface reads as broken rather than simply absent.
+function FirmLink({ firm, siteOverrides }) {
   const path = firmPath(firm.crd)
+  const site = resolveWebsite(siteOverrides, firm.crd, firm.website_url)
+  const host = site.url ? websiteHost(site.url) : null
   return (
-    <a className="firm-link" href={path} onClick={(e) => navigate(e, path)}>
-      {firm.business_name || firm.legal_name}
-    </a>
+    <span className="rank-firm-name">
+      {host && (
+        <img
+          className="rank-favicon"
+          src={`https://icons.duckduckgo.com/ip3/${host}.ico`}
+          alt=""
+          width="14"
+          height="14"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none'
+          }}
+        />
+      )}
+      <a className="firm-link" href={path} onClick={(e) => navigate(e, path)}>
+        {firm.business_name || firm.legal_name}
+      </a>
+    </span>
   )
 }
 
@@ -504,7 +524,7 @@ export default function App() {
                       <li key={firm.crd}>
                         <span className="rank-n">{i + 1}</span>
                         <span className="rank-firm">
-                          <FirmLink firm={firm} />
+                          <FirmLink firm={firm} siteOverrides={siteOverrides} />
                           <span className="firm-sub">
                             {compactUsd(firm.aum_total)} AUM · {staffOf(firm)} advisory staff
                             {cohortSummary(config) && <> · vs {cohort.label}</>}
@@ -532,7 +552,7 @@ export default function App() {
                       <li key={firm.crd}>
                         <span className="rank-n risk">⚑</span>
                         <span className="rank-firm">
-                          <FirmLink firm={firm} />
+                          <FirmLink firm={firm} siteOverrides={siteOverrides} />
                           <span className="signal-chips">
                             {signals.map((s) => (
                               <span key={s} className="signal-chip">{s}</span>

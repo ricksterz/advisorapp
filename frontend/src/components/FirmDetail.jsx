@@ -575,7 +575,24 @@ export default function FirmDetail({ firm, crd, allFirms }) {
 
       <div className="detail-head">
         <div className="detail-title-row">
-          <h1>{firm.business_name || firm.legal_name}</h1>
+          <div className="detail-title-name">
+            {/* Same DuckDuckGo favicon proxy as the dense table's rows
+                (App.jsx's FirmNameCell), against the same resolved host —
+                so a firm's icon is identical wherever it shows up. */}
+            {host && (
+              <img
+                className="detail-favicon"
+                src={`https://icons.duckduckgo.com/ip3/${host}.ico`}
+                alt=""
+                width="28"
+                height="28"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                }}
+              />
+            )}
+            <h1>{firm.business_name || firm.legal_name}</h1>
+          </div>
           {/* Share the canonical absolute URL, not window.location: the page
               is reachable on the Pages mirror and on localhost, and a link
               pasted into an email should point at the indexed page. */}
