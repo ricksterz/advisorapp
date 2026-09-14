@@ -24,6 +24,7 @@ import { DEAL_FLAG_DEFS, useAllDealFlags } from './dealFlags.js'
 import { useAllAdvisorBios } from './advisorBios.js'
 import { computeDealPatterns } from './dealPatterns.js'
 import { resolveWebsite, useWebsiteOverrides } from './websiteOverrides.js'
+import { SORT_DEFS, makeComparator } from './firmSort.js'
 
 const compactUsd = (v) => {
   if (v == null || Number.isNaN(v)) return '—'
@@ -43,12 +44,6 @@ const AUM_PRESETS = [
   { label: '≥ $100B', min: 1e11 },
 ]
 
-const SORTS = {
-  firm: (a, b) => (a.business_name || a.legal_name).localeCompare(b.business_name || b.legal_name),
-  aum: (a, b) => (b.aum_total ?? -1) - (a.aum_total ?? -1),
-  staff: (a, b) => (b.employees_advisory ?? -1) - (a.employees_advisory ?? -1),
-  flags: (a, b) => (b.disciplinary_flag_count ?? 0) - (a.disciplinary_flag_count ?? 0),
-}
 
 const PAGE = 25
 
@@ -120,15 +115,72 @@ function DiscretionaryMeter({ firm }) {
   )
 }
 
-function SortHeader({ id, children, sort, onSort, className }) {
-  const active = sort === id
+function SortHeader({ id, children, sortField, sortDir, onSort, className }) {
+  const active = sortField === id
   return (
-    <th className={className} aria-sort={active ? 'descending' : undefined}>
+    <th className={className} aria-sort={active ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
       <button type="button" onClick={() => onSort(id)}>
         {children}
-        {active && <span className="arrow" aria-hidden="true">▼</span>}
+        {active && <span className="arrow" aria-hidden="true">{sortDir === 'asc' ? '▲' : '▼'}</span>}
       </button>
     </th>
+  )
+}
+
+// Firm-name cell for the dense table: a favicon (when the resolved website
+// has one), the firm name, CRD, and the resolved website link. Pulled out to
+// its own component so `site`/`host` are computed once and shared between
+// the icon and the link below, instead of resolving the website twice per
+// row.
+//
+// The icon comes from DuckDuckGo's public favicon proxy against whichever
+// host the site resolves to today (etl/website_check.py) — there's no local
+// logo store to keep in sync with 17K firms' branding, and this already
+// tracks a firm's real current site rather than whatever it filed years ago.
+// `onError` hides a broken image rather than showing a placeholder box, since
+// plenty of small firms' sites don't have a favicon at all.
+function FirmNameCell({ firm, siteOverrides }) {
+  const site = resolveWebsite(siteOverrides, firm.crd, firm.website_url)
+  const host = site.url ? websiteHost(site.url) : null
+  return (
+    <>
+      <div className="firm-name">
+        {host && (
+          <img
+            className="firm-favicon"
+            src={`https://icons.duckduckgo.com/ip3/${host}.ico`}
+            alt=""
+            width="14"
+            height="14"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none'
+            }}
+          />
+        )}
+        <a className="firm-link" href={firmPath(firm.crd)} onClick={(e) => navigate(e, firmPath(firm.crd))}>
+          {firm.business_name || firm.legal_name}
+        </a>
+      </div>
+      <div className="firm-sub">
+        <a className="crd-link" href={iapdUrl(firm.crd)} target="_blank" rel="noreferrer">
+          CRD {firm.crd}
+        </a>
+        {host && (
+          <>
+            {' · '}
+            <a
+              className="crd-link"
+              href={site.url}
+              target="_blank"
+              rel="noreferrer"
+              title={site.redirected ? `Filed as ${site.filed}` : undefined}
+            >
+              {host} ↗
+            </a>
+          </>
+        )}
+      </div>
+    </>
   )
 }
 
@@ -219,7 +271,18 @@ export default function App() {
   const [flaggedOnly, setFlaggedOnly] = useState(false)
   const [bioOnly, setBioOnly] = useState(false)
   const [dealFilters, setDealFilters] = useState({})
-  const [sort, setSort] = useState('aum')
+  const [sortField, setSortField] = useState('aum')
+  const [sortDir, setSortDir] = useState(SORT_DEFS.aum.defaultDir)
+  // A second click on the active header reverses it; clicking a different
+  // header switches to that column at its own natural default direction.
+  const handleSort = (id) => {
+    if (id === sortField) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortField(id)
+      setSortDir(SORT_DEFS[id].defaultDir)
+    }
+  }
   const [limit, setLimit] = useState(PAGE)
   // Methodology config: seeded from the ?m= URL param so a shared link
   // reproduces the exact same ranking view on a cold load.
@@ -297,8 +360,20 @@ export default function App() {
           String(f.crd).startsWith(q)
         )
       })
-      .sort(SORTS[sort])
-  }, [data, query, minAum, perfOnly, flaggedOnly, bioOnly, sort, activeDealFilters, dealFlagsData, advisorBiosData])
+      .sort(makeComparator(sortField, sortDir, { dealFlagsData, advisorBiosData }))
+  }, [
+    data,
+    query,
+    minAum,
+    perfOnly,
+    flaggedOnly,
+    bioOnly,
+    sortField,
+    sortDir,
+    activeDealFilters,
+    dealFlagsData,
+    advisorBiosData,
+  ])
 
   const visible = firms.slice(0, limit)
   const resetPage = () => setLimit(PAGE)
@@ -625,58 +700,62 @@ export default function App() {
               <table>
                 <thead>
                   <tr>
-                    <SortHeader id="firm" sort={sort} onSort={setSort}>Firm</SortHeader>
-                    <SortHeader id="aum" sort={sort} onSort={setSort} className="num">Total AUM</SortHeader>
-                    <th>Discretionary</th>
-                    <SortHeader id="staff" sort={sort} onSort={setSort} className="num">Advisory staff</SortHeader>
-                    <th>Fee structure</th>
-                    <th className="num">Affiliations</th>
-                    <SortHeader id="flags" sort={sort} onSort={setSort} className="num">Disclosures</SortHeader>
-                    {dealFlagsData !== null && <th>Deal structuring</th>}
-                    {advisorBiosData !== null && <th className="num">Advisor bios</th>}
+                    <SortHeader id="firm" sortField={sortField} sortDir={sortDir} onSort={handleSort}>
+                      Firm
+                    </SortHeader>
+                    <SortHeader id="aum" sortField={sortField} sortDir={sortDir} onSort={handleSort} className="num">
+                      Total AUM
+                    </SortHeader>
+                    <SortHeader id="discretionary" sortField={sortField} sortDir={sortDir} onSort={handleSort}>
+                      Discretionary
+                    </SortHeader>
+                    <SortHeader id="staff" sortField={sortField} sortDir={sortDir} onSort={handleSort} className="num">
+                      Advisory staff
+                    </SortHeader>
+                    <SortHeader id="fee" sortField={sortField} sortDir={sortDir} onSort={handleSort}>
+                      Fee structure
+                    </SortHeader>
+                    <SortHeader
+                      id="affiliations"
+                      sortField={sortField}
+                      sortDir={sortDir}
+                      onSort={handleSort}
+                      className="num"
+                    >
+                      Affiliations
+                    </SortHeader>
+                    <SortHeader id="flags" sortField={sortField} sortDir={sortDir} onSort={handleSort} className="num">
+                      Disclosures
+                    </SortHeader>
+                    {dealFlagsData !== null && (
+                      <SortHeader id="deal" sortField={sortField} sortDir={sortDir} onSort={handleSort}>
+                        Deal structuring
+                      </SortHeader>
+                    )}
+                    {advisorBiosData !== null && (
+                      <SortHeader
+                        id="bios"
+                        sortField={sortField}
+                        sortDir={sortDir}
+                        onSort={handleSort}
+                        className="num"
+                      >
+                        Advisor bios
+                      </SortHeader>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {visible.map((f) => (
                     <tr key={f.crd}>
                       <td>
-                        <div className="firm-name">
-                          <a className="firm-link" href={firmPath(f.crd)} onClick={(e) => navigate(e, firmPath(f.crd))}>
-                            {f.business_name || f.legal_name}
-                          </a>
-                        </div>
-                        <div className="firm-sub">
-                          <a className="crd-link" href={iapdUrl(f.crd)} target="_blank" rel="noreferrer">
-                            CRD {f.crd}
-                          </a>
-                          {(() => {
-                            // Link where the filed URL actually leads today.
-                            // A rebranded or acquired firm still files its old
-                            // domain, and some file a Reddit or podcast page
-                            // instead of a website (see etl/website_check.py).
-                            const site = resolveWebsite(siteOverrides, f.crd, f.website_url)
-                            const h = site.url ? websiteHost(site.url) : null
-                            if (!h) return null
-                            return (
-                              <>
-                                {' · '}
-                                <a
-                                  className="crd-link"
-                                  href={site.url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  title={site.redirected ? `Filed as ${site.filed}` : undefined}
-                                >
-                                  {h} ↗
-                                </a>
-                              </>
-                            )
-                          })()}
-                        </div>
+                        <FirmNameCell firm={f} siteOverrides={siteOverrides} />
                       </td>
                       <td className="num">{compactUsd(f.aum_total)}</td>
                       <td><DiscretionaryMeter firm={f} /></td>
-                      <td className="num">{f.employees_advisory ?? f.employees_total ?? '—'}</td>
+                      <td className="num">
+                        {(f.employees_advisory ?? f.employees_total)?.toLocaleString() ?? '—'}
+                      </td>
                       <td>
                         <span className="fee-chips">
                           {f.fee_pct_of_aum && <span className="fee-chip">% of AUM</span>}

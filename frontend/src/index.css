@@ -777,8 +777,16 @@ tbody tr:hover {
 }
 
 .firm-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-weight: 550;
   letter-spacing: -0.005em;
+}
+
+.firm-favicon {
+  border-radius: 3px;
+  flex: none;
 }
 
 .firm-sub {
