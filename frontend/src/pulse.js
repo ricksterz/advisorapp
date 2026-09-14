@@ -120,6 +120,12 @@ export const PULSE_META = {
     methodology:
       '“Appeared” counts CRDs present in a quarter snapshot but not the prior one (a proxy for new registrants); withdrawals count actual Form ADV-W filings in the quarter. The two measures come from different filings and need not sum to the net change.',
   },
+  new_cohort: {
+    label: 'New registrant cohort',
+    definition: 'How this quarter’s newly appearing firms compare to the standing database.',
+    methodology:
+      'Takes the same appeared-CRD set as “Appeared” above (new to the latest published quarter’s snapshot) and compares its AUM, AUM band mix, disclosure rate, and fee structure against every firm in that quarter’s snapshot. A firm’s row reflects how it filed for the quarter it appears in, not necessarily its true first registration date — a firm that files late can surface in a later quarter than the one it actually joined.',
+  },
   form_d: {
     label: 'New exempt offerings',
     definition: 'New Form D offerings filed in the quarter (amendments excluded).',

@@ -45,12 +45,13 @@ def test_extract_and_load(tmp_path):
 def test_read_firm_feed(tmp_path):
     firms = read_firm_feed(FEED_FIXTURE)
     # the firm without a CRD and the exempt reporting adviser are skipped
-    assert len(firms) == 2
+    assert len(firms) == 3
     assert 900003 not in firms["crd"].values
 
     crest = firms.set_index("crd").loc[900001]
     assert crest["legal_name"] == "CREST FEED ADVISORS LLC"
     assert crest["state"] == "NY"  # Item 1.F via MainAddr@State
+    assert crest["country"] == "United States"  # Item 1.F via MainAddr@Cntry
     # Item 1.I: first non-social address wins even when socials are listed first
     assert crest["website_url"] == "HTTP://WWW.CRESTFEED.COM"
     assert crest["business_name"] == "CREST FEED ADVISORS"
@@ -72,15 +73,22 @@ def test_read_firm_feed(tmp_path):
 
     plains = firms.set_index("crd").loc[900002]
     assert pd.isna(plains["state"])  # no MainAddr in the feed for this firm
+    assert pd.isna(plains["country"])
     assert pd.isna(plains["website_url"])  # no Item 1.I websites listed
     assert plains["pct_clients_individuals"] == 100.0
     assert plains["affil_count"] == 0
     assert plains["disciplinary_flag_count"] == 0
 
+    # A non-US firm: the feed sends Cntry but omits State outright (not an
+    # empty attribute) — the real shape of a foreign registrant's MainAddr.
+    london = firms.set_index("crd").loc[900004]
+    assert pd.isna(london["state"])
+    assert london["country"] == "United Kingdom"
+
     db = tmp_path / "feed.duckdb"
     load(firms, db)
     con = duckdb.connect(str(db))
-    assert con.execute("SELECT count(*) FROM firms").fetchone()[0] == 2
+    assert con.execute("SELECT count(*) FROM firms").fetchone()[0] == 3
     assert str(con.execute(
         "SELECT filing_date FROM firms WHERE crd = 900001"
     ).fetchone()[0]) == "2026-03-04"

@@ -52,5 +52,24 @@
       <Rgstn FirmType="ERA" St="ACTIVE" Dt="2023-05-01"/>
       <Filing Dt="2026-01-20" FormVrsn="10/2021"/>
     </Firm>
+    <Firm>
+      <Info FirmCrdNb="900004" SECNb="801-99994" LegalNm="LONDON GLOBAL ADVISERS LTD"/>
+      <Rgstn FirmType="Registered" St="APPROVED" Dt="2019-06-01"/>
+      <!-- Non-US firms: the feed omits State entirely rather than sending an
+           empty attribute, matching a real foreign registrant's MainAddr. -->
+      <MainAddr Strt1="1 THREADNEEDLE ST" City="LONDON" Cntry="United Kingdom" PostlCd="EC2R 8AH"/>
+      <Filing Dt="2026-02-20" FormVrsn="10/2021"/>
+      <FormInfo>
+        <Part1A>
+          <Item5A TtlEmp="12"/>
+          <Item5B Q5B1="8"/>
+          <Item5D Q5DA1="20" Q5DA3="50000000"/>
+          <Item5E Q5E1="Y" Q5E2="N" Q5E3="N" Q5E4="N" Q5E5="N" Q5E6="N" Q5E7="N"/>
+          <Item5F Q5F1="Y" Q5F2A="300000000" Q5F2B="0" Q5F2C="300000000" Q5F2D="40" Q5F2E="0" Q5F2F="40"/>
+          <Item7A/>
+          <Item11 Q11="N"/>
+        </Part1A>
+      </FormInfo>
+    </Firm>
   </Firms>
 </IAPDFirmSECReport>

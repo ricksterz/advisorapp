@@ -41,8 +41,9 @@ FIRM_COLUMNS: dict[str, list[str]] = {
     "sec_number": ["1D", "SECNB"],
     "legal_name": ["1A", "FIRMLEGALNAME", "LEGALNAME"],
     "business_name": ["1B1", "1B", "BUSINESSNAME"],
-    # Item 1.F: principal office address (state only; needed for region cohorts)
+    # Item 1.F: principal office address (state and country; needed for region cohorts)
     "state": ["1F1-STATE", "1F-STATE", "MAINOFFICESTATE"],
+    "country": ["1F1-COUNTRY", "1F-COUNTRY", "MAINOFFICECOUNTRY"],
     # Item 1.I: firm website (social-media addresses are filtered out)
     "website_url": ["1I-WEBADDR", "WEBADDR", "WEBSITEADDRESS", "WEBSITE"],
     # Item 5.F(2): regulatory AUM and account counts
@@ -262,6 +263,13 @@ def read_firm_feed(path: Path) -> pd.DataFrame:
                 "filing_date": attrs("Filing").get("Dt"),
                 # Item 1.F principal office state; None for non-US / missing
                 "state": (attrs("MainAddr").get("State") or "").strip().upper() or None,
+                # Item 1.F principal office country, as filed (e.g. "United
+                # States", "Cayman Islands") — present on every firm, unlike
+                # state, which the feed only fills in for US addresses. Not
+                # uppercased like state: "United Kingdom" reads better
+                # displayed than shouted, and there's no fixed code list to
+                # normalize against the way there is for US states.
+                "country": (attrs("MainAddr").get("Cntry") or "").strip() or None,
                 # Item 1.I: websites + social profiles in one repeating element
                 "website_url": pick_website(
                     el.text for el in firm.findall(".//Item1/WebAddrs/WebAddr")
