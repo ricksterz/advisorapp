@@ -155,6 +155,79 @@ def add_appearances(con: duckdb.DuckDBPyConnection, series: list[dict]) -> None:
         cur["disappeared"] = disappeared
 
 
+def new_registrant_cohort(con: duckdb.DuckDBPyConnection, quarters: list[str], series: list[dict]) -> dict | None:
+    """How the newest quarter's newly-appearing CRDs differ from the full
+    snapshot population, not just how many there are.
+
+    'Appeared' (add_appearances, above) answers "how many new registrants."
+    This answers "what kind of firm they are" — fee structure, AUM band, and
+    disclosure rate, new cohort vs. the standing database — the same
+    "cohort vs. base" framing a competitor's quarterly report leads with, but
+    computed straight from the public quarterly filing archive rather than
+    licensed research. Reuses `series[-1]`'s AUM-band counts for the database
+    side instead of re-querying them.
+    """
+    if len(quarters) < 2:
+        return None
+    cur_q, prev_q = quarters[-1], quarters[-2]
+
+    def composition(where_new_only: bool) -> tuple:
+        new_clause = (
+            "AND NOT EXISTS (SELECT 1 FROM firm_snapshots p "
+            "WHERE p.snapshot_quarter = ?::DATE AND p.crd = c.crd)"
+            if where_new_only
+            else ""
+        )
+        params = [cur_q, prev_q] if where_new_only else [cur_q]
+        return con.execute(
+            f"""
+            SELECT count(*), median(aum_total),
+                   avg(CASE WHEN disciplinary_flag_count > 0 THEN 1.0 ELSE 0.0 END),
+                   avg(CASE WHEN fee_pct_of_aum THEN 1.0 ELSE 0.0 END),
+                   avg(CASE WHEN fee_performance_based THEN 1.0 ELSE 0.0 END),
+                   avg(CASE WHEN fee_commissions THEN 1.0 ELSE 0.0 END)
+            FROM firm_snapshots c WHERE c.snapshot_quarter = ?::DATE {new_clause}
+            """,  # nosec B608 — new_clause is a fixed module string, no external input
+            params,
+        ).fetchone()
+
+    new_bands = dict(
+        con.execute(
+            f"""
+            SELECT {BAND_CASE} AS band, count(*)
+            FROM firm_snapshots c WHERE c.snapshot_quarter = ?::DATE
+              AND NOT EXISTS (SELECT 1 FROM firm_snapshots p
+                              WHERE p.snapshot_quarter = ?::DATE AND p.crd = c.crd)
+            GROUP BY 1
+            """,  # nosec B608 — BAND_CASE is a module constant
+            [cur_q, prev_q],
+        ).fetchall()
+    )
+
+    def shape(row: tuple, bands: dict) -> dict:
+        n, median_aum, pct_disc, fee_aum, fee_perf, fee_comm = row
+        return {
+            "firms": n,
+            "median_aum": median_aum,
+            "pct_disclosure": pct_disc,
+            "fee_pct_of_aum": fee_aum,
+            "fee_performance_based": fee_perf,
+            "fee_commissions": fee_comm,
+            "bands": [
+                {"id": bid, "label": label, "share": bands.get(bid, 0) / n if n else None}
+                for bid, label, _, _ in BANDS
+            ],
+        }
+
+    db_bands = {b["id"]: b["firms"] for b in series[-1]["bands"]}
+    return {
+        "quarter": cur_q,
+        "prior_quarter": prev_q,
+        "new": shape(composition(where_new_only=True), new_bands),
+        "database": shape(composition(where_new_only=False), db_bands),
+    }
+
+
 def state_series(con: duckdb.DuckDBPyConnection, quarters: list[str], top_n: int = 12) -> list[dict]:
     latest = quarters[-1]
     top_states = [
@@ -249,6 +322,7 @@ def export_pulse_stats(db_path: Path, out_path: Path) -> int:
             "series": series,
             "states": state_series(con, quarters),
             "band_migration": band_migration(con, quarters),
+            "new_cohort": new_registrant_cohort(con, quarters, series),
         }
     finally:
         con.close()

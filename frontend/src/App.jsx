@@ -25,6 +25,7 @@ import { useAllAdvisorBios } from './advisorBios.js'
 import { computeDealPatterns } from './dealPatterns.js'
 import { resolveWebsite, useWebsiteOverrides } from './websiteOverrides.js'
 import { SORT_DEFS, makeComparator } from './firmSort.js'
+import { isFamilyOffice } from './familyOffice.js'
 
 const compactUsd = (v) => {
   if (v == null || Number.isNaN(v)) return '—'
@@ -290,6 +291,7 @@ export default function App() {
   const [perfOnly, setPerfOnly] = useState(false)
   const [flaggedOnly, setFlaggedOnly] = useState(false)
   const [bioOnly, setBioOnly] = useState(false)
+  const [familyOfficeOnly, setFamilyOfficeOnly] = useState(false)
   const [dealFilters, setDealFilters] = useState({})
   const [sortField, setSortField] = useState('aum')
   const [sortDir, setSortDir] = useState(SORT_DEFS.aum.defaultDir)
@@ -345,7 +347,26 @@ export default function App() {
     // reads as noise rather than signal; a repeated pattern is the more
     // meaningful headline number.
     const flagged = data.firms.filter((f) => f.disciplinary_flag_count > 3).length
-    return { median, billionCount: billionAum.length, billionShare, perfShare, flagged }
+    // Item 1.F's country, not just state: state is US-only on the form, so a
+    // firm with a country on file but no state is headquartered abroad. Firms
+    // with neither (no address on file at all) are excluded from the share
+    // rather than folded into either side.
+    const withCountry = data.firms.filter((f) => f.country)
+    const intlFirms = withCountry.filter((f) => f.country !== 'United States')
+    const intlShare = withCountry.length ? intlFirms.length / withCountry.length : null
+    const countryCounts = new Map()
+    for (const f of intlFirms) countryCounts.set(f.country, (countryCounts.get(f.country) ?? 0) + 1)
+    const topCountry = [...countryCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+    return {
+      median,
+      billionCount: billionAum.length,
+      billionShare,
+      perfShare,
+      flagged,
+      intlCount: intlFirms.length,
+      intlShare,
+      topCountry,
+    }
   }, [data])
 
   const rankings = useMemo(() => (data ? computeRankings(data.firms, config) : null), [data, config])
@@ -369,6 +390,7 @@ export default function App() {
         if (perfOnly && !f.fee_performance_based) return false
         if (flaggedOnly && !(f.disciplinary_flag_count > 0)) return false
         if (bioOnly && !(advisorBiosData?.firms?.[String(f.crd)]?.length > 0)) return false
+        if (familyOfficeOnly && !isFamilyOffice(f)) return false
         if (activeDealFilters.length) {
           const flags = dealFlagsData?.firms?.[String(f.crd)]
           if (!flags || !activeDealFilters.every((d) => flags[d.id])) return false
@@ -388,6 +410,7 @@ export default function App() {
     perfOnly,
     flaggedOnly,
     bioOnly,
+    familyOfficeOnly,
     sortField,
     sortDir,
     activeDealFilters,
@@ -483,6 +506,15 @@ export default function App() {
               label="Disciplinary disclosures"
               value={fmtCount(stats.flagged)}
               sub="firms with > 3 flags"
+            />
+            <StatTile
+              label="Outside the U.S."
+              value={stats.intlShare != null ? `${Math.round(stats.intlShare * 100)}%` : '—'}
+              sub={
+                stats.topCountry
+                  ? `${fmtCount(stats.intlCount)} firms · most from ${stats.topCountry}`
+                  : `${fmtCount(stats.intlCount)} firms`
+              }
             />
           </section>
         )}
@@ -694,6 +726,15 @@ export default function App() {
                   Has advisor bios
                 </button>
               )}
+              <button
+                type="button"
+                className="chip"
+                aria-pressed={familyOfficeOnly}
+                title="Firms with “family office” in their filed name — a name match, not a legal classification. Most true single-family offices are exempt from registering at all and never appear here."
+                onClick={() => { setFamilyOfficeOnly(!familyOfficeOnly); resetPage() }}
+              >
+                Family office
+              </button>
               {dealFlagsData !== null &&
                 DEAL_FLAG_DEFS.map((d) => (
                   <button

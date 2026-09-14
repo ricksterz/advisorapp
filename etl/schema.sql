@@ -8,7 +8,12 @@ CREATE TABLE IF NOT EXISTS firms (
     legal_name              VARCHAR NOT NULL,
     business_name           VARCHAR,              -- "doing business as" name
     filing_date             DATE,                 -- date of the ADV filing this row came from
-    state                   VARCHAR,              -- Item 1.F: principal office state (2-letter)
+    state                   VARCHAR,              -- Item 1.F: principal office state (2-letter, US only)
+    country                 VARCHAR,              -- Item 1.F: principal office country, as filed
+                                                    -- (e.g. "United States", "United Kingdom") — the
+                                                    -- source feed carries this on every firm, US and
+                                                    -- non-US alike; state is US-only, so a non-US firm
+                                                    -- has a country but no state.
     website_url             VARCHAR,              -- Item 1.I: firm website (social profiles excluded)
 
     -- Item 5.F: regulatory assets under management (USD)

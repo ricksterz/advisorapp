@@ -36,6 +36,7 @@ function DrilldownShell({ title, tagline, methodology, children }) {
 }
 
 const qLabel = (s) => fmtQuarter(s.quarter)
+const bandShare = (entry, id) => entry?.bands.find((b) => b.id === id)?.share ?? null
 
 // Shown on the private-funds page, where service providers are a sub-topic.
 // The full league tables live on their own page — this is the entry point,
@@ -145,10 +146,10 @@ export function DrilldownAdvisers() {
     <DrilldownShell
       title="Adviser counts & growth"
       tagline="Registrations, withdrawals, and where advisers are based."
-      methodology={['firms', 'registrations']}
+      methodology={['firms', 'registrations', 'new_cohort']}
     >
       {(stats) => {
-        const { series, states } = stats
+        const { series, states, new_cohort: cohort } = stats
         const maxFirms = Math.max(...series.map((s) => s.firms))
         const maxState = Math.max(...states.map((s) => s.firms))
         return (
@@ -190,6 +191,66 @@ export function DrilldownAdvisers() {
                 withdrawal filings. The measures come from different filings and need not agree.
               </p>
             </div>
+
+            {cohort && (
+              <div className="detail-card">
+                <h2>New registrant cohort</h2>
+                <p className="detail-note">
+                  {fmtCount(cohort.new.firms)} firms registered for the first time in{' '}
+                  {fmtQuarter(cohort.quarter)} — how they compare to the{' '}
+                  {fmtCount(cohort.database.firms)}-firm database they joined, not just how many
+                  there were.
+                </p>
+                <table className="pulse-table">
+                  <thead>
+                    <tr>
+                      <th></th>
+                      <th className="num">New this quarter</th>
+                      <th className="num">Full database</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Median AUM</td>
+                      <td className="num">{fmtCompactUsd(cohort.new.median_aum)}</td>
+                      <td className="num">{fmtCompactUsd(cohort.database.median_aum)}</td>
+                    </tr>
+                    <tr>
+                      <td>Under $100M AUM</td>
+                      <td className="num">{fmtPct(bandShare(cohort.new, 'lt100m'))}</td>
+                      <td className="num">{fmtPct(bandShare(cohort.database, 'lt100m'))}</td>
+                    </tr>
+                    <tr>
+                      <td>$10B+ AUM</td>
+                      <td className="num">{fmtPct(bandShare(cohort.new, '10b+'))}</td>
+                      <td className="num">{fmtPct(bandShare(cohort.database, '10b+'))}</td>
+                    </tr>
+                    <tr>
+                      <td>Has a disclosure</td>
+                      <td className="num">{fmtPct(cohort.new.pct_disclosure)}</td>
+                      <td className="num">{fmtPct(cohort.database.pct_disclosure)}</td>
+                    </tr>
+                    <tr>
+                      <td>AUM-based fee</td>
+                      <td className="num">{fmtPct(cohort.new.fee_pct_of_aum)}</td>
+                      <td className="num">{fmtPct(cohort.database.fee_pct_of_aum)}</td>
+                    </tr>
+                    <tr>
+                      <td>Performance-based fee</td>
+                      <td className="num">{fmtPct(cohort.new.fee_performance_based)}</td>
+                      <td className="num">{fmtPct(cohort.database.fee_performance_based)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p className="detail-note">
+                  “New this quarter” is the same appeared-CRD set as the table above, characterized
+                  rather than just counted. Figures reflect each firm’s filing as of{' '}
+                  {fmtQuarter(cohort.quarter)}, not necessarily when it first registered — a firm
+                  that filed late can appear in a later quarter’s snapshot than the one it actually
+                  joined.
+                </p>
+              </div>
+            )}
 
             <div className="detail-card">
               <h2>Top states by adviser count</h2>

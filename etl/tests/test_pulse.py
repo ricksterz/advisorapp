@@ -2,10 +2,17 @@ from datetime import date
 
 import duckdb
 import pandas as pd
+import pytest
 
 from etl.config import SCHEMA_PATH
 from etl.pulse_history import parse_advw, parse_base_a, stage_snapshots
-from etl.pulse_stats import COMPLETENESS_THRESHOLD, _delta, published_quarters
+from etl.pulse_stats import (
+    COMPLETENESS_THRESHOLD,
+    _delta,
+    new_registrant_cohort,
+    published_quarters,
+    quarter_series,
+)
 
 
 def _base_a_frame(rows):
@@ -120,3 +127,54 @@ def test_delta():
     assert _delta(None, 100) is None
     assert _delta(100, 0) is None
     assert _delta(100, None) is None
+
+
+def _snap(con, quarter, crd, aum, fee_aum, fee_perf, fee_comm, disciplinary):
+    con.execute(
+        "INSERT INTO firm_snapshots "
+        "(snapshot_quarter, crd, aum_total, fee_pct_of_aum, fee_performance_based, "
+        " fee_commissions, disciplinary_flag_count) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [quarter, crd, aum, fee_aum, fee_perf, fee_comm, disciplinary],
+    )
+
+
+def test_new_registrant_cohort_compares_new_firms_against_the_full_database(tmp_path):
+    con = _db(tmp_path)
+    # Prior quarter: one incumbent, AUM-based fee, no disclosures.
+    _snap(con, date(2026, 3, 31), 1, 5e8, True, False, False, 0)
+    # Current quarter: the incumbent continues unchanged; two new CRDs show
+    # up, both performance-fee, one with a disclosure.
+    _snap(con, date(2026, 6, 30), 1, 5e8, True, False, False, 0)
+    _snap(con, date(2026, 6, 30), 2, 2e8, False, True, False, 1)
+    _snap(con, date(2026, 6, 30), 3, 1e7, False, True, False, 0)
+
+    quarters = ["2026-03-31", "2026-06-30"]
+    series = quarter_series(con, quarters)
+    cohort = new_registrant_cohort(con, quarters, series)
+
+    assert cohort["quarter"] == "2026-06-30"
+    assert cohort["prior_quarter"] == "2026-03-31"
+
+    # The new cohort is 100% performance-fee; the incumbent pulls the whole
+    # database's rate down to 1/3 — the two must not be conflated.
+    assert cohort["new"]["firms"] == 2
+    assert cohort["new"]["fee_performance_based"] == 1.0
+    assert cohort["new"]["fee_pct_of_aum"] == 0.0
+    assert cohort["new"]["pct_disclosure"] == 0.5
+
+    assert cohort["database"]["firms"] == 3
+    assert cohort["database"]["fee_performance_based"] == pytest.approx(2 / 3)
+    assert cohort["database"]["pct_disclosure"] == pytest.approx(1 / 3)
+
+    # $10M and $200M -> one in each of lt100m / 100m-1b, none in 1b-10b.
+    new_bands = {b["id"]: b["share"] for b in cohort["new"]["bands"]}
+    assert new_bands["lt100m"] == 0.5
+    assert new_bands["100m-1b"] == 0.5
+    assert new_bands["1b-10b"] == 0.0
+
+
+def test_new_registrant_cohort_is_none_with_fewer_than_two_quarters(tmp_path):
+    con = _db(tmp_path)
+    _snap(con, date(2026, 6, 30), 1, 5e8, True, False, False, 0)
+    series = quarter_series(con, ["2026-06-30"])
+    assert new_registrant_cohort(con, ["2026-06-30"], series) is None
