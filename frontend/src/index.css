@@ -267,6 +267,18 @@ select {
   display: block;
 }
 
+.rank-firm-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.rank-favicon {
+  border-radius: 3px;
+  flex: none;
+}
+
 .firm-link {
   color: var(--ink);
   text-decoration: none;
@@ -1759,6 +1771,18 @@ tbody tr:hover {
 
 .detail-title-row h1 {
   margin: 0;
+}
+
+.detail-title-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.detail-favicon {
+  border-radius: 6px;
+  flex: none;
 }
 
 .share-link {
