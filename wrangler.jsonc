@@ -1,8 +1,12 @@
 // Cloudflare Workers config: serves the built frontend as static assets.
 // Workers Builds runs `build.command` and then deploys `assets.directory`.
 // The data snapshot is pulled from the GitHub Pages deployment (refreshed
-// monthly by .github/workflows/pages.yml) so both hosts serve the same
-// dataset; the committed fixture firms.json is the fallback.
+// monthly by .github/workflows/pages.yml, and on every push to main) so both
+// hosts serve the same dataset; the committed fixture firms.json is the
+// fallback. Build logic lives in scripts/cf_build.sh, not inline here --
+// it retries the fetch against a freshness check, because this build and
+// pages.yml's deploy both trigger on the same push with no ordering between
+// them (see that script's docstring for the real staleness this caused).
 {
   "name": "advisorapp",
   "compatibility_date": "2026-07-01",
@@ -16,13 +20,7 @@
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "single-page-application"
   },
-  // gen_static_pages writes a real HTML file per route with the correct
-  // canonical already in the <head>. Without it every route is served the
-  // homepage's canonical, which Search Console reported as "Alternate page
-  // with proper canonical tag" against all ~17K firm URLs. It runs on the
-  // build image's stock python3 (stdlib only — no pip install needed), and
-  // fails the build if dist would exceed the Free plan's 20,000-file cap.
   "build": {
-    "command": "curl -fsSL https://ricksterz.github.io/advisorapp/firms.json -o frontend/public/firms.json || echo 'live data unavailable, using committed firms.json'; cd frontend && npm ci && npm run build && cd .. && python3 -m etl.gen_static_pages --data frontend/public/firms.json --site https://open-disclosure.com --out frontend/dist"
+    "command": "bash scripts/cf_build.sh"
   }
 }
