@@ -12,6 +12,7 @@ import { useFirmOwners, useOwnershipChanges } from '../firmOwners.js'
 import { resolveWebsite, useWebsiteOverrides, websiteNote } from '../websiteOverrides.js'
 import { TrendLine } from './PulsePage.jsx'
 import CopyLinkButton from './CopyLinkButton.jsx'
+import FirmFavicon from './FirmFavicon.jsx'
 
 // Public IAPD document endpoints (all CORS-enabled, no key required).
 const firmApiUrl = (crd) => `https://api.adviserinfo.sec.gov/search/firm/${crd}`
@@ -576,21 +577,7 @@ export default function FirmDetail({ firm, crd, allFirms }) {
       <div className="detail-head">
         <div className="detail-title-row">
           <div className="detail-title-name">
-            {/* Same DuckDuckGo favicon proxy as the dense table's rows
-                (App.jsx's FirmNameCell), against the same resolved host —
-                so a firm's icon is identical wherever it shows up. */}
-            {host && (
-              <img
-                className="detail-favicon"
-                src={`https://icons.duckduckgo.com/ip3/${host}.ico`}
-                alt=""
-                width="28"
-                height="28"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                }}
-              />
-            )}
+            <FirmFavicon host={host} size={28} className="detail-favicon" />
             <h1>{firm.business_name || firm.legal_name}</h1>
           </div>
           {/* Share the canonical absolute URL, not window.location: the page
@@ -619,14 +606,7 @@ export default function FirmDetail({ firm, crd, allFirms }) {
             href={site.url}
             sub={websiteNote(site)}
           >
-            <img
-              className="site-favicon"
-              src={`https://icons.duckduckgo.com/ip3/${host}.ico`}
-              alt=""
-              width="14"
-              height="14"
-              onError={(e) => { e.currentTarget.style.display = 'none' }}
-            />
+            <FirmFavicon host={host} className="site-favicon" />
             {host}
           </OutboundLink>
         )}

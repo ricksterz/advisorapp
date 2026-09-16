@@ -26,6 +26,7 @@ import { computeDealPatterns } from './dealPatterns.js'
 import { resolveWebsite, useWebsiteOverrides } from './websiteOverrides.js'
 import { SORT_DEFS, makeComparator } from './firmSort.js'
 import { isFamilyOffice } from './familyOffice.js'
+import FirmFavicon from './components/FirmFavicon.jsx'
 
 const compactUsd = (v) => {
   if (v == null || Number.isNaN(v)) return '—'
@@ -134,30 +135,18 @@ function SortHeader({ id, children, sortField, sortDir, onSort, className }) {
 // the icon and the link below, instead of resolving the website twice per
 // row.
 //
-// The icon comes from DuckDuckGo's public favicon proxy against whichever
-// host the site resolves to today (etl/website_check.py) — there's no local
-// logo store to keep in sync with 17K firms' branding, and this already
-// tracks a firm's real current site rather than whatever it filed years ago.
-// `onError` hides a broken image rather than showing a placeholder box, since
-// plenty of small firms' sites don't have a favicon at all.
+// The icon comes from a public favicon proxy against whichever host the site
+// resolves to today (etl/website_check.py) — there's no local logo store to
+// keep in sync with 17K firms' branding. Which proxy, or none, is decided at
+// refresh time (etl/favicons.py), because both send their "no icon"
+// placeholder as a valid image a browser renders.
 function FirmNameCell({ firm, siteOverrides }) {
   const site = resolveWebsite(siteOverrides, firm.crd, firm.website_url)
   const host = site.url ? websiteHost(site.url) : null
   return (
     <>
       <div className="firm-name">
-        {host && (
-          <img
-            className="firm-favicon"
-            src={`https://icons.duckduckgo.com/ip3/${host}.ico`}
-            alt=""
-            width="14"
-            height="14"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none'
-            }}
-          />
-        )}
+        <FirmFavicon host={host} className="firm-favicon" />
         <a className="firm-link" href={firmPath(firm.crd)} onClick={(e) => navigate(e, firmPath(firm.crd))}>
           {firm.business_name || firm.legal_name}
         </a>
@@ -174,7 +163,7 @@ function FirmNameCell({ firm, siteOverrides }) {
               href={site.url}
               target="_blank"
               rel="noreferrer"
-              title={site.redirected ? `Filed as ${site.filed}` : undefined}
+              title={site.redirected && site.filed ? `Filed as ${site.filed}` : undefined}
             >
               {host} ↗
             </a>
@@ -195,18 +184,7 @@ function FirmLink({ firm, siteOverrides }) {
   const host = site.url ? websiteHost(site.url) : null
   return (
     <span className="rank-firm-name">
-      {host && (
-        <img
-          className="rank-favicon"
-          src={`https://icons.duckduckgo.com/ip3/${host}.ico`}
-          alt=""
-          width="14"
-          height="14"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none'
-          }}
-        />
-      )}
+      <FirmFavicon host={host} className="rank-favicon" />
       <a className="firm-link" href={path} onClick={(e) => navigate(e, path)}>
         {firm.business_name || firm.legal_name}
       </a>

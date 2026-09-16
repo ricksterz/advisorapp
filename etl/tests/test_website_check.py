@@ -95,6 +95,23 @@ def test_export_skips_a_firm_that_left_the_data(tmp_path, researched):
     assert "999" not in json.loads(out.read_text())["firms"]
 
 
+def test_research_applies_to_a_firm_with_no_usable_filed_website(tmp_path, researched):
+    # MARY & PIP files only a Substack. With platforms filtered at ingest its
+    # website_url is empty -- and that is exactly the case research exists for,
+    # so an empty filed URL must not be mistaken for "firm left the data".
+    db = _make_db(tmp_path, [REDIRECT])
+    con = duckdb.connect(str(db))
+    con.execute("INSERT INTO firms (crd, legal_name, website_url) VALUES (4, 'MARY & PIP', NULL)")
+    con.close()
+    researched({"4": {"name": "MARY & PIP", "url": "https://www.maryandpip.com/"}})
+    out = tmp_path / "overrides.json"
+    website_check.export_overrides(db, out)
+    entry = json.loads(out.read_text())["firms"]["4"]
+    assert entry["resolved"] == "https://www.maryandpip.com/"
+    assert entry["filed"] is None
+    assert entry["via"] == "research"
+
+
 def test_export_leaves_the_file_alone_when_nothing_was_crawled(tmp_path, researched):
     # A CI run that exports without crawling must not replace hundreds of
     # redirect entries with the researched list alone.
@@ -115,7 +132,7 @@ def test_shipped_researched_list_is_well_formed():
         # A name-guessed domain is how an earlier pass produced a porn site for
         # a $43B adviser; every entry here has to be a real, reachable host.
         assert website_check.norm_domain(entry["url"]), entry
-        assert not website_check.NON_FIRM.search(website_check.norm_domain(entry["url"])), entry
+        assert not website_check.is_platform(website_check.norm_domain(entry["url"])), entry
 
 
 @pytest.mark.parametrize(

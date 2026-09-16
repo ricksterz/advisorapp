@@ -40,7 +40,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
 import threading
 import time
@@ -55,6 +54,7 @@ import urllib3
 
 from etl.config import DB_PATH as DEFAULT_DB
 from etl.config import HTTP_HEADERS, REPO_ROOT, SCHEMA_PATH
+from etl.platforms import is_platform, registrable
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -83,19 +83,9 @@ RETRY_TIMEOUT = (12, 25)
 # Gateway responses mean a server answered but not about the site itself.
 TRANSIENT_HTTP = frozenset({502, 503, 504})
 
-# Platforms that are not a firm's own website. ingest_adv.pick_website already
-# screens the obvious social hosts, but the real filings reach further: a real
-# pull has Vanguard listing a Reddit user profile, Point72 an Apple podcast,
-# Bridgewater a SoundCloud page. Used here to avoid "fixing" a link by
-# redirecting it to another non-site.
-NON_FIRM = re.compile(
-    r"(^|\.)(facebook|linkedin|twitter|instagram|yelp|reddit|medium|soundcloud|"
-    r"youtube|youtu|blogspot|wordpress|wixsite|weebly|flickr|tumblr|substack|"
-    r"godaddysites|spotify|spoti|apple)\.(com|be|fi)$|"
-    r"(^|\.)podcasts\.apple\.com$|(^|\.)(blogspot|wordpress)\."
-)
-
-MULTI_PART_TLDS = {"co", "com", "org", "net", "gov", "ac"}
+# Platforms that are not a firm's own website live in etl/platforms.py, shared
+# with ingest -- used here to avoid "fixing" a link by redirecting it onto
+# another platform (spoti.fi resolves to open.spotify.com).
 
 
 def norm_domain(u: str) -> str:
@@ -104,21 +94,6 @@ def norm_domain(u: str) -> str:
     except ValueError:
         return ""
     return host.lower().removeprefix("www.")
-
-
-def registrable(domain: str) -> str:
-    """Crude eTLD+1 — enough to tell one company from another.
-
-    Deliberately simple: a full public-suffix list would be more correct but
-    the only decision it feeds is "same company or not", where the common
-    two-part suffixes (co.uk and friends) cover the real data.
-    """
-    parts = domain.split(".")
-    if len(parts) < 3:
-        return domain
-    if parts[-2] in MULTI_PART_TLDS and len(parts[-1]) == 2:
-        return ".".join(parts[-3:])
-    return ".".join(parts[-2:])
 
 
 def classify(status_code: int, start_domain: str, final_domain: str) -> str:
@@ -141,7 +116,7 @@ def check_url(url: str, session_factory, timeout: tuple[int, int] = TIMEOUT) -> 
     raw = url.strip()
     target = raw if "://" in raw else "https://" + raw
     out: dict = {"url": raw, "start_domain": norm_domain(target)}
-    if NON_FIRM.search(out["start_domain"]):
+    if is_platform(out["start_domain"]):
         out["status"] = "not_a_firm_site"
         return out
 
@@ -373,10 +348,13 @@ def export_overrides(db_path: Path, out_path: Path) -> bool:
               AND c.final_url IS NOT NULL
             """
         ).fetchall()
+        # Every firm, not just those with a website: a firm whose only filed
+        # addresses are platforms has no website_url at all, and those are
+        # exactly the firms the researched list exists for (MARY & PIP files
+        # only a Substack).
         filed_by_crd = dict(
             con.execute(
-                "SELECT CAST(crd AS VARCHAR), trim(website_url) FROM firms "
-                "WHERE website_url IS NOT NULL AND trim(website_url) <> ''"
+                "SELECT CAST(crd AS VARCHAR), nullif(trim(website_url), '') FROM firms"
             ).fetchall()
         )
     except duckdb.CatalogException:
@@ -387,7 +365,7 @@ def export_overrides(db_path: Path, out_path: Path) -> bool:
     firms: dict[str, dict] = {}
     skipped_non_firm = 0
     for crd, filed, final, final_domain in rows:
-        if NON_FIRM.search(final_domain or ""):
+        if is_platform(final_domain or ""):
             skipped_non_firm += 1
             continue
         firms[str(crd)] = {
@@ -406,9 +384,9 @@ def export_overrides(db_path: Path, out_path: Path) -> bool:
 
     researched = load_researched()
     for crd, url in researched.items():
-        filed = filed_by_crd.get(crd)
-        if not filed:
+        if crd not in filed_by_crd:
             continue  # firm dropped out of the data since the list was built
+        filed = filed_by_crd[crd]
         firms[crd] = {
             "filed": filed,
             "resolved": url,

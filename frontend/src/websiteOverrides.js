@@ -47,12 +47,41 @@ export function useWebsiteOverrides() {
  */
 export function resolveWebsite(overrides, crd, filedUrl) {
   const hit = overrides?.firms?.[String(crd)]
-  if (!hit?.resolved || !filedUrl) return { url: filedUrl, redirected: false }
-  return { url: hit.resolved, redirected: true, via: hit.via ?? 'redirect', filed: filedUrl }
+  const via = hit?.via ?? 'redirect'
+  if (!hit?.resolved) return { url: filedUrl, redirected: false }
+
+  // A researched site is a fact about the firm, so it holds even when the firm
+  // has no usable filed address at all — MARY & PIP files only a Substack.
+  if (via === 'research') {
+    return { url: hit.resolved, redirected: true, via, filed: filedUrl ?? null }
+  }
+
+  // A redirect is a fact about one specific URL. firms.json is rebuilt on every
+  // deploy but this file only on a data refresh, so the firm's chosen address
+  // can change underneath it (BLACKROCK FUND ADVISORS moved from a WeChat link
+  // to blackrock.com); applying the old redirect then would override a correct
+  // link with a stale one.
+  const sameUrl = !hit.filed || (filedUrl ?? '').trim() === hit.filed.trim()
+  if (!filedUrl || !sameUrl) return { url: filedUrl, redirected: false }
+  return { url: hit.resolved, redirected: true, via, filed: filedUrl }
 }
 
 /** What to show under a website link that no longer matches the filed one. */
 export function websiteNote(site) {
   if (!site.redirected) return 'firm website'
-  return site.via === 'research' ? 'firm website · filed a social link' : 'firm website · redirected'
+  if (site.via !== 'research') return 'firm website · redirected'
+  // Researched sites used to all be firms that filed only a social profile, so
+  // this read "filed a social link". Once ingest learned to pick the firm's own
+  // domain from everything it filed, most of those firms turned out to have
+  // filed their real site too — and a few researched entries exist for other
+  // reasons (GOLDMAN SACHS ASSET MANAGEMENT listed petershillpartners.com first).
+  // Only say anything when the link actually differs from what was filed.
+  const host = (u) => {
+    try {
+      return new URL(u).hostname.toLowerCase().replace(/^www\./, '')
+    } catch {
+      return null
+    }
+  }
+  return site.filed && host(site.filed) === host(site.url) ? 'firm website' : 'firm website · researched'
 }

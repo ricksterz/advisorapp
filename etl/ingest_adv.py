@@ -23,12 +23,14 @@ import re
 import sys
 import zipfile
 from pathlib import Path
+from urllib.parse import urlparse
 
 import duckdb
 import pandas as pd
 import requests
 
 from etl.config import DB_PATH, HTTP_HEADERS, RAW_DIR, SCHEMA_PATH
+from etl.platforms import host_of, is_platform, registrable
 
 # ---------------------------------------------------------------------------
 # Column mapping: schema field -> candidate ADV item headers, most recent
@@ -140,46 +142,148 @@ def to_bool(value) -> bool | None:
     return None
 
 
-# Item 1.I lists a firm's website *and* its social-media addresses in one
-# repeating field; only the website is worth a schema column.
-SOCIAL_HOST_TOKENS = (
-    "linkedin.",
-    "facebook.",
-    "instagram.",
-    "twitter.",
-    "youtube.",
-    "youtu.be",
-    "tiktok.",
-    "vimeo.",
-    "spotify.",
-    "pinterest.",
-    "threads.",
+# Item 1.I lists a firm's website alongside every social profile, podcast,
+# app-store listing and affiliate site it wants disclosed, in no meaningful
+# order. Large firms file dozens: BLACKROCK FUND ADVISORS files fifteen, and
+# the old rule -- first address that isn't a known social network -- showed it
+# as a WeChat account while blackrock.com sat ninth in the same list.
+#
+# The firm's name is the evidence for which filed address is its own site.
+# This only ever chooses among addresses the firm itself filed; it never
+# constructs a domain from the name. (Guessing domains from names was tried
+# for a different problem and matched a $43B adviser to a pornography site;
+# see etl/researched_websites.json.) With no name evidence at all, the firm's
+# own filed order stands, exactly as before.
+_NAME_SUFFIXES = frozenset(
+    {"llc", "lp", "llp", "lllp", "inc", "corp", "corporation", "co", "company",
+     "ltd", "limited", "plc", "the", "and", "of", "pc", "pllc", "na", "ab", "sa",
+     "ag", "bv", "gmbh"}
+)
+# First words too common to identify a firm on their own: "capital.com" is not
+# evidence for CAPITAL RESEARCH, nor "first.com" for FIRST MANHATTAN.
+_GENERIC_WORDS = frozenset(
+    {"first", "capital", "wealth", "global", "american", "national", "investment",
+     "investments", "financial", "advisors", "advisers", "asset", "assets",
+     "management", "partners", "group", "private", "united", "north", "south",
+     "east", "west", "great", "trust", "fund", "funds", "family", "office",
+     "planning", "retirement", "money", "strategic", "premier", "summit",
+     "legacy", "heritage"}
 )
 
 
-def pick_website(addresses) -> str | None:
-    """First address that isn't a social-media profile, normalized to have a
-    scheme; None when a firm only lists social profiles. Some filers cram
-    several URLs into one entry ("site.com; linkedin.com/…"), so entries are
-    split on whitespace and ;/& separators first."""
-    candidates = (
-        part
-        for addr in addresses
-        for part in re.split(r"[;\s&]+", (addr or "").strip())
-    )
-    for addr in candidates:
-        if not addr:
+def _compact(text: str | None) -> str:
+    return re.sub(r"[^a-z0-9]", "", (text or "").lower())
+
+
+def _name_words(text: str | None) -> list[str]:
+    # Collapse dotted abbreviations first: "L.P." is the suffix "lp", not the
+    # words "l" and "p" -- otherwise KOHLBERG KRAVIS ROBERTS & CO. L.P. has the
+    # initials "kkrlp" and never matches the kkr.com it filed.
+    text = re.sub(r"\b(?:[a-z]\.){2,}", lambda m: m.group(0).replace(".", ""), (text or "").lower())
+    return [w for w in re.sub(r"[^a-z0-9 ]", " ", text).split() if w]
+
+
+def name_match_level(label: str, name: str | None) -> int:
+    """How strongly a domain label identifies a firm name, 0 (not at all) to 4.
+
+    4  the label IS the name              edwardjones.com / EDWARD JONES
+    3  the label is its first two words   janushenderson.com / JANUS HENDERSON INVESTORS
+    2  its distinctive first word, or     blackrock.com / BLACKROCK FUND ADVISORS
+       its initials                       ifa.com / INDEX FUND ADVISORS, INC.
+    1  the label merely contains, or is   edwardjonescreditcard.com / EDWARD JONES
+       contained in, the name
+
+    The levels are what keep a longer name-containing domain from beating the
+    name itself: Edward Jones files both edwardjones.com and
+    edwardjonescreditcard.com, and only one of them is the firm.
+    """
+    lab = _compact(label)
+    core = [w for w in _name_words(name) if w not in _NAME_SUFFIXES]
+    if not lab or not core:
+        return 0
+    full, joined = _compact(name), "".join(core)
+    two, first = "".join(core[:2]), core[0]
+    # Initials with and without the legal suffix: ZEPHYR MANAGEMENT, L.P. is
+    # zmlp.com, INDEX FUND ADVISORS, INC. is ifa.com.
+    words = [w for w in _name_words(name) if w not in ("the", "and", "of")]
+    initials = {
+        "".join(w[0] for w in core),
+        "".join(w[0] for w in words),  # HERITAGE WEALTH MANAGEMENT, INC. -> hwmi
+        "".join(w[0] for w in core) + "".join(w for w in words if w in _NAME_SUFFIXES),
+    }
+    distinctive_first = len(first) >= 5 and first not in _GENERIC_WORDS
+    if lab in (full, joined):
+        return 4
+    if lab == two and len(two) >= 5:
+        return 3
+    if (distinctive_first and lab == first) or (len(lab) >= 3 and lab in initials):
+        return 2
+    if (
+        (len(lab) >= 4 and lab in full)
+        or (len(lab) >= 3 and full.startswith(lab))
+        or (len(two) >= 5 and two in lab)
+        or (distinctive_first and lab.startswith(first))
+    ):
+        return 1
+    return 0
+
+
+def _split_addresses(addresses) -> list[str]:
+    """Some filers cram several URLs into one entry ("site.com; linkedin.com/…").
+    Split on whitespace and semicolons -- not on "&", which is a query-string
+    separator and used to cut real URLs into garbage like
+    "-phelps-investment-management-co." -- and drop trailing sentence
+    punctuation ("thinkpinnacle.com.", "mjretirement.com,")."""
+    parts = []
+    for addr in addresses:
+        for part in re.split(r"[;\s]+", (addr or "").strip()):
+            part = part.rstrip(".,;:)")
+            if part:
+                parts.append(part)
+    return parts
+
+
+def pick_website(addresses, names=()) -> str | None:
+    """The firm's own website among its filed Item 1.I addresses, normalized
+    to have a scheme; None when every address is a platform (see
+    etl/platforms.py) or unparseable.
+
+    Ranked by, in order: how strongly the domain matches the firm's name
+    (business name breaking ties with the legal name, so WELLS FARGO ADVISORS
+    stays wellsfargoadvisors.com rather than its legal entity's clearing-
+    services site), .com over country mirrors (twosigma.com over twosigma.cn),
+    a bare domain over a subdomain, a homepage over a deep link, then filed
+    order. If no address matches the name at all, filed order alone decides.
+    """
+    names = [n for n in names if n]
+    ranked = []
+    for index, addr in enumerate(_split_addresses(addresses)):
+        host = host_of(addr)
+        if not host or is_platform(host):
             continue
-        host = re.sub(r"^https?://", "", addr, flags=re.IGNORECASE).split("/")[0].lower()
-        host = host.removeprefix("www.")
-        if not host or "." not in host:
-            continue
-        if host == "x.com" or host.endswith(".x.com"):
-            continue
-        if any(token in host for token in SOCIAL_HOST_TOKENS):
-            continue
-        return addr if re.match(r"https?://", addr, flags=re.IGNORECASE) else f"http://{addr}"
-    return None
+        url = addr if re.match(r"https?://", addr, flags=re.IGNORECASE) else f"http://{addr}"
+        parsed = urlparse(url)
+        try:
+            port = parsed.port
+        except ValueError:
+            port = None
+        domain = registrable(host)
+        label = domain.split(".")[0]
+        tld = host.rsplit(".", 1)[-1]
+        key = (
+            max((name_match_level(label, n) for n in names), default=0),
+            name_match_level(label, names[0]) if names else 0,
+            2 if tld == "com" else 1 if tld in ("net", "org", "co", "us", "io") else 0,
+            int(host == domain),
+            int(parsed.path in ("", "/") and not parsed.query and port is None),
+            -index,
+        )
+        ranked.append((key, url))
+    if not ranked:
+        return None
+    if max(key[0] for key, _ in ranked) == 0:
+        return ranked[0][1]
+    return max(ranked, key=lambda r: r[0])[1]
 
 
 def pct_range_midpoint(value) -> float | None:
@@ -270,9 +374,12 @@ def read_firm_feed(path: Path) -> pd.DataFrame:
                 # displayed than shouted, and there's no fixed code list to
                 # normalize against the way there is for US states.
                 "country": (attrs("MainAddr").get("Cntry") or "").strip() or None,
-                # Item 1.I: websites + social profiles in one repeating element
+                # Item 1.I: websites + social profiles in one repeating element.
+                # Business name first: it is the name the public knows, and it
+                # breaks ties against the legal entity's name.
                 "website_url": pick_website(
-                    el.text for el in firm.findall(".//Item1/WebAddrs/WebAddr")
+                    [el.text for el in firm.findall(".//Item1/WebAddrs/WebAddr")],
+                    names=(info.get("BusNm"), legal_name),
                 ),
                 "aum_discretionary": to_number(i5f.get("Q5F2A")),
                 "aum_non_discretionary": to_number(i5f.get("Q5F2B")),
