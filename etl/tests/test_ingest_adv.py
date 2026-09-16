@@ -135,7 +135,7 @@ def test_pick_website_business_name_breaks_a_tie_with_the_legal_name():
         "HTTPS://WWW.WELLSFARGOCLEARINGSERVICESLLC.COM",
     ]
     names = ("WELLS FARGO ADVISORS", "WELLS FARGO CLEARING SERVICES, LLC")
-    assert pick_website(filed, names=names).startswith("HTTPS://WWW.WELLSFARGOADVISORS.COM")
+    assert pick_website(filed, names=names) == "HTTPS://WWW.WELLSFARGOADVISORS.COM/WFA/MOBILE"
 
 
 def test_pick_website_matches_initials_through_a_dotted_legal_suffix():

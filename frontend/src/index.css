@@ -1736,14 +1736,24 @@ tbody tr:hover {
   }
 }
 
-/* 1120px is where five 200px tracks plus their gaps finally fit inside the
-   1200px shell (1064px of content). Below it, auto-fit would give four
-   tracks and orphan the fifth tile. */
-@media (min-width: 1120px) {
+/* The homepage has six stat tiles: three per row from tablet width up, so
+   they sit as an even 3 x 2 block. auto-fit used to put five in the first
+   row and leave "Outside the U.S." alone in the second, and six in a single
+   row squeezes the longer sub-lines onto three lines. */
+@media (min-width: 860px) {
   .tiles {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
   }
 
+  .tiles > :last-child:nth-child(odd) {
+    grid-column: auto;
+  }
+}
+
+/* 1120px is where five 200px tracks plus their gaps finally fit inside the
+   1200px shell (1064px of content). Below it, auto-fit would give four
+   tracks and orphan the fifth card. */
+@media (min-width: 1120px) {
   .kpi-strip {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
@@ -1752,7 +1762,6 @@ tbody tr:hover {
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
 
-  .tiles > :last-child:nth-child(odd),
   .kpi-strip > :last-child:nth-child(odd),
   .pattern-grid > :last-child:nth-child(odd) {
     grid-column: auto;
