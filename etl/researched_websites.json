@@ -1,5 +1,5 @@
 {
- "_note": "Real websites for firms whose filed Form ADV website is a social or content platform (Reddit, LinkedIn, Apple Podcasts, Medium, SoundCloud, Substack, Yelp). Every URL here was read off the firm's own site or off a web search result that named the firm. None is guessed from the firm's name: a name-guessing pass matched CAPITAL GROUP PRIVATE CLIENT SERVICES to a pornography site and FISHER INVESTMENTS to Emerson's Fisher valve brand, so that approach was discarded. Keyed by CRD. The filed website_url is never overwritten; this is a display layer on top of it.",
+ "_note": "Real websites for firms whose filed Form ADV website is a social or content platform (Reddit, LinkedIn, Apple Podcasts, Medium, SoundCloud, Substack, Yelp). Every URL here was read off the firm's own site or off a web search result that named the firm. None is guessed from the firm's name: a name-guessing pass matched CAPITAL GROUP PRIVATE CLIENT SERVICES to a pornography site and FISHER INVESTMENTS to Emerson's Fisher valve brand, so that approach was discarded. Keyed by CRD. The filed website_url is never overwritten; this is a display layer on top of it. A few entries (marked with a note) are not web research but a choice among the firm's own filed addresses, for firms whose public brand can't be matched from their legal name -- CAPITAL RESEARCH AND MANAGEMENT COMPANY is Capital Group, GC OPAL ADVISORS is Golub Capital.",
  "firms": {
   "105958": {
    "name": "VANGUARD GROUP INC",
@@ -564,6 +564,31 @@
   "339458": {
    "name": "ULTRA CAPITAL MANAGEMENT LLC",
    "url": "https://www.ultracapital.com/"
+  },
+  "110885": {
+   "name": "CAPITAL RESEARCH AND MANAGEMENT COMPANY",
+   "url": "https://www.capitalgroup.com/",
+   "note": "chosen from the firm's own filed Item 1.I addresses; its brand isn't derivable from its legal name, so automatic selection picked a different filed address"
+  },
+  "107738": {
+   "name": "GOLDMAN SACHS ASSET MANAGEMENT, L.P.",
+   "url": "https://am.gs.com/",
+   "note": "chosen from the firm's own filed Item 1.I addresses; its brand isn't derivable from its legal name, so automatic selection picked a different filed address"
+  },
+  "289425": {
+   "name": "GC OPAL ADVISORS LLC",
+   "url": "https://www.golubcapital.com/",
+   "note": "chosen from the firm's own filed Item 1.I addresses; its brand isn't derivable from its legal name, so automatic selection picked a different filed address"
+  },
+  "107027": {
+   "name": "FIRST TRUST ADVISORS LP",
+   "url": "https://www.ftportfolios.com/",
+   "note": "chosen from the firm's own filed Item 1.I addresses; its brand isn't derivable from its legal name, so automatic selection picked a different filed address"
+  },
+  "111097": {
+   "name": "U.S. GLOBAL INVESTORS, INC.",
+   "url": "https://www.usfunds.com/",
+   "note": "chosen from the firm's own filed Item 1.I addresses; its brand isn't derivable from its legal name, so automatic selection picked a different filed address"
   }
  }
 }
