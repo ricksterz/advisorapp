@@ -431,3 +431,58 @@ CREATE TABLE IF NOT EXISTS website_checks (
     error               VARCHAR,
     checked_at          TIMESTAMP
 );
+
+-- ---------------------------------------------------------------------------
+-- Form 13F institutional holdings (etl/form_13f.py) — SEC's Form 13F data
+-- sets, one zip per filing window. A 13F lists a manager's US-listed equity,
+-- ETF, option and convertible positions at quarter end; it is not total AUM.
+--
+-- Filers report their own CRD and SEC file number when they have one, so
+-- matching to firms is exact, never by name. Parent holding companies
+-- (BlackRock, Inc.; State Street Corp) file one combined 13F and name their
+-- subsidiary advisers as "included managers" — f13_included_managers keeps
+-- that link so a subsidiary is shown its parent's filing, not credited with
+-- the parent's whole portfolio.
+--
+-- Each data set also carries late filings for old periods (a 2001 quarter
+-- filed in 2026), so period is stored on every row and the export picks.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS f13_filings (
+    accession_number    VARCHAR PRIMARY KEY,
+    cik                 VARCHAR,
+    period              DATE,          -- quarter end the report covers
+    filing_date         DATE,
+    submission_type     VARCHAR,       -- 13F-HR, 13F-HR/A, 13F-NT, 13F-NT/A
+    amendment_type      VARCHAR,       -- RESTATEMENT replaces, NEW HOLDINGS adds
+    manager_name        VARCHAR,
+    city                VARCHAR,
+    state_or_country    VARCHAR,
+    crd                 BIGINT,        -- as filed; null for banks, holding cos, etc.
+    sec_file_number     VARCHAR,       -- 801-xxxxx when the filer is an adviser
+    stated_value        DOUBLE,        -- summary-page total, whole dollars since 2023
+    stated_entries      INTEGER,
+    source_archive      VARCHAR
+);
+
+CREATE TABLE IF NOT EXISTS f13_included_managers (
+    accession_number    VARCHAR,
+    sequence_number     INTEGER,
+    cik                 VARCHAR,
+    crd                 BIGINT,
+    sec_file_number     VARCHAR,
+    name                VARCHAR,
+    source_archive      VARCHAR
+);
+
+-- One row per filing x security x put/call. The raw information table repeats
+-- a security once per discretion / other-manager split; summed here.
+CREATE TABLE IF NOT EXISTS f13_holdings (
+    accession_number    VARCHAR,
+    cusip               VARCHAR,
+    issuer              VARCHAR,
+    title_of_class      VARCHAR,
+    put_call            VARCHAR,       -- null for the position itself; Put / Call are option notional
+    value               DOUBLE,        -- whole dollars as filed (see value_scale in the export)
+    shares              DOUBLE,
+    source_archive      VARCHAR
+);

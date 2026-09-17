@@ -1113,6 +1113,35 @@ tbody tr:hover {
   overflow-x: auto;
 }
 
+/* 13F holdings: full width like the private funds table it sits beside. */
+.holdings-card {
+  grid-column: 1 / -1;
+  overflow-x: auto;
+}
+
+.holdings-intro {
+  margin-top: 0;
+}
+
+.holdings-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  margin: 10px 0 14px;
+}
+
+.holdings-stat-value {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.holdings-stat-label {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
 .fund-tag {
   margin-left: 6px;
   padding: 1px 6px;
