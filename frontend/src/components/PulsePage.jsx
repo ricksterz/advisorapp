@@ -1,3 +1,4 @@
+import ScalingCard from './ScalingCard.jsx'
 import { navigate, pulsePath } from '../router.js'
 import {
   PULSE_META,
@@ -209,7 +210,7 @@ export function MethodologyFootnote({ metrics }) {
   )
 }
 
-export default function PulsePage() {
+export default function PulsePage({ firms }) {
   const stats = usePulseStats()
   if (stats === undefined) return <div className="state">Loading industry data…</div>
   if (stats === null) return <div className="state">Industry statistics are not available in this build.</div>
@@ -261,6 +262,8 @@ export default function PulsePage() {
         <CapitalFormationTile />
         <ServiceProvidersTile />
       </div>
+
+      <ScalingCard firms={firms} />
 
       <MethodologyFootnote metrics={['firms', 'concentration', 'median_aum', 'pct_disclosure', 'registrations']} />
     </section>

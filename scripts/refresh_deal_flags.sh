@@ -69,6 +69,9 @@ echo "== 8/13 refreshing private funds (Schedule D 7.B.1, reuses Pulse's cached 
 $PY -m etl.private_funds run --db data/advisor.duckdb
 $PY -m etl.private_fund_stats --db data/advisor.duckdb \
     --out frontend/public/private_funds.json --firm-out frontend/public/firm_private_funds.json
+# Each private fund manager's main fund type, for the firm list's filter.
+$PY -m etl.fund_types --funds frontend/public/firm_private_funds.json \
+    --out frontend/public/firm_fund_types.json
 
 echo "== 9/13 refreshing Form D capital formation (manual quarterly zips in data/raw/formd/) =="
 $PY -m etl.form_d load --db data/advisor.duckdb
@@ -118,5 +121,5 @@ echo "          frontend/public/individual_disclosures.json frontend/public/form
           frontend/public/service_providers.json frontend/public/firm_history.json \\
           frontend/public/firm_owners.json frontend/public/ownership_changes.json \\
           frontend/public/website_overrides.json frontend/public/favicons.json \\
-          frontend/public/form_13f.json"
+          frontend/public/form_13f.json frontend/public/firm_fund_types.json"
 echo "  git commit -m 'Refresh brochure corpus, advisor bios, private funds, disclosures, and sitemap'"

@@ -151,3 +151,47 @@ def test_export_advisor_bios_skips_when_empty_leaving_committed_file(tmp_path):
     n = export_advisor_bios(db, out)
     assert n == 0
     assert json.loads(out.read_text()) == {"committed": True}
+
+
+def test_segment_fields_pack_the_aum_mix_and_leave_out_unknowns():
+    from etl.export_json import segment_fields
+
+    row = {
+        "pct_aum_wealth": 85.0,
+        "pct_aum_registered_funds": 0.0,
+        "pct_aum_private_funds": 0.0,
+        "pct_aum_institutional": 15.5,
+        "aum_per_hnw_client": 40_000_000.4,
+        "also_broker_dealer": False,
+        "affil_broker_dealer": True,
+    }
+    assert segment_fields(row) == {
+        "aum_mix": [85, 0, 0, 15.5],
+        "aum_per_hnw_client": 40_000_000,
+        "broker_dealer": "affiliated",
+    }
+    unknown = dict.fromkeys(row)
+    assert segment_fields(unknown) == {}
+    assert segment_fields({**unknown, "also_broker_dealer": True, "affil_broker_dealer": True}) == {
+        "broker_dealer": "registered"
+    }
+
+
+def test_export_writes_segment_fields_per_firm(tmp_path):
+    from etl.export_json import export
+
+    db = tmp_path / "t.duckdb"
+    con = duckdb.connect(str(db))
+    con.execute(SCHEMA_PATH.read_text())
+    con.execute(
+        "INSERT INTO firms (crd, legal_name, aum_total, pct_aum_wealth, pct_aum_registered_funds, "
+        "pct_aum_private_funds, pct_aum_institutional, also_broker_dealer) "
+        "VALUES (1, 'A', 5, 100, 0, 0, 0, true), (2, 'B', 4, NULL, NULL, NULL, NULL, NULL)"
+    )
+    con.close()
+    out = tmp_path / "firms.json"
+    export(db, out)
+    firms = {f["crd"]: f for f in json.loads(out.read_text())["firms"]}
+    assert firms[1]["aum_mix"] == [100, 0, 0, 0]
+    assert firms[1]["broker_dealer"] == "registered"
+    assert "aum_mix" not in firms[2] and "broker_dealer" not in firms[2]
