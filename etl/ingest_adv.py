@@ -314,6 +314,42 @@ CLIENT_TYPE_LETTERS = {
 }
 ALL_CLIENT_LETTERS = [chr(c) for c in range(ord("A"), ord("N") + 1)]
 
+# Item 5.D column (3): regulatory AUM attributable to each client type, grouped
+# into the four business models the site segments firms by. Letters not named
+# here -- banks, pension plans, charities, governments, other advisers,
+# insurers, sovereign wealth, corporations, other -- are institutional.
+AUM_CLIENT_GROUPS = {
+    "pct_aum_wealth": "AB",  # individuals and high-net-worth individuals
+    "pct_aum_registered_funds": "DE",  # investment companies (mutual funds, ETFs) and BDCs
+    "pct_aum_private_funds": "F",  # pooled investment vehicles
+}
+
+
+def client_aum_fields(i5d: dict) -> dict:
+    """Item 5.D AUM by client type -> share per business-model group (0-100),
+    plus the average AUM per high-net-worth client.
+
+    The average feeds the family-office-style tag. A firm with fewer than five
+    HNW clients may tick that box instead of giving a count; four is then the
+    most it can have, so dividing by four gives a floor on the true average.
+    """
+    amounts = {L: to_number(i5d.get(f"Q5D{L}3")) or 0.0 for L in ALL_CLIENT_LETTERS}
+    total = sum(amounts.values())
+    out: dict = {}
+    for field, letters in AUM_CLIENT_GROUPS.items():
+        out[field] = round(sum(amounts[L] for L in letters) / total * 100, 1) if total else None
+    out["pct_aum_institutional"] = (
+        round(max(0.0, 100 - sum(out[f] for f in AUM_CLIENT_GROUPS)), 1) if total else None
+    )
+    hnw_clients = to_number(i5d.get("Q5DB1"))
+    if not hnw_clients and i5d.get("Q5DB2"):
+        hnw_clients = 4
+    out["aum_per_hnw_client"] = (
+        round(amounts["B"] / hnw_clients) if hnw_clients and amounts["B"] else None
+    )
+    return out
+
+
 FEED_FEE_ATTRS = {f"fee_{name}": f"Q5E{i}" for i, name in enumerate(
     ["pct_of_aum", "hourly", "subscription", "fixed", "commissions", "performance_based", "other"], start=1
 )}
@@ -357,7 +393,7 @@ def read_firm_feed(path: Path) -> pd.DataFrame:
                 continue
 
             i5a, i5b, i5d = attrs("Item5A"), attrs("Item5B"), attrs("Item5D")
-            i5e, i5f, i7a = attrs("Item5E"), attrs("Item5F"), attrs("Item7A")
+            i5e, i5f, i6a, i7a = attrs("Item5E"), attrs("Item5F"), attrs("Item6A"), attrs("Item7A")
 
             row: dict = {
                 "crd": int(crd),
@@ -397,6 +433,9 @@ def read_firm_feed(path: Path) -> pd.DataFrame:
             total_clients = sum(counts.values())
             for field, letter in CLIENT_TYPE_LETTERS.items():
                 row[field] = round(counts[letter] / total_clients * 100, 1) if total_clients else None
+            row.update(client_aum_fields(i5d))
+            # Item 6.A(1): the firm itself is also registered as a broker-dealer.
+            row["also_broker_dealer"] = to_bool(i6a.get("Q6A1"))
 
             for field, attr in FEED_FEE_ATTRS.items():
                 row[field] = to_bool(i5e.get(attr))

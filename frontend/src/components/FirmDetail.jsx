@@ -6,7 +6,7 @@ import { BASE, navigate } from '../router.js'
 import { DEAL_FLAG_DEFS, useDealFlags } from '../dealFlags.js'
 import { DISCLOSURE_FLAG_DEFS, useAdvisorBios } from '../advisorBios.js'
 import { PROVIDER_ROLE_LABELS, useFirmPrivateFunds } from '../privateFunds.js'
-import { fmtCompactUsd, fmtQuarter } from '../pulse.js'
+import { fmtCompactUsd, fmtQuarter, ordinal } from '../pulse.js'
 import { useFirmHistory } from '../firmHistory.js'
 import { useFirmOwners, useOwnershipChanges } from '../firmOwners.js'
 import { resolveWebsite, useWebsiteOverrides, websiteNote } from '../websiteOverrides.js'
@@ -14,6 +14,9 @@ import { TrendLine } from './PulsePage.jsx'
 import CopyLinkButton from './CopyLinkButton.jsx'
 import FirmFavicon from './FirmFavicon.jsx'
 import { useForm13f } from '../form13f.js'
+import { bandLabelOf, leverageHeadline, leverageProfile } from '../leverage.js'
+import { aumShare, firmSegment, firmTags, SEGMENT_BY_ID, useFundTypes } from '../segments.js'
+import LeverageCard from './LeverageCard.jsx'
 
 // Public IAPD document endpoints (all CORS-enabled, no key required).
 const firmApiUrl = (crd) => `https://api.adviserinfo.sec.gov/search/firm/${crd}`
@@ -22,6 +25,14 @@ const brochureUrl = (id) =>
 const advPdfUrl = (crd) => `https://reports.adviserinfo.sec.gov/reports/ADV/${crd}/PDF/${crd}.pdf`
 const crsUrl = (crd) => `https://reports.adviserinfo.sec.gov/crs/crs_${crd}.pdf`
 const iapdUrl = (crd) => `https://adviserinfo.sec.gov/firm/summary/${crd}`
+
+// Item 5.D column (3), grouped the way segments are.
+const AUM_MIX_GROUPS = [
+  ['wealth', 'Individuals & high-net-worth'],
+  ['private_funds', 'Private funds'],
+  ['registered_funds', 'Mutual funds, ETFs & BDCs'],
+  ['institutional', 'Institutions'],
+]
 
 const CLIENT_MIX_FIELDS = [
   ['pct_clients_individuals', 'Individuals'],
@@ -550,23 +561,24 @@ function usePageMeta(firm) {
   }, [firm])
 }
 
-// "How does this compare?" — live percentile ranks vs same-AUM-band peers,
-// computed client-side with the ranking engine's own percentiler (read-only
-// reuse; no ranking behavior is touched). Bands match the app's canonical
-// $100M/$1B/$10B cut points.
-const bandOf = (aum) => {
-  const v = aum ?? 0
-  if (v >= 1e10) return '$10B+'
-  if (v >= 1e9) return '$1B–$10B'
-  if (v >= 1e8) return '$100M–$1B'
-  return 'under $100M'
-}
+// "How does this compare?" — live percentile ranks vs same-segment,
+// same-AUM-band peers, computed client-side with the ranking engine's own
+// percentiler (read-only reuse; no ranking behavior is touched). Bands are the
+// operational leverage card's, so the header never names two different bands.
+const bandOf = (aum) => bandLabelOf(aum ?? 0)
 
 function CompareStrip({ firm, allFirms }) {
   if (!allFirms?.length) return null
   const band = bandOf(firm.aum_total)
-  const peers = allFirms.filter((f) => bandOf(f.aum_total) === band)
+  const inBand = allFirms.filter((f) => bandOf(f.aum_total) === band)
+  // Same business model first: a venture adviser's AUM per professional says
+  // nothing about a wealth manager's. Band-only when the segment is too thin.
+  const segment = firmSegment(firm)
+  const sameSegment = segment ? inBand.filter((f) => firmSegment(f) === segment) : []
+  const bySegment = sameSegment.length >= 10
+  const peers = bySegment ? sameSegment : inBand
   if (peers.length < 10) return null // a percentile over a handful of peers is noise
+  const peerLabel = bySegment ? SEGMENT_BY_ID[segment].plural : 'firms'
 
   const staff = staffOf(firm)
   const metrics = [
@@ -588,10 +600,12 @@ function CompareStrip({ firm, allFirms }) {
 
   return (
     <div className="compare-strip">
-      <span className="compare-title">vs {peers.length.toLocaleString()} peers ({band}):</span>
+      <span className="compare-title">
+        vs {peers.length.toLocaleString()} {peerLabel} ({band}):
+      </span>
       {metrics.filter((m) => m.have).map((m) => (
         <span key={m.label} className="compare-item">
-          {m.label} <strong>{Math.round(m.pct * 100)}th</strong> pctile
+          {m.label} <strong>{ordinal(Math.round(m.pct * 100))}</strong> pctile
         </span>
       ))}
       <span
@@ -626,6 +640,7 @@ function OutboundLink({ href, children, sub }) {
 export default function FirmDetail({ firm, crd, allFirms }) {
   const docs = useFirmDocs(crd)
   const overrides = useWebsiteOverrides()
+  const fundTypes = useFundTypes()
   usePageMeta(firm)
 
   if (!firm) {
@@ -643,6 +658,10 @@ export default function FirmDetail({ firm, crd, allFirms }) {
   const site = resolveWebsite(overrides, firm.crd, firm.website_url)
   const host = site.url ? websiteHost(site.url) : null
   const mixReported = CLIENT_MIX_FIELDS.some(([f]) => firm[f] != null)
+  const segment = firmSegment(firm)
+  const tags = firmTags(firm, fundTypes)
+  const leverage = leverageProfile(firm, allFirms)
+  const aumMixReported = firm.aum_mix != null
   const discShare = firm.aum_total
     ? Math.max(0, Math.min(1, (firm.aum_discretionary ?? 0) / firm.aum_total))
     : null
@@ -674,6 +693,21 @@ export default function FirmDetail({ firm, crd, allFirms }) {
           CRD {firm.crd}
           {firm.state && <> · {firm.state}</>}
         </p>
+        {segment && (
+          <div className="segment-row">
+            <span className="segment-chip" title={SEGMENT_BY_ID[segment].description}>
+              {SEGMENT_BY_ID[segment].label}
+            </span>
+            {tags.map((t) => (
+              <span key={t.id} className="segment-tag" title={t.title}>
+                {t.label}
+              </span>
+            ))}
+          </div>
+        )}
+        {leverage && (
+          <p className="detail-headline">{leverageHeadline(leverage, firm.aum_total, fmtCompactUsd)}</p>
+        )}
         <CompareStrip firm={firm} allFirms={allFirms} />
       </div>
 
@@ -737,6 +771,8 @@ export default function FirmDetail({ firm, crd, allFirms }) {
         </div>
       </div>
 
+      <LeverageCard profile={leverage} firm={firm} />
+
       <FirmHistoryCard crd={firm.crd} />
       <OwnersCard crd={firm.crd} />
       <OwnershipChangesCard crd={firm.crd} />
@@ -744,6 +780,25 @@ export default function FirmDetail({ firm, crd, allFirms }) {
       <div className="detail-grid">
         <div className="detail-card">
           <h2>Client mix</h2>
+          {aumMixReported && (
+            <>
+              <h3 className="mix-subhead">Share of AUM</h3>
+              <div className="mix-bars">
+                {AUM_MIX_GROUPS.map(([field, label]) => {
+                  const v = aumShare(firm, field)
+                  if (v == null || v === 0) return null
+                  return (
+                    <div key={field} className="mix-row">
+                      <span className="mix-label">{label}</span>
+                      <span className="track"><span className="fill" style={{ width: `${Math.min(100, v)}%` }} /></span>
+                      <span className="mix-pct">{Math.round(v)}%</span>
+                    </div>
+                  )
+                })}
+              </div>
+              <h3 className="mix-subhead">Share of clients</h3>
+            </>
+          )}
           {mixReported ? (
             <div className="mix-bars">
               {CLIENT_MIX_FIELDS.map(([field, label]) => {

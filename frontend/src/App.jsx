@@ -25,7 +25,15 @@ import { useAllAdvisorBios } from './advisorBios.js'
 import { computeDealPatterns } from './dealPatterns.js'
 import { resolveWebsite, useWebsiteOverrides } from './websiteOverrides.js'
 import { SORT_DEFS, makeComparator } from './firmSort.js'
-import { isFamilyOffice } from './familyOffice.js'
+import {
+  FUND_TYPE_LABELS,
+  SEGMENT_BY_ID,
+  SEGMENTS,
+  firmSegment,
+  hasBrokerDealerTies,
+  isFamilyOfficeStyle,
+  useFundTypes,
+} from './segments.js'
 import FirmFavicon from './components/FirmFavicon.jsx'
 
 const compactUsd = (v) => {
@@ -143,6 +151,7 @@ function SortHeader({ id, children, sortField, sortDir, onSort, className }) {
 function FirmNameCell({ firm, siteOverrides }) {
   const site = resolveWebsite(siteOverrides, firm.crd, firm.website_url)
   const host = site.url ? websiteHost(site.url) : null
+  const segment = firmSegment(firm)
   return (
     <>
       <div className="firm-name">
@@ -155,6 +164,7 @@ function FirmNameCell({ firm, siteOverrides }) {
         <a className="crd-link" href={iapdUrl(firm.crd)} target="_blank" rel="noreferrer">
           CRD {firm.crd}
         </a>
+        {segment && <> · {SEGMENT_BY_ID[segment].label}</>}
         {host && (
           <>
             {' · '}
@@ -270,6 +280,9 @@ export default function App() {
   const [flaggedOnly, setFlaggedOnly] = useState(false)
   const [bioOnly, setBioOnly] = useState(false)
   const [familyOfficeOnly, setFamilyOfficeOnly] = useState(false)
+  const [brokerDealerOnly, setBrokerDealerOnly] = useState(false)
+  const [segmentFilter, setSegmentFilter] = useState('')
+  const [fundTypeFilter, setFundTypeFilter] = useState('')
   const [dealFilters, setDealFilters] = useState({})
   const [sortField, setSortField] = useState('aum')
   const [sortDir, setSortDir] = useState(SORT_DEFS.aum.defaultDir)
@@ -309,6 +322,7 @@ export default function App() {
   // ~12% of firms have any bios on file, so a filter/column here is what
   // actually lets someone find one instead of guessing at random firms.
   const advisorBiosData = useAllAdvisorBios()
+  const fundTypes = useFundTypes()
   const siteOverrides = useWebsiteOverrides()
 
   const stats = useMemo(() => {
@@ -368,7 +382,10 @@ export default function App() {
         if (perfOnly && !f.fee_performance_based) return false
         if (flaggedOnly && !(f.disciplinary_flag_count > 0)) return false
         if (bioOnly && !(advisorBiosData?.firms?.[String(f.crd)]?.length > 0)) return false
-        if (familyOfficeOnly && !isFamilyOffice(f)) return false
+        if (familyOfficeOnly && !isFamilyOfficeStyle(f)) return false
+        if (brokerDealerOnly && !hasBrokerDealerTies(f)) return false
+        if (segmentFilter && firmSegment(f) !== segmentFilter) return false
+        if (fundTypeFilter && fundTypes?.firms?.[String(f.crd)] !== fundTypeFilter) return false
         if (activeDealFilters.length) {
           const flags = dealFlagsData?.firms?.[String(f.crd)]
           if (!flags || !activeDealFilters.every((d) => flags[d.id])) return false
@@ -389,6 +406,10 @@ export default function App() {
     flaggedOnly,
     bioOnly,
     familyOfficeOnly,
+    brokerDealerOnly,
+    segmentFilter,
+    fundTypeFilter,
+    fundTypes,
     sortField,
     sortDir,
     activeDealFilters,
@@ -448,7 +469,7 @@ export default function App() {
           ) : pulse === 'service-providers' ? (
             <DrilldownServiceProviders />
           ) : (
-            <PulsePage />
+            <PulsePage firms={data?.firms} />
           )}
         </main>
       ) : (
@@ -676,6 +697,34 @@ export default function App() {
                   <option key={p.min} value={p.min}>{p.label}</option>
                 ))}
               </select>
+              <select
+                value={segmentFilter}
+                onChange={(e) => {
+                  setSegmentFilter(e.target.value)
+                  setFundTypeFilter('')
+                  resetPage()
+                }}
+                aria-label="Business model"
+                title="Where the firm says most of its AUM comes from (Form ADV Item 5.D)"
+              >
+                <option value="">All business models</option>
+                {SEGMENTS.map((seg) => (
+                  <option key={seg.id} value={seg.id}>{seg.label}</option>
+                ))}
+              </select>
+              {segmentFilter === 'private_funds' && fundTypes && (
+                <select
+                  value={fundTypeFilter}
+                  onChange={(e) => { setFundTypeFilter(e.target.value); resetPage() }}
+                  aria-label="Main fund type"
+                  title="The fund type holding over half the firm’s private fund assets (Schedule D 7.B.1)"
+                >
+                  <option value="">All fund types</option>
+                  {Object.entries(FUND_TYPE_LABELS).map(([id, label]) => (
+                    <option key={id} value={id}>{label}</option>
+                  ))}
+                </select>
+              )}
               <button
                 type="button"
                 className="chip"
@@ -708,10 +757,19 @@ export default function App() {
                 type="button"
                 className="chip"
                 aria-pressed={familyOfficeOnly}
-                title="Firms with “family office” in their filed name — a name match, not a legal classification. Most true single-family offices are exempt from registering at all and never appear here."
+                title="Firms that call themselves a family office, plus wealth managers averaging $25M+ per high-net-worth client. Not a legal classification: single-family offices are exempt from registering and never appear here."
                 onClick={() => { setFamilyOfficeOnly(!familyOfficeOnly); resetPage() }}
               >
-                Family office
+                Family-office style
+              </button>
+              <button
+                type="button"
+                className="chip"
+                aria-pressed={brokerDealerOnly}
+                title="Also registered as a broker-dealer (Item 6.A) or affiliated with one (Item 7.A)"
+                onClick={() => { setBrokerDealerOnly(!brokerDealerOnly); resetPage() }}
+              >
+                Broker-dealer ties
               </button>
               {dealFlagsData !== null &&
                 DEAL_FLAG_DEFS.map((d) => (

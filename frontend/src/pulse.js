@@ -46,6 +46,13 @@ export const fmtCompactUsd = (v) => {
   return `$${Math.round(v).toLocaleString()}`
 }
 
+// 1st, 2nd, 3rd, 11th, 12th, 13th, 21st...
+export const ordinal = (n) => {
+  const tens = n % 100
+  if (tens >= 11 && tens <= 13) return `${n}th`
+  return `${n}${{ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] ?? 'th'}`
+}
+
 export const fmtCount = (v) => (v == null ? '—' : Math.round(v).toLocaleString())
 
 export const fmtPct = (v) => (v == null ? '—' : `${(v * 100).toFixed(1)}%`)

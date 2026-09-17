@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { deltaView, fmtCompactUsd, fmtCount, fmtPct, fmtQuarter } from './pulse.js'
+import { deltaView, fmtCompactUsd, fmtCount, fmtPct, fmtQuarter, ordinal } from './pulse.js'
 
 describe('fmtQuarter', () => {
   it('renders quarter-end ISO dates as Q-labels', () => {
@@ -93,5 +93,13 @@ describe('concentration', () => {
   it('returns null share when a quarter has no band totals', async () => {
     const { concentrationSeries } = await import('./pulse.js')
     expect(concentrationSeries([{ bands: [{ id: '10b+', raum: 0 }] }])).toEqual([null])
+  })
+})
+
+describe('ordinal', () => {
+  it('uses st/nd/rd except in the teens', () => {
+    expect([1, 2, 3, 4, 11, 12, 13, 21, 22, 83, 100, 111].map(ordinal)).toEqual([
+      '1st', '2nd', '3rd', '4th', '11th', '12th', '13th', '21st', '22nd', '83rd', '100th', '111th',
+    ])
   })
 })

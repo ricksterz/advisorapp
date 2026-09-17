@@ -54,16 +54,54 @@ EXPORT_COLUMNS = [
 ]
 
 
+# Segment inputs, packed: spelled out as seven keys on every firm they added
+# 3.3 MB (30%) to a file every visitor downloads.
+AUM_MIX_COLUMNS = [
+    "pct_aum_wealth",
+    "pct_aum_registered_funds",
+    "pct_aum_private_funds",
+    "pct_aum_institutional",
+]
+SEGMENT_COLUMNS = [*AUM_MIX_COLUMNS, "aum_per_hnw_client", "also_broker_dealer", "affil_broker_dealer"]
+
+
+def _number(v):
+    return int(v) if v is not None and float(v).is_integer() else v
+
+
+def segment_fields(row: dict) -> dict:
+    """aum_mix: [wealth, registered funds, private funds, institutional] shares
+    of AUM (0-100), in that order. Keys are left out when there's nothing to
+    say -- the site reads a missing key as unknown / no."""
+    out: dict = {}
+    mix = [row[c] for c in AUM_MIX_COLUMNS]
+    if all(v is not None for v in mix):
+        out["aum_mix"] = [_number(v) for v in mix]
+    if row["aum_per_hnw_client"] is not None:
+        out["aum_per_hnw_client"] = _number(round(row["aum_per_hnw_client"]))
+    if row["also_broker_dealer"]:
+        out["broker_dealer"] = "registered"
+    elif row["affil_broker_dealer"]:
+        out["broker_dealer"] = "affiliated"
+    return out
+
+
 def export(db_path: Path, out_path: Path) -> int:
     if not db_path.exists():
         sys.exit(f"error: {db_path} not found — run `python -m etl.ingest_adv` first")
     con = duckdb.connect(str(db_path), read_only=True)
     try:
         # column names come from the EXPORT_COLUMNS constant, not external input
+        columns = EXPORT_COLUMNS + SEGMENT_COLUMNS
         result = con.execute(
-            f"SELECT {', '.join(EXPORT_COLUMNS)} FROM firms ORDER BY aum_total DESC NULLS LAST"  # nosec B608
+            f"SELECT {', '.join(columns)} FROM firms ORDER BY aum_total DESC NULLS LAST"  # nosec B608
         )
-        firms = [dict(zip(EXPORT_COLUMNS, row)) for row in result.fetchall()]
+        firms = []
+        for values in result.fetchall():
+            row = dict(zip(columns, values))
+            firm = {c: row[c] for c in EXPORT_COLUMNS}
+            firm.update(segment_fields(row))
+            firms.append(firm)
     finally:
         con.close()
 

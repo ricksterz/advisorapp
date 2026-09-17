@@ -36,6 +36,14 @@ CREATE TABLE IF NOT EXISTS firms (
     pct_clients_pooled_vehicles DOUBLE,           -- funds the firm advises
     pct_clients_corporations    DOUBLE,
     pct_clients_other           DOUBLE,
+    -- Item 5.D column (3): share of the AUM the firm attributes to client
+    -- types (0-100), grouped by business model. Segments come from these.
+    pct_aum_wealth              DOUBLE,           -- individuals + high-net-worth
+    pct_aum_registered_funds    DOUBLE,           -- mutual funds, ETFs, BDCs
+    pct_aum_private_funds       DOUBLE,           -- pooled investment vehicles
+    pct_aum_institutional       DOUBLE,           -- everyone else
+    aum_per_hnw_client          DOUBLE,           -- floor when "fewer than 5" was ticked
+    also_broker_dealer          BOOLEAN,          -- Item 6.A(1): dually registered
 
     -- Item 5.E: compensation / fee structure (checkboxes on the form)
     fee_pct_of_aum          BOOLEAN,
@@ -56,6 +64,17 @@ CREATE TABLE IF NOT EXISTS firms (
     -- Item 11: disciplinary disclosures
     disciplinary_flag_count INTEGER DEFAULT 0
 );
+
+-- Columns added after firms was first created. CREATE TABLE IF NOT EXISTS
+-- leaves an existing table alone, so add them explicitly: rebuilding the
+-- database would throw away every derived table with it.
+ALTER TABLE firms ADD COLUMN IF NOT EXISTS pct_aum_wealth DOUBLE;
+ALTER TABLE firms ADD COLUMN IF NOT EXISTS pct_aum_registered_funds DOUBLE;
+ALTER TABLE firms ADD COLUMN IF NOT EXISTS pct_aum_private_funds DOUBLE;
+ALTER TABLE firms ADD COLUMN IF NOT EXISTS pct_aum_institutional DOUBLE;
+ALTER TABLE firms ADD COLUMN IF NOT EXISTS aum_per_hnw_client DOUBLE;
+ALTER TABLE firms ADD COLUMN IF NOT EXISTS also_broker_dealer BOOLEAN;
+
 
 -- Individual advisors. The original version of this table used
 -- `crd BIGINT PRIMARY KEY` as the sole identity, which assumes every

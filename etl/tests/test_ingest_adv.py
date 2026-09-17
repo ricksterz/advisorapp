@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 
 from etl.ingest_adv import (
+    client_aum_fields,
     extract_firms,
     load,
     name_match_level,
@@ -73,6 +74,12 @@ def test_read_firm_feed(tmp_path):
     assert crest["pct_clients_individuals"] == 60.0
     assert crest["pct_clients_hnw_individuals"] == 30.0
     assert crest["pct_clients_pension_plans"] == 10.0
+    # Item 5.D column (3): $500M individuals + $1.2B HNW of $2B, $300M pension
+    assert crest["pct_aum_wealth"] == 85.0
+    assert crest["pct_aum_institutional"] == 15.0
+    assert crest["pct_aum_private_funds"] == 0.0
+    assert crest["aum_per_hnw_client"] == 40_000_000  # $1.2B over 30 HNW clients
+    assert crest["also_broker_dealer"]  # Item 6.A(1)
     assert crest["fee_pct_of_aum"] and crest["fee_fixed"] and crest["fee_performance_based"]
     assert not crest["fee_hourly"]
     assert crest["affil_broker_dealer"] and crest["affil_pooled_vehicle_sponsor"]
@@ -84,6 +91,9 @@ def test_read_firm_feed(tmp_path):
     assert pd.isna(plains["country"])
     assert pd.isna(plains["website_url"])  # no Item 1.I websites listed
     assert plains["pct_clients_individuals"] == 100.0
+    assert plains["pct_aum_wealth"] == 100.0
+    assert pd.isna(plains["aum_per_hnw_client"])  # no HNW clients
+    assert not plains["also_broker_dealer"]
     assert plains["affil_count"] == 0
     assert plains["disciplinary_flag_count"] == 0
 
@@ -193,3 +203,26 @@ def test_pick_website_drops_trailing_punctuation():
 )
 def test_name_match_level(label, name, level):
     assert name_match_level(label, name) == level
+
+
+def test_client_aum_fields_groups_client_types_by_business_model():
+    fields = client_aum_fields(
+        {"Q5DB3": "200", "Q5DD3": "100", "Q5DE3": "100", "Q5DF3": "500", "Q5DL3": "100"}
+    )
+    assert fields["pct_aum_wealth"] == 20.0
+    assert fields["pct_aum_registered_funds"] == 20.0  # mutual funds/ETFs + BDCs
+    assert fields["pct_aum_private_funds"] == 50.0
+    assert fields["pct_aum_institutional"] == 10.0  # sovereign wealth
+
+
+def test_client_aum_fields_fewer_than_five_hnw_clients_gives_a_floor():
+    # Ticking "fewer than 5 clients" instead of a count: at most 4 clients.
+    fields = client_aum_fields({"Q5DB2": "Fewer than 5 clients", "Q5DB3": "200000000"})
+    assert fields["aum_per_hnw_client"] == 50_000_000
+
+
+def test_client_aum_fields_without_amounts_is_unknown_not_zero():
+    fields = client_aum_fields({"Q5DA1": "10"})
+    assert fields["pct_aum_wealth"] is None
+    assert fields["pct_aum_institutional"] is None
+    assert fields["aum_per_hnw_client"] is None
