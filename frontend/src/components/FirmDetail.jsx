@@ -13,6 +13,7 @@ import { resolveWebsite, useWebsiteOverrides, websiteNote } from '../websiteOver
 import { TrendLine } from './PulsePage.jsx'
 import CopyLinkButton from './CopyLinkButton.jsx'
 import FirmFavicon from './FirmFavicon.jsx'
+import { useForm13f } from '../form13f.js'
 
 // Public IAPD document endpoints (all CORS-enabled, no key required).
 const firmApiUrl = (crd) => `https://api.adviserinfo.sec.gov/search/firm/${crd}`
@@ -129,6 +130,82 @@ function DealStructuringCard({ crd }) {
         Keyword scan of the firm’s Form ADV Part 2A brochure(s) — a flag means the language
         appears affirmatively; it is context, not a finding. Read the brochure itself (linked
         above) before drawing conclusions.
+      </p>
+    </div>
+  )
+}
+
+function Form13fCard({ crd, firmName }) {
+  const view = useForm13f(crd)
+  if (!view) return null // loading, unavailable, or no 13F coverage for this firm
+  const { filer, own, period, filingUrl } = view
+  const reliable = filer.values_reliable
+  return (
+    <div className="detail-card holdings-card">
+      <h2>13F equity holdings</h2>
+      <p className="detail-note holdings-intro">
+        {own ? (
+          <>
+            {fmtQuarter(period)} filing by {filer.name}
+            {/\.$/.test(filer.name) ? '' : '.'}
+          </>
+        ) : (
+          <>
+            {firmName} doesn’t file its own 13F. Its holdings are reported in{' '}
+            <strong>{filer.name}</strong>’s combined {fmtQuarter(period)} filing, and the figures
+            below are that whole combined report, not this firm’s share of it.
+          </>
+        )}
+      </p>
+      <div className="holdings-stats">
+        <div>
+          <div className="holdings-stat-value">{reliable ? fmtCompactUsd(filer.value) : '—'}</div>
+          <div className="holdings-stat-label">reported value</div>
+        </div>
+        <div>
+          <div className="holdings-stat-value">{filer.positions.toLocaleString()}</div>
+          <div className="holdings-stat-label">positions</div>
+        </div>
+        {reliable && filer.options_value ? (
+          <div>
+            <div className="holdings-stat-value">{fmtCompactUsd(filer.options_value)}</div>
+            <div className="holdings-stat-label">options, notional</div>
+          </div>
+        ) : null}
+      </div>
+      {filer.top.length > 0 && (
+        <table className="pulse-table">
+          <thead>
+            <tr>
+              <th>Largest positions</th>
+              {reliable && <th className="num">Share</th>}
+              {reliable && <th className="num">Value</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {filer.top.map((h) => (
+              <tr key={h.cusip}>
+                <td>{h.issuer}</td>
+                {reliable && <td className="num">{(h.pct * 100).toFixed(1)}%</td>}
+                {reliable && <td className="num">{fmtCompactUsd(h.value)}</td>}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <p className="detail-note">
+        A 13F lists US-listed stocks, ETFs, options and convertibles held at quarter end. It
+        isn’t assets under management: bonds, private funds and cash never appear on it. Options
+        are shown as notional value and kept out of the total.
+        {!reliable && ' This filing’s dollar amounts don’t reconcile with market prices, so its largest positions are listed without dollar figures.'}
+        {filingUrl && (
+          <>
+            {' '}
+            <a href={filingUrl} target="_blank" rel="noreferrer">
+              View the filing on SEC.gov ↗
+            </a>
+          </>
+        )}
       </p>
     </div>
   )
@@ -705,6 +782,7 @@ export default function FirmDetail({ firm, crd, allFirms }) {
 
         <DealStructuringCard crd={firm.crd} />
         <PrivateFundsCard crd={firm.crd} />
+        <Form13fCard crd={firm.crd} firmName={firm.business_name || firm.legal_name} />
         <AdvisorBiosCard crd={firm.crd} />
       </div>
 

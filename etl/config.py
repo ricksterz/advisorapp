@@ -19,3 +19,19 @@ ADV_BULK_INDEX_URL = "https://adviserinfo.sec.gov/compilation"
 HTTP_HEADERS = {
     "User-Agent": "advisorapp research tool (github.com/ricksterz/advisorapp)"
 }
+
+
+def sec_www_headers() -> dict[str, str]:
+    """Headers for www.sec.gov, which (unlike reports.adviserinfo.sec.gov)
+    403s any automated client that doesn't identify a contact, per SEC's
+    fair-access policy. The contact comes from the SEC_CONTACT_EMAIL
+    environment variable so it is never committed to the repository."""
+    import os
+
+    email = os.environ.get("SEC_CONTACT_EMAIL", "").strip()
+    if not email:
+        raise SystemExit(
+            "error: set SEC_CONTACT_EMAIL to a real contact address; www.sec.gov "
+            "rejects automated requests that don't declare one"
+        )
+    return {"User-Agent": f"Open Disclosure research {email}"}
