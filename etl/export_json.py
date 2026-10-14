@@ -14,7 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import duckdb
@@ -106,7 +106,7 @@ def export(db_path: Path, out_path: Path) -> int:
         con.close()
 
     payload = {
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "count": len(firms),
         "firms": firms,
     }
@@ -150,7 +150,7 @@ def export_deal_flags(db_path: Path, out_path: Path) -> int:
             entry["evidence"] = json.loads(evidence)
         flags[str(crd)] = entry
     payload = {
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "firms": flags,
     }
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -227,7 +227,7 @@ def export_advisor_bios(db_path: Path, out_path: Path) -> int:
             entry["disclosures"] = disclosures_by_crd[crd]
         firms.setdefault(str(firm_crd), []).append(entry)
     payload = {
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "firms": firms,
     }
     out_path.parent.mkdir(parents=True, exist_ok=True)

@@ -51,7 +51,7 @@ import re
 import sys
 import tempfile
 import zipfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from statistics import median
 
@@ -454,7 +454,7 @@ def export(db_path: Path, out_path: Path) -> bool:
 
     referenced = {f["cik"] for f in firms.values()}
     payload = {
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "period": str(period),
         "summary": {
             "filers": len(filers),

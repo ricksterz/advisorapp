@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 SITEMAP_URL_LIMIT = 50_000  # protocol cap per sitemap file
@@ -22,7 +22,7 @@ SITEMAP_URL_LIMIT = 50_000  # protocol cap per sitemap file
 def generate(data_path: Path, site: str, out_dir: Path) -> int:
     payload = json.loads(data_path.read_text())
     site = site.rstrip("/")
-    lastmod = (payload.get("generated_at") or datetime.now(timezone.utc).isoformat())[:10]
+    lastmod = (payload.get("generated_at") or datetime.now(UTC).isoformat())[:10]
 
     static_pages = [
         "",

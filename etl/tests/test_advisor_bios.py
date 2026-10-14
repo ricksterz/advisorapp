@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import duckdb
 
@@ -457,7 +457,7 @@ def _db_with_brochure(tmp_path, version_id, firm_crd, cache_dir, text):
     con.execute("INSERT INTO firms (crd, legal_name) VALUES (?, ?)", [firm_crd, f"FIRM {firm_crd}"])
     con.execute(
         "INSERT INTO brochures (version_id, firm_crd, name, fetched_at, text_chars) VALUES (?, ?, ?, ?, ?)",
-        [version_id, firm_crd, "ADV 2B", datetime.now(timezone.utc), len(text)],
+        [version_id, firm_crd, "ADV 2B", datetime.now(UTC), len(text)],
     )
     con.close()
     cache_dir.mkdir(parents=True, exist_ok=True)

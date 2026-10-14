@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import duckdb
 
@@ -24,8 +24,8 @@ def _make_db(tmp_path, with_flags):
             """,
             [
                 json.dumps({"proprietary_funds": "places clients in affiliated funds"}),
-                datetime.now(timezone.utc),
-                datetime.now(timezone.utc),
+                datetime.now(UTC),
+                datetime.now(UTC),
             ],
         )
     con.close()
@@ -63,7 +63,7 @@ def _make_db_with_advisors(tmp_path):
     con = duckdb.connect(str(db))
     con.execute(SCHEMA_PATH.read_text())
     con.execute("INSERT INTO firms (crd, legal_name) VALUES (1, 'ACME'), (2, 'BETA')")
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     con.execute(
         """
         INSERT INTO advisors
@@ -111,7 +111,7 @@ def test_export_advisor_bios_joins_individual_disclosures_by_crd(tmp_path):
              'https://adviserinfo.sec.gov/individual/summary/4665596',
              'IA_INDVL_Feed_01_01_2026.xml.zip', ?)
         """,
-        [datetime.now(timezone.utc)],
+        [datetime.now(UTC)],
     )
     con.close()
 

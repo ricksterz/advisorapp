@@ -1,6 +1,6 @@
 import io
 import zipfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import duckdb
 
@@ -104,7 +104,7 @@ def test_stage_load_replaces_table_wholesale(tmp_path):
     # as local wall-clock time (verified separately), which would make
     # individual_disclosures_stats.py's as_of wrong on any non-UTC machine.
     fetched_at = con.execute("SELECT fetched_at FROM individual_disclosures_meta").fetchone()[0]
-    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+    now_utc = datetime.now(UTC).replace(tzinfo=None)
     assert abs((fetched_at - now_utc).total_seconds()) < 60
 
     # A later daily file supersedes the last one entirely.

@@ -35,7 +35,7 @@ import argparse
 import json
 import sys
 import zipfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import duckdb
@@ -302,7 +302,7 @@ def export_firm_owners(db_path: Path, out_path: Path) -> bool:
 
     body = json.dumps(
         {
-            "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
             "firms": payload_firms,
         },
         separators=(",", ":"),

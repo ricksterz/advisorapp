@@ -21,7 +21,10 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-      - run: pip install -r requirements.txt pytest ruff
+      # ruff is pinned: an unpinned install picked up 0.17.0's new default
+      # rules mid-week and failed every open PR on code none of them touched.
+      # Bump it deliberately, together with whatever fixes the new version asks for.
+      - run: pip install -r requirements.txt pytest ruff==0.17.0
       - name: Lint
         run: ruff check .
       - name: Tests

@@ -36,7 +36,7 @@ import argparse
 import json
 import re
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import duckdb
@@ -184,7 +184,7 @@ def export_private_fund_stats(db_path: Path, out_path: Path) -> int:
         series = quarterly_series(con, quarters) if quarters else []
 
         payload = {
-            "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
             "as_of": str(as_of),
             "total_funds": n_funds,
             "total_firms": n_firms,
@@ -263,7 +263,7 @@ def export_firm_private_funds(db_path: Path, out_path: Path) -> int:
             }
         )
     payload = {
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "firms": firms,
     }
     out_path.parent.mkdir(parents=True, exist_ok=True)

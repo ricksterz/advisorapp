@@ -16,7 +16,7 @@ def _make_db(tmp_path):
     con.execute(SCHEMA_PATH.read_text())
     # Naive UTC, matching what stage_load() now stores (see its comment on
     # DuckDB's silent local-timezone reinterpretation of tz-aware datetimes).
-    now = datetime(2026, 7, 28)  # noqa: DTZ001 - intentionally naive, mirroring real stored data
+    now = datetime(2026, 7, 28)
     con.execute(
         """
         INSERT INTO individual_disclosures

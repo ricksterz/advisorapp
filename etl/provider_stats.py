@@ -37,7 +37,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import duckdb
@@ -160,7 +160,7 @@ def export_provider_stats(db_path: Path, out_path: Path) -> bool:
 
     by_role = rank_providers(rows)
     payload = {
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "roles": [
             {"role": r, "label": ROLE_LABELS.get(r, r), "providers": by_role[r]}
             for r in ROLE_LABELS

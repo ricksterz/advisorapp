@@ -29,7 +29,7 @@ import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import duckdb
@@ -398,7 +398,7 @@ def stage_fetch(con: duckdb.DuckDBPyConnection, limit: int | None) -> None:
             if succeeded:
                 con.execute(
                     "UPDATE brochures SET fetched_at = ? WHERE version_id = ?",
-                    [datetime.now(timezone.utc), version_id],
+                    [datetime.now(UTC), version_id],
                 )
                 ok += 1
             if done % 50 == 0:
@@ -449,7 +449,7 @@ def stage_flags(con: duckdb.DuckDBPyConnection, limit: int | None) -> None:
                 "revenue_sharing" in flags,
                 "affiliated_gp_lp" in flags,
                 json.dumps(flags) if flags else None,
-                datetime.now(timezone.utc),
+                datetime.now(UTC),
             ],
         )
         done += 1
