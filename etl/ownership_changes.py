@@ -34,7 +34,7 @@ import argparse
 import itertools
 import json
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import duckdb
@@ -181,7 +181,7 @@ def build_changes(con: duckdb.DuckDBPyConnection) -> dict:
             firms[str(crd)] = timeline[:MAX_EVENTS_PER_FIRM]
 
     return {
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "firms": firms,
     }
 

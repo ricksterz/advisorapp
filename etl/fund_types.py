@@ -21,7 +21,7 @@ from __future__ import annotations
 import argparse
 import json
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from etl.config import REPO_ROOT
@@ -64,7 +64,7 @@ def export(funds_path: Path, out_path: Path) -> int:
         if code:
             firms[crd] = code
     payload = {
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "source_generated_at": source.get("generated_at"),
         "firms": firms,
     }

@@ -28,7 +28,7 @@ from __future__ import annotations
 import argparse
 import sys
 import zipfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import duckdb
@@ -159,7 +159,7 @@ def stage_load(con: duckdb.DuckDBPyConnection, archive: Path) -> int:
     # 2026-07-27 19:00) — stripping tzinfo here, after computing the correct
     # UTC instant, avoids that silent shift so individual_disclosures_stats.py
     # can safely take .date() on the stored value for "as of".
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(UTC).replace(tzinfo=None)
     flagged["source_archive"] = archive.name
     flagged["fetched_at"] = now
 

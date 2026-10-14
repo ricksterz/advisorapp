@@ -24,7 +24,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import duckdb
@@ -184,7 +184,7 @@ def export_form_d_stats(db_path: Path, out_path: Path) -> int:
         ).fetchone()[0]
 
         payload = {
-            "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
             "as_of": latest,
             "quarters": [s["quarter"] for s in series],
             "series": series,

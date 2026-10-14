@@ -36,7 +36,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import duckdb
@@ -1015,7 +1015,7 @@ def stage_bios(con: duckdb.DuckDBPyConnection, limit: int | None, rescan: bool =
         bios = find_bios(text)
 
         con.execute("DELETE FROM advisors WHERE source_version_id = ?", [version_id])
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         for b in bios:
             con.execute(
                 """

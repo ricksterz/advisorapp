@@ -24,7 +24,7 @@ import gzip
 import re
 import sys
 import zipfile
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import urljoin
 
@@ -64,7 +64,7 @@ def url_exists(url: str) -> bool:
 
 
 def probe_iapd_feed() -> str | None:
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     for offset in range(PROBE_DAYS):
         url = IAPD_FEED_URL.format(d=today - timedelta(days=offset))
         if url_exists(url):

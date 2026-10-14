@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import duckdb
@@ -87,7 +87,7 @@ def export_firm_history(db_path: Path, out_path: Path) -> bool:
         print(f"no firm-snapshot history in {db_path}; leaving {out_path} untouched")
         return False
 
-    payload["generated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    payload["generated_at"] = datetime.now(UTC).isoformat(timespec="seconds")
     out_path.write_text(json.dumps(payload, separators=(",", ":")))
     print(
         f"wrote {out_path} ({len(payload['firms']):,} firms across "

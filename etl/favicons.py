@@ -35,7 +35,7 @@ import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import duckdb
@@ -151,7 +151,7 @@ def export(results: dict[str, str | None], out_path: Path) -> None:
     google = sorted(h for h, s in results.items() if s == "google")
     none = sorted(h for h, s in results.items() if s is None)
     payload = {
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "checked": len(results),
         "google": google,
         "none": none,

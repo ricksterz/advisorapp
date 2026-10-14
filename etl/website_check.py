@@ -44,7 +44,7 @@ import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -176,7 +176,7 @@ def connect(db_path: Path) -> duckdb.DuckDBPyConnection:
 
 
 def store(con: duckdb.DuckDBPyConnection, rows: list[dict]) -> None:
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(UTC).replace(tzinfo=None)
     con.executemany(
         "INSERT OR REPLACE INTO website_checks "
         "(url, status, http_status, final_url, final_domain, error, checked_at) "
@@ -397,7 +397,7 @@ def export_overrides(db_path: Path, out_path: Path) -> bool:
     out_path.write_text(
         json.dumps(
             {
-                "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
                 "firms": firms,
             },
             separators=(",", ":"),

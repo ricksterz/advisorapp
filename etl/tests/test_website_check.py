@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import duckdb
 import pytest
@@ -19,7 +19,7 @@ def _make_db(tmp_path, checks):
         "(2, 'VANGUARD', 'https://www.reddit.com/user/VanguardGroup/'), "
         "(3, 'AP WEALTH', 'https://www.yelp.com/biz/ap-wealth-management-augusta')"
     )
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(UTC).replace(tzinfo=None)
     for url, status, http, final, domain in checks:
         con.execute(
             "INSERT INTO website_checks "

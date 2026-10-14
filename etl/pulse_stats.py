@@ -23,7 +23,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import duckdb
@@ -306,7 +306,7 @@ def export_pulse_stats(db_path: Path, out_path: Path) -> int:
         series = quarter_series(con, quarters)
         add_appearances(con, series)
         payload = {
-            "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
             "as_of": quarters[-1],
             "quarters": quarters,
             "completeness_threshold": COMPLETENESS_THRESHOLD,
