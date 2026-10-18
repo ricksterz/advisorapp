@@ -23,21 +23,44 @@ export function navigate(e, path) {
 
 export const pulsePath = (section = '') => `${BASE}pulse${section ? `/${section}` : ''}`
 
-// Route shape: { firmCrd: number|null, pulse: string|null } — pulse is ''
-// for /pulse itself, or the drill-down segment ('advisers', 'assets', ...).
+// Up to this many firms side by side; more columns stop fitting a laptop.
+export const MAX_COMPARE = 4
+
+export const comparePath = (crds = []) =>
+  `${BASE}compare${crds.length ? `?firms=${crds.join(',')}` : ''}`
+
+/** CRDs from a ?firms= value: digits only, de-duplicated, at most MAX_COMPARE. */
+export function parseCompareFirms(search) {
+  const raw = new URLSearchParams(search).get('firms') ?? ''
+  const out = []
+  for (const part of raw.split(',')) {
+    if (/^\d{1,9}$/.test(part.trim())) {
+      const crd = Number(part.trim())
+      if (!out.includes(crd)) out.push(crd)
+    }
+  }
+  return out.slice(0, MAX_COMPARE)
+}
+
+// Route shape: { firmCrd: number|null, pulse: string|null, compare:
+// number[]|null } — pulse is '' for /pulse itself, or the drill-down segment
+// ('advisers', 'assets', ...); compare is the CRDs on /compare.
 function parseRoute() {
   const legacy = window.location.hash.match(/^#\/firm\/(\d+)/)
   if (legacy) {
     window.history.replaceState(null, '', firmPath(legacy[1]) + window.location.search)
-    return { firmCrd: Number(legacy[1]), pulse: null }
+    return { firmCrd: Number(legacy[1]), pulse: null, compare: null }
   }
   const path = window.location.pathname
   const rel = path.startsWith(BASE) ? path.slice(BASE.length) : path.replace(/^\//, '')
   const firm = rel.match(/^firm\/(\d+)/)
-  if (firm) return { firmCrd: Number(firm[1]), pulse: null }
+  if (firm) return { firmCrd: Number(firm[1]), pulse: null, compare: null }
   const pulse = rel.match(/^pulse(?:\/([a-z-]+))?\/?$/)
-  if (pulse) return { firmCrd: null, pulse: pulse[1] ?? '' }
-  return { firmCrd: null, pulse: null }
+  if (pulse) return { firmCrd: null, pulse: pulse[1] ?? '', compare: null }
+  if (/^compare\/?$/.test(rel)) {
+    return { firmCrd: null, pulse: null, compare: parseCompareFirms(window.location.search) }
+  }
+  return { firmCrd: null, pulse: null, compare: null }
 }
 
 export function useRoute() {
@@ -53,7 +76,7 @@ export function useRoute() {
   }, [])
   useEffect(() => {
     window.scrollTo(0, 0)
-  }, [route.firmCrd, route.pulse])
+  }, [route.firmCrd, route.pulse, route.compare == null])
   return route
 }
 

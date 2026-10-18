@@ -1453,6 +1453,20 @@ tbody tr:hover {
     flex-basis: 100%;
     margin-left: 0;
   }
+
+  /* Three nav items and the theme toggle fill a phone's header; the snapshot
+     date is also on every page that lists data. */
+  .snapshot {
+    display: none;
+  }
+
+  .compare-label-col {
+    min-width: 112px;
+  }
+
+  .compare-table thead th {
+    min-width: 140px;
+  }
 }
 
 /* ---------- Industry Pulse ---------- */
@@ -2011,7 +2025,8 @@ tbody tr:hover {
 /* Operational leverage by business model (Pulse). Series colors: the
    validated categorical palette, slots 1-4, stepped per theme. */
 .scaling-card,
-.growth-card {
+.growth-card,
+.compare-page {
   --series-1: #3987e5;
   --series-2: #d95926;
   --series-3: #199e70;
@@ -2019,7 +2034,8 @@ tbody tr:hover {
 }
 
 :root[data-theme="light"] .scaling-card,
-:root[data-theme="light"] .growth-card {
+:root[data-theme="light"] .growth-card,
+:root[data-theme="light"] .compare-page {
   --series-1: #2a78d6;
   --series-2: #eb6834;
   --series-3: #1baf7a;
@@ -2028,12 +2044,16 @@ tbody tr:hover {
 
 .scaling-card .series-1,
 .growth-card .series-1 { --series: var(--series-1); }
+.compare-page .series-1 { --series: var(--series-1); }
 .scaling-card .series-2,
 .growth-card .series-2 { --series: var(--series-2); }
+.compare-page .series-2 { --series: var(--series-2); }
 .scaling-card .series-3,
 .growth-card .series-3 { --series: var(--series-3); }
+.compare-page .series-3 { --series: var(--series-3); }
 .scaling-card .series-4,
 .growth-card .series-4 { --series: var(--series-4); }
+.compare-page .series-4 { --series: var(--series-4); }
 
 .scaling-intro {
   margin-top: 0;
@@ -2192,5 +2212,131 @@ tbody tr:hover {
 
 .growth-table-leaders td:first-child {
   color: var(--ink-3);
+}
+
+/* Compare page */
+.compare-add {
+  position: relative;
+  max-width: 520px;
+  margin: 8px 0 18px;
+}
+
+.compare-add .search {
+  display: flex;
+}
+
+.compare-suggestions {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  right: 0;
+  margin: 4px 0 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.compare-suggestions button {
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.compare-suggestions button:hover,
+.compare-suggestions button:focus-visible {
+  background: var(--hover-wash);
+}
+
+.compare-sub {
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.compare-card {
+  margin-bottom: 14px;
+}
+
+.compare-table-wrap {
+  overflow-x: auto;
+}
+
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.compare-table th,
+.compare-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--hairline);
+  text-align: left;
+  vertical-align: top;
+}
+
+.compare-table thead th {
+  min-width: 170px;
+  vertical-align: bottom;
+}
+
+.compare-table td {
+  font-variant-numeric: tabular-nums;
+}
+
+.compare-label-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 150px;
+  background: var(--surface);
+  color: var(--ink-2);
+  font-weight: 450;
+}
+
+.compare-group th {
+  padding-top: 16px;
+  color: var(--ink-3);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.compare-firm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.compare-remove {
+  margin-left: auto;
+  padding: 0 6px;
+  border: 0;
+  background: none;
+  color: var(--ink-3);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.compare-remove:hover {
+  color: var(--ink);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 

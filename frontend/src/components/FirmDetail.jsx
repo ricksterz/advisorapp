@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { staffOf } from '../benchmarking/factors.js'
 import { percentiler } from '../benchmarking/engine.js'
-import { BASE, navigate } from '../router.js'
+import { BASE, comparePath, navigate } from '../router.js'
 import { DEAL_FLAG_DEFS, useDealFlags } from '../dealFlags.js'
 import { DISCLOSURE_FLAG_DEFS, useAdvisorBios } from '../advisorBios.js'
 import { PROVIDER_ROLE_LABELS, useFirmPrivateFunds } from '../privateFunds.js'
@@ -686,6 +686,14 @@ export default function FirmDetail({ firm, crd, allFirms }) {
             className="chip share-link"
             title={`Copy a shareable link to ${firm.business_name || firm.legal_name}`}
           />
+          <a
+            className="chip share-link"
+            href={comparePath([firm.crd])}
+            onClick={(e) => navigate(e, comparePath([firm.crd]))}
+            title={`Compare ${firm.business_name || firm.legal_name} with other firms`}
+          >
+            Compare
+          </a>
         </div>
         <p className="detail-sub">
           {firm.business_name && firm.business_name !== firm.legal_name && (
