@@ -317,6 +317,15 @@ export default function App() {
       .catch((e) => setError(String(e)))
   }, [])
 
+  // Firm pages are served with a summary of the firm already in the HTML
+  // (etl/firm_prerender.py), beside the React root. It stands in while the
+  // data loads, then goes once the full page can render; if the data never
+  // loads, it stays as the page.
+  const [prerendered] = useState(() => document.getElementById('prerender') != null)
+  useEffect(() => {
+    if (data) document.getElementById('prerender')?.remove()
+  }, [data])
+
   // Deal-structuring flags (etl/brochures.py) — a separate committed file,
   // since the brochure corpus that produces it can't be built in CI.
   const onList = firmCrd == null && pulse == null && compare == null
@@ -465,7 +474,7 @@ export default function App() {
       ) : firmCrd != null ? (
         <main className="shell">
           {error && <div className="state error">{error}</div>}
-          {!error && !data && <div className="state">Loading firm data…</div>}
+          {!error && !data && !prerendered && <div className="state">Loading firm data…</div>}
           {data && (
             <FirmDetail firm={data.firms.find((f) => f.crd === firmCrd)} crd={firmCrd} allFirms={data.firms} />
           )}
