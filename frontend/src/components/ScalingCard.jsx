@@ -1,26 +1,15 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 
 import { leverageIndex, MIN_BIN_FIRMS, scalingCurves } from '../leverage.js'
 import { fmtCompactUsd, fmtCount } from '../pulse.js'
 import { SEGMENT_BY_ID, SEGMENTS } from '../segments.js'
+import { useTrajectoryData } from '../trajectory.js'
+import { useWidth } from './useWidth.js'
 
 // Four segments on the chart, in the palette's fixed order. "Mixed" is only
 // ~200 firms, too few to draw a curve across sizes; it stays in the table.
 const CHARTED = ['wealth', 'private_funds', 'institutional', 'registered_funds']
 
-function useWidth(ref) {
-  const [width, setWidth] = useState(0)
-  useLayoutEffect(() => {
-    if (!ref.current) return undefined
-    // Measure now: ResizeObserver's first callback waits for the next frame,
-    // which a backgrounded tab may not paint for a long time.
-    setWidth(Math.floor(ref.current.getBoundingClientRect().width))
-    const observer = new ResizeObserver(([entry]) => setWidth(Math.floor(entry.contentRect.width)))
-    observer.observe(ref.current)
-    return () => observer.disconnect()
-  }, [ref])
-  return width
-}
 
 const X_TICKS = [1e7, 1e8, 1e9, 1e10, 1e11, 1e12]
 const Y_TICKS = [1, 10, 100, 1000, 10000]
@@ -147,6 +136,8 @@ function Chart({ curves }) {
 }
 
 export default function ScalingCard({ firms }) {
+  const trajectory = useTrajectoryData()
+  const sameFirm = trajectory?.segment_growth
   const view = useMemo(() => {
     if (!firms?.length) return null
     return { index: leverageIndex(firms), curves: scalingCurves(firms) }
@@ -169,7 +160,14 @@ export default function ScalingCard({ firms }) {
             <tr>
               <th>Business model</th>
               <th className="num">Firms</th>
-              <th className="num">Twice the AUM</th>
+              <th className="num" title="Firms of different sizes compared at one point in time">
+                Twice the AUM: bigger firms
+              </th>
+              {sameFirm && (
+                <th className="num" title="The same firms followed over five years as their AUM changed">
+                  Twice the AUM: same firm over time
+                </th>
+              )}
               <th className="num">Median AUM per non-advisory employee</th>
               <th className="num">Middle half</th>
               <th className="num">No non-advisory staff</th>
@@ -185,6 +183,11 @@ export default function ScalingCard({ firms }) {
                   <td title={seg.description}>{seg.label}</td>
                   <td className="num">{fmtCount(e.firms)}</td>
                   <td className="num">{e.fit ? `+${Math.round(e.fit.doubling * 100)}% staff` : '—'}</td>
+                  {sameFirm && (
+                    <td className="num">
+                      {sameFirm[seg.id] ? `+${Math.round((2 ** sameFirm[seg.id].slope - 1) * 100)}% staff` : '—'}
+                    </td>
+                  )}
                   <td className="num">{fmtCompactUsd(d.median)}</td>
                   <td className="num">
                     {fmtCompactUsd(d.p25)}–{fmtCompactUsd(d.p75)}
@@ -198,9 +201,12 @@ export default function ScalingCard({ firms }) {
       </div>
       <p className="detail-note">
         Business model comes from where each firm says its AUM comes from (Form ADV Item 5.D).
-        “Twice the AUM” is a log-log trend fitted across each model’s firms: how many more
-        non-advisory staff a firm twice the size typically has. It compares firms of different
-        sizes at one point in time, not how any firm grew. Firms with no non-advisory staff can’t
+        “Bigger firms” is a log-log trend fitted across each model’s firms today: how many more
+        non-advisory staff a firm twice the size typically has. “Same firm over time” follows each
+        firm across five-year spans since 2013, from the SEC’s January registered-adviser reports,
+        and fits how its own non-advisory staff changed as its AUM changed. Firms grow their
+        support teams more slowly than the snapshot suggests, partly because some of a firm’s AUM
+        growth comes from markets rather than new clients. Firms with no non-advisory staff can’t
         be placed on a log scale, so they are counted in the last column and left out of the chart,
         the trend and the medians. Chart points are the median across firms in each half-decade of
         AUM, where at least {MIN_BIN_FIRMS} firms report. Each firm’s own comparison is on its

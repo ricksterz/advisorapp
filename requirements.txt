@@ -8,3 +8,4 @@ pypdf>=6.20.0
 # Backend
 fastapi>=0.143.0
 uvicorn[standard]>=0.54.0
+openpyxl>=3.1  # adviser_history: SEC's 2023-2025 reports are .xlsx

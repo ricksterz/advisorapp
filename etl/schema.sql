@@ -505,3 +505,19 @@ CREATE TABLE IF NOT EXISTS f13_holdings (
     shares              DOUBLE,
     source_archive      VARCHAR
 );
+
+-- ---------------------------------------------------------------------------
+-- Long-run adviser history (etl/adviser_history.py): one row per adviser per
+-- annual snapshot, from SEC's monthly registered-adviser reports. Each report
+-- is the whole registered universe at its date, so unlike adv_filings no
+-- reconstruction is needed.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS adviser_annual (
+    as_of               DATE,                     -- report date (early January)
+    crd                 BIGINT,
+    aum_total           DOUBLE,                   -- Item 5.F(2)(c)
+    accounts_total      DOUBLE,                   -- Item 5.F(2)(f)
+    employees_total     DOUBLE,                   -- Item 5.A
+    employees_advisory  DOUBLE,                   -- Item 5.B(1)
+    source_file         VARCHAR
+);

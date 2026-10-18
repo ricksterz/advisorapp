@@ -2010,25 +2010,30 @@ tbody tr:hover {
 
 /* Operational leverage by business model (Pulse). Series colors: the
    validated categorical palette, slots 1-4, stepped per theme. */
-.scaling-card {
-  margin: 20px 0;
+.scaling-card,
+.growth-card {
   --series-1: #3987e5;
   --series-2: #d95926;
   --series-3: #199e70;
   --series-4: #c98500;
 }
 
-:root[data-theme="light"] .scaling-card {
+:root[data-theme="light"] .scaling-card,
+:root[data-theme="light"] .growth-card {
   --series-1: #2a78d6;
   --series-2: #eb6834;
   --series-3: #1baf7a;
   --series-4: #eda100;
 }
 
-.scaling-card .series-1 { --series: var(--series-1); }
-.scaling-card .series-2 { --series: var(--series-2); }
-.scaling-card .series-3 { --series: var(--series-3); }
-.scaling-card .series-4 { --series: var(--series-4); }
+.scaling-card .series-1,
+.growth-card .series-1 { --series: var(--series-1); }
+.scaling-card .series-2,
+.growth-card .series-2 { --series: var(--series-2); }
+.scaling-card .series-3,
+.growth-card .series-3 { --series: var(--series-3); }
+.scaling-card .series-4,
+.growth-card .series-4 { --series: var(--series-4); }
 
 .scaling-intro {
   margin-top: 0;
@@ -2121,4 +2126,37 @@ tbody tr:hover {
 .scaling-table-wrap {
   margin-top: 14px;
   overflow-x: auto;
+}
+
+.scaling-card {
+  margin: 20px 0;
+}
+
+.growth-card {
+  margin: 0 0 14px;
+}
+
+.growth-summary {
+  margin-top: 0;
+}
+
+.growth-baseline {
+  stroke: var(--ink-3);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.growth-crosshair {
+  stroke: var(--ink-3);
+  stroke-width: 1;
+}
+
+.growth-table {
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+.growth-table summary {
+  color: var(--ink-2);
+  cursor: pointer;
 }

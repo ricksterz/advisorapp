@@ -16,6 +16,7 @@ import FirmFavicon from './FirmFavicon.jsx'
 import { useForm13f } from '../form13f.js'
 import { bandLabelOf, leverageHeadline, leverageProfile } from '../leverage.js'
 import { aumShare, firmSegment, firmTags, SEGMENT_BY_ID, useFundTypes } from '../segments.js'
+import GrowthCard from './GrowthCard.jsx'
 import LeverageCard from './LeverageCard.jsx'
 
 // Public IAPD document endpoints (all CORS-enabled, no key required).
@@ -772,6 +773,7 @@ export default function FirmDetail({ firm, crd, allFirms }) {
       </div>
 
       <LeverageCard profile={leverage} firm={firm} />
+      <GrowthCard crd={firm.crd} segment={segment} />
 
       <FirmHistoryCard crd={firm.crd} />
       <OwnersCard crd={firm.crd} />

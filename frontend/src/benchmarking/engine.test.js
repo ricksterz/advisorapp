@@ -265,9 +265,12 @@ describe('URL state', () => {
 })
 
 describe('performance', () => {
-  // ~30ms on a dev machine; the bound is loose because shared CI runners are
-  // slow and variable — this guards against algorithmic blowups (an O(n²)
-  // regression lands in the seconds), not exact wall-clock.
+  // ~30ms on a dev machine, but shared CI runners have measured 202ms and
+  // 508ms on unchanged code, failing the 200ms and then the 500ms bound. The
+  // test exists to catch algorithmic blowups — an O(n²) pass over 40K firms is
+  // 1.6 billion steps and lands well beyond any bound here — not to time the
+  // runner. So: a warm-up run first, so JIT compilation isn't on the clock,
+  // and a ceiling far above normal variance.
   it('recomputes a 40K-firm universe with combined cohorts without blowing up', () => {
     const states = ['NY', 'CA', 'TX', 'IL', 'MA', 'FL', 'WA', 'PA', 'PR']
     const firms = Array.from({ length: 40000 }, (_, i) =>
@@ -282,11 +285,12 @@ describe('performance', () => {
     const config = defaultConfig()
     config.cohorts = { aumBand: true, clientMix: true, region: true }
     config.weights.hnwFocus = 0.1
+    computeRankings(firms, config) // warm-up
     const start = performance.now()
     const { top, atRisk } = computeRankings(firms, config)
     const elapsed = performance.now() - start
     expect(top.length).toBe(10)
     expect(atRisk.length).toBeGreaterThan(0)
-    expect(elapsed).toBeLessThan(500)
+    expect(elapsed).toBeLessThan(2000)
   })
 })
