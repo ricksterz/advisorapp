@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { BASE } from './router.js'
+import { loadShard } from './shards.js'
 
 // Private funds (etl/private_funds.py + etl/private_fund_stats.py) — Form
 // ADV Schedule D 7.B.1, reconstructed to current-known-state per fund
@@ -30,21 +31,13 @@ export function usePrivateFundStats() {
   return stats
 }
 
-let firmFundsPromise = null
-function fetchFirmFunds() {
-  firmFundsPromise ??= fetch(`${BASE}firm_private_funds.json`)
-    .then((r) => (r.ok ? r.json() : null))
-    .catch(() => null)
-  return firmFundsPromise
-}
-
 // A single firm's private funds: undefined while loading, null once
 // resolved if the firm has none (or the file itself is unavailable).
 export function useFirmPrivateFunds(crd) {
   const [funds, setFunds] = useState(undefined)
   useEffect(() => {
     let alive = true
-    fetchFirmFunds().then((data) => {
+    loadShard('firm_private_funds', crd).then((data) => {
       if (alive) setFunds(data?.firms?.[String(crd)] ?? null)
     })
     return () => {

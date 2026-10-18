@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { BASE } from './router.js'
+import { loadIndex, loadShard } from './shards.js'
 
 // Deal-structuring flags scanned from Form ADV Part 2A brochures
 // (etl/brochures.py) — a single static file for all firms, fetched once and
@@ -38,14 +38,6 @@ export const DEAL_FLAG_DEFS = [
   },
 ]
 
-let dealFlagsPromise = null
-function fetchDealFlags() {
-  dealFlagsPromise ??= fetch(`${BASE}deal_flags.json`)
-    .then((r) => (r.ok ? r.json() : null))
-    .catch(() => null)
-  return dealFlagsPromise
-}
-
 // A single firm's flags: undefined while loading, null once resolved if the
 // firm was never scanned (or the file itself is unavailable, e.g. the dev
 // sample fixture).
@@ -53,7 +45,7 @@ export function useDealFlags(crd) {
   const [flags, setFlags] = useState(undefined)
   useEffect(() => {
     let alive = true
-    fetchDealFlags().then((data) => {
+    loadShard('deal_flags', crd).then((data) => {
       if (alive) setFlags(data?.firms?.[String(crd)] ?? null)
     })
     return () => {
@@ -63,18 +55,20 @@ export function useDealFlags(crd) {
   return flags
 }
 
-// The whole file: undefined while loading, null if unavailable. Used where a
-// caller needs to look up many firms at once (the main table's filters).
-export function useAllDealFlags() {
+// Every scanned firm's flags, without the evidence snippets: undefined while
+// loading, null if unavailable. For the firm list's filters, column and deal
+// patterns. `enabled` false skips the download on pages that don't need it.
+export function useAllDealFlags(enabled = true) {
   const [data, setData] = useState(undefined)
   useEffect(() => {
+    if (!enabled) return undefined
     let alive = true
-    fetchDealFlags().then((d) => {
+    loadIndex('deal_flags_index').then((d) => {
       if (alive) setData(d ?? null)
     })
     return () => {
       alive = false
     }
-  }, [])
+  }, [enabled])
   return data
 }

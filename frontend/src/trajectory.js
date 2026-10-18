@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { BASE } from './router.js'
+import { loadShard } from './shards.js'
 
 // Long-run firm history (etl/adviser_history.py): AUM and headcount from the
 // SEC's January registered-adviser report of each year since 2013. Each firm
@@ -10,25 +10,21 @@ import { BASE } from './router.js'
 // segment_growth holds, per business model, a fit across firms of how their
 // own non-advisory staff changed as their AUM changed over span_years:
 // ln(staff ratio) = intercept + slope * ln(AUM ratio).
-let promise = null
-function fetchTrajectory() {
-  promise ??= fetch(`${BASE}firm_trajectory.json`)
-    .then((r) => (r.ok ? r.json() : null))
-    .catch(() => null)
-  return promise
-}
-
-export function useTrajectoryData() {
+//
+// Loaded from a shard (see shards.js): the one holding `crd` on a firm page.
+// Every shard carries years and segment_growth, so a caller that needs only
+// those (Pulse) can pass any CRD.
+export function useTrajectoryData(crd = 0) {
   const [data, setData] = useState(undefined)
   useEffect(() => {
     let alive = true
-    fetchTrajectory().then((d) => {
+    loadShard('firm_trajectory', crd).then((d) => {
       if (alive) setData(d)
     })
     return () => {
       alive = false
     }
-  }, [])
+  }, [crd])
   return data
 }
 

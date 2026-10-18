@@ -21,7 +21,7 @@ import {
 import { BASE, firmPath, navigate, pulsePath, useRoute } from './router.js'
 import { fmtCount } from './pulse.js'
 import { DEAL_FLAG_DEFS, useAllDealFlags } from './dealFlags.js'
-import { useAllAdvisorBios } from './advisorBios.js'
+import { bioCount, useAdvisorBioCounts } from './advisorBios.js'
 import { computeDealPatterns } from './dealPatterns.js'
 import { resolveWebsite, useWebsiteOverrides } from './websiteOverrides.js'
 import { SORT_DEFS, makeComparator } from './firmSort.js'
@@ -228,11 +228,11 @@ function DealFlagsCell({ crd, data }) {
 // never looks identical to a confirmed-empty one.
 function AdvisorBiosCell({ crd, data }) {
   if (data === undefined) return <span className="flag-none">…</span>
-  const bios = data?.firms?.[String(crd)]
-  if (!bios?.length) return <span className="flag-none">—</span>
+  const count = bioCount(data, crd)
+  if (!count) return <span className="flag-none">—</span>
   return (
-    <span className="deal-flag-mini" title={`${bios.length} advisor bio${bios.length === 1 ? '' : 's'} on file`}>
-      {bios.length}
+    <span className="deal-flag-mini" title={`${count} advisor bio${count === 1 ? '' : 's'} on file`}>
+      {count}
     </span>
   )
 }
@@ -316,12 +316,13 @@ export default function App() {
 
   // Deal-structuring flags (etl/brochures.py) — a separate committed file,
   // since the brochure corpus that produces it can't be built in CI.
-  const dealFlagsData = useAllDealFlags()
+  const onList = firmCrd == null && pulse == null
+  const dealFlagsData = useAllDealFlags(onList)
 
   // Advisor bios (etl/advisor_bios.py) — same reasoning, same pattern. Only
   // ~12% of firms have any bios on file, so a filter/column here is what
   // actually lets someone find one instead of guessing at random firms.
-  const advisorBiosData = useAllAdvisorBios()
+  const advisorBiosData = useAdvisorBioCounts(onList)
   const fundTypes = useFundTypes()
   const siteOverrides = useWebsiteOverrides()
 
@@ -381,7 +382,7 @@ export default function App() {
         if (minAum && (f.aum_total ?? 0) < minAum) return false
         if (perfOnly && !f.fee_performance_based) return false
         if (flaggedOnly && !(f.disciplinary_flag_count > 0)) return false
-        if (bioOnly && !(advisorBiosData?.firms?.[String(f.crd)]?.length > 0)) return false
+        if (bioOnly && !(bioCount(advisorBiosData, f.crd) > 0)) return false
         if (familyOfficeOnly && !isFamilyOfficeStyle(f)) return false
         if (brokerDealerOnly && !hasBrokerDealerTies(f)) return false
         if (segmentFilter && firmSegment(f) !== segmentFilter) return false
