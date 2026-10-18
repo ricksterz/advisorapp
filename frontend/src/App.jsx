@@ -11,6 +11,7 @@ import FirmDetail, { websiteHost } from './components/FirmDetail.jsx'
 import DealPatternsSection from './components/DealPatternsSection.jsx'
 import PulsePage from './components/PulsePage.jsx'
 import GrowthLeaders from './components/GrowthLeaders.jsx'
+import ComparePage from './components/ComparePage.jsx'
 import {
   DrilldownAdvisers,
   DrilldownAssets,
@@ -19,7 +20,7 @@ import {
   DrilldownPrivateFunds,
   DrilldownServiceProviders,
 } from './components/PulseDrilldowns.jsx'
-import { BASE, firmPath, navigate, pulsePath, useRoute } from './router.js'
+import { BASE, comparePath, firmPath, navigate, pulsePath, useRoute } from './router.js'
 import { fmtCount } from './pulse.js'
 import { DEAL_FLAG_DEFS, useAllDealFlags } from './dealFlags.js'
 import { bioCount, useAdvisorBioCounts } from './advisorBios.js'
@@ -263,7 +264,7 @@ const PULSE_TITLES = {
 
 export default function App() {
   const [theme, setTheme] = useTheme()
-  const { firmCrd, pulse } = useRoute()
+  const { firmCrd, pulse, compare } = useRoute()
 
   useEffect(() => {
     // Firm pages manage their own title (usePageMeta); pulse routes here.
@@ -318,7 +319,7 @@ export default function App() {
 
   // Deal-structuring flags (etl/brochures.py) — a separate committed file,
   // since the brochure corpus that produces it can't be built in CI.
-  const onList = firmCrd == null && pulse == null
+  const onList = firmCrd == null && pulse == null && compare == null
   const dealFlagsData = useAllDealFlags(onList)
 
   // Advisor bios (etl/advisor_bios.py) — same reasoning, same pattern. Only
@@ -438,6 +439,13 @@ export default function App() {
         >
           Pulse
         </a>
+        <a
+          className={`topbar-link${compare != null ? ' active' : ''}`}
+          href={comparePath()}
+          onClick={(e) => navigate(e, comparePath())}
+        >
+          Compare
+        </a>
         {data && <span className="snapshot">SEC Form ADV · snapshot {data.generated_at.slice(0, 10)}</span>}
         <button
           type="button"
@@ -449,7 +457,12 @@ export default function App() {
         </button>
       </header>
 
-      {firmCrd != null ? (
+      {compare != null ? (
+        <main className="shell">
+          {error && <div className="state error">{error}</div>}
+          <ComparePage crds={compare} allFirms={data?.firms} />
+        </main>
+      ) : firmCrd != null ? (
         <main className="shell">
           {error && <div className="state error">{error}</div>}
           {!error && !data && <div className="state">Loading firm data…</div>}
