@@ -69,8 +69,8 @@ describe('SORT_DEFS', () => {
     expect(SORT_DEFS.deal.key(firm({ crd: 999 }), ctx)).toBeNull()
   })
 
-  it('bios counts the firm entry, or null when the firm has none on file', () => {
-    const ctx = { advisorBiosData: { firms: { 1: [{ name: 'A' }, { name: 'B' }] } } }
+  it('bios sorts on each firm’s count, or null when the firm has none on file', () => {
+    const ctx = { advisorBiosData: { firms: { 1: 2 } } } // the list's count index
     expect(SORT_DEFS.bios.key(firm({ crd: 1 }), ctx)).toBe(2)
     expect(SORT_DEFS.bios.key(firm({ crd: 2 }), ctx)).toBeNull()
   })

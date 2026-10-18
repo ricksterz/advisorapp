@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 
-import { BASE } from './router.js'
+import { loadShard } from './shards.js'
 
 // Ownership & control from Form ADV Schedule A/B (etl/ownership.py) — direct
-// owners and executive officers, plus the indirect owners above them. Same
-// fetch-once-and-share pattern as firm_private_funds.json / advisor_bios.json.
+// owners and executive officers, plus the indirect owners above them, loaded
+// from the firm's shard (see shards.js).
 //
 // Stake labels arrive pre-resolved from the ETL: the label depends on BOTH the
 // schedule and the code (Schedule B's "F" is "Other", not a percentage, and
@@ -13,24 +13,9 @@ import { BASE } from './router.js'
 //
 // Falsy fields are omitted by the exporter to keep the file under Cloudflare's
 // per-file limit, so treat a missing key as false/absent rather than unknown.
-let ownersPromise = null
-function fetchOwners() {
-  ownersPromise ??= fetch(`${BASE}firm_owners.json`)
-    .then((r) => (r.ok ? r.json() : null))
-    .catch(() => null)
-  return ownersPromise
-}
 
-// Ownership change timeline (etl/ownership_changes.py) — a separate, much
-// smaller file than firm_owners.json, so a firm page that only needs the
-// current roster never pays for the history.
-let changesPromise = null
-function fetchChanges() {
-  changesPromise ??= fetch(`${BASE}ownership_changes.json`)
-    .then((r) => (r.ok ? r.json() : null))
-    .catch(() => null)
-  return changesPromise
-}
+// Ownership change timeline (etl/ownership_changes.py) is a separate dataset,
+// so a firm page that only needs the current roster never pays for history.
 
 // Newest-first list of { date, filing_id, events[] }: undefined while
 // loading, null if this firm has no detected changes. Most firms genuinely
@@ -39,7 +24,7 @@ export function useOwnershipChanges(crd) {
   const [timeline, setTimeline] = useState(undefined)
   useEffect(() => {
     let alive = true
-    fetchChanges().then((data) => {
+    loadShard('ownership_changes', crd).then((data) => {
       if (alive) setTimeline(data?.firms?.[String(crd)] ?? null)
     })
     return () => {
@@ -55,7 +40,7 @@ export function useFirmOwners(crd) {
   const [entry, setEntry] = useState(undefined)
   useEffect(() => {
     let alive = true
-    fetchOwners().then((data) => {
+    loadShard('firm_owners', crd).then((data) => {
       if (alive) setEntry(data?.firms?.[String(crd)] ?? null)
     })
     return () => {

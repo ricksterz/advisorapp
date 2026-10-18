@@ -180,7 +180,7 @@ function summarySentence(g, segment) {
 }
 
 export default function GrowthCard({ crd, segment }) {
-  const data = useTrajectoryData()
+  const data = useTrajectoryData(crd)
   const raw = firmTrajectory(data, crd)
   if (!raw) return null
   const points = withAdvisory(raw)

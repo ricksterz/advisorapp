@@ -1,19 +1,12 @@
 import { useEffect, useState } from 'react'
 
-import { BASE } from './router.js'
+import { loadIndex, loadShard } from './shards.js'
 
 // Advisor bios scanned from Form ADV Part 2B "brochure supplement" filings
-// (etl/advisor_bios.py) — a single static file for all firms, fetched once
-// and shared across every consumer, same pattern as deal_flags.json /
-// dealFlags.js. Not part of firms.json: the brochure corpus that produces it
-// lives only on a workstation, see docs/pdf-pipeline-scope.md.
-let advisorBiosPromise = null
-function fetchAdvisorBios() {
-  advisorBiosPromise ??= fetch(`${BASE}advisor_bios.json`)
-    .then((r) => (r.ok ? r.json() : null))
-    .catch(() => null)
-  return advisorBiosPromise
-}
+// (etl/advisor_bios.py). A firm page loads its own firm's shard; the firm
+// list loads only a count per firm (see scripts/shard-data.mjs). Not part of
+// firms.json: the brochure corpus that produces it lives only on a
+// workstation, see docs/pdf-pipeline-scope.md.
 
 // Disclosure category flags (etl/individual_disclosures.py), keyed the same
 // as each bio's optional `disclosures.flags` object. The bulk feed reports
@@ -38,7 +31,7 @@ export function useAdvisorBios(crd) {
   const [bios, setBios] = useState(undefined)
   useEffect(() => {
     let alive = true
-    fetchAdvisorBios().then((data) => {
+    loadShard('advisor_bios', crd).then((data) => {
       if (alive) setBios(data?.firms?.[String(crd)] ?? null)
     })
     return () => {
@@ -48,18 +41,22 @@ export function useAdvisorBios(crd) {
   return bios
 }
 
-// The whole file: undefined while loading, null if unavailable. Used where a
-// caller needs to look up many firms at once (the main table's filter/column).
-export function useAllAdvisorBios() {
+// Bios on file per firm, { firms: { crd: count } }: undefined while loading,
+// null if unavailable. For the firm list's filter, column and sort. `enabled`
+// false skips the download on pages that don't show the list.
+export function useAdvisorBioCounts(enabled = true) {
   const [data, setData] = useState(undefined)
   useEffect(() => {
+    if (!enabled) return undefined
     let alive = true
-    fetchAdvisorBios().then((d) => {
+    loadIndex('advisor_bios_index').then((d) => {
       if (alive) setData(d ?? null)
     })
     return () => {
       alive = false
     }
-  }, [])
+  }, [enabled])
   return data
 }
+
+export const bioCount = (data, crd) => data?.firms?.[String(crd)] ?? 0

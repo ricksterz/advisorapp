@@ -67,7 +67,7 @@ export const SORT_DEFS = {
   bios: {
     defaultDir: 'desc',
     type: 'number',
-    key: (f, ctx) => ctx.advisorBiosData?.firms?.[String(f.crd)]?.length ?? null,
+    key: (f, ctx) => ctx.advisorBiosData?.firms?.[String(f.crd)] ?? null,
   },
 }
 

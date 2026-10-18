@@ -1,21 +1,14 @@
 import { useEffect, useState } from 'react'
 
-import { BASE } from './router.js'
+import { loadShard } from './shards.js'
 
 // Form 13F holdings (etl/form_13f.py): each registered firm's US-listed
 // stock, ETF, option and convertible positions at quarter end, from SEC's
-// 13F data sets. Only loaded on a firm page — it's several megabytes.
+// 13F data sets, loaded from the firm's shard (see shards.js).
 //
 // A firm either files its own 13F or is named as an "included manager" in a
 // parent's combined report (BLACKROCK FUND ADVISORS inside BlackRock, Inc.'s).
 // The second case shows the parent's filing, labelled as the parent's.
-let promise = null
-function fetch13f() {
-  promise ??= fetch(`${BASE}form_13f.json`)
-    .then((r) => (r.ok ? r.json() : null))
-    .catch(() => null)
-  return promise
-}
 
 /**
  * What a firm page shows, or null when the firm has no 13F coverage.
@@ -43,7 +36,7 @@ export function useForm13f(crd) {
   const [view, setView] = useState(undefined)
   useEffect(() => {
     let alive = true
-    fetch13f().then((data) => {
+    loadShard('form_13f', crd).then((data) => {
       if (alive) setView(holdingsView(data, crd))
     })
     return () => {
