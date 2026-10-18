@@ -10,6 +10,7 @@ import MethodologyPanel from './components/MethodologyPanel.jsx'
 import FirmDetail, { websiteHost } from './components/FirmDetail.jsx'
 import DealPatternsSection from './components/DealPatternsSection.jsx'
 import PulsePage from './components/PulsePage.jsx'
+import GrowthLeaders from './components/GrowthLeaders.jsx'
 import {
   DrilldownAdvisers,
   DrilldownAssets,
@@ -257,6 +258,7 @@ const PULSE_TITLES = {
   disclosures: 'Disclosures — Industry Pulse',
   'capital-formation': 'Capital formation — Industry Pulse',
   'service-providers': 'Service providers — Industry Pulse',
+  growth: 'Fastest-growing advisers — Industry Pulse',
 }
 
 export default function App() {
@@ -467,6 +469,8 @@ export default function App() {
             <DrilldownDisclosures />
           ) : pulse === 'capital-formation' ? (
             <DrilldownCapitalFormation />
+          ) : pulse === 'growth' ? (
+            <GrowthLeaders firms={data?.firms} />
           ) : pulse === 'service-providers' ? (
             <DrilldownServiceProviders />
           ) : (

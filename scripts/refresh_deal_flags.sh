@@ -122,7 +122,8 @@ else
     echo "SEC_CONTACT_EMAIL is not set; skipping the download and using cached reports"
 fi
 $PY -m etl.adviser_history load --db data/advisor.duckdb
-$PY -m etl.adviser_history export --db data/advisor.duckdb --out frontend/public/firm_trajectory.json
+$PY -m etl.adviser_history export --db data/advisor.duckdb --out frontend/public/firm_trajectory.json \
+    --growth-out frontend/public/firm_growth.json
 
 echo
 echo "Done. Review the diff, then:"
@@ -134,5 +135,5 @@ echo "          frontend/public/individual_disclosures.json frontend/public/form
           frontend/public/firm_owners.json frontend/public/ownership_changes.json \\
           frontend/public/website_overrides.json frontend/public/favicons.json \\
           frontend/public/form_13f.json frontend/public/firm_fund_types.json \\
-          frontend/public/firm_trajectory.json"
+          frontend/public/firm_trajectory.json frontend/public/firm_growth.json"
 echo "  git commit -m 'Refresh brochure corpus, advisor bios, private funds, disclosures, and sitemap'"

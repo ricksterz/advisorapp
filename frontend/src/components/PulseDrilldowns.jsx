@@ -6,7 +6,7 @@ import { useServiceProviders } from '../serviceProviders.js'
 import { useIndividualDisclosureStats } from '../individualDisclosures.js'
 import { fmtFormDQuarter, useFormDStats } from '../formD.js'
 
-function PulseBackLink() {
+export function PulseBackLink() {
   const path = pulsePath()
   return (
     <a className="back-link" href={path} onClick={(e) => navigate(e, path)}>

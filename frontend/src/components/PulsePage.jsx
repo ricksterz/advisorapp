@@ -1,3 +1,5 @@
+import { useGrowthData } from '../growth.js'
+import { fmtMultiple } from '../trajectory.js'
 import ScalingCard from './ScalingCard.jsx'
 import { navigate, pulsePath } from '../router.js'
 import {
@@ -161,6 +163,19 @@ function ServiceProvidersTile() {
   )
 }
 
+function GrowthTile() {
+  const growth = useGrowthData()
+  const wealth = growth?.segment_medians?.wealth?.['5']
+  if (!wealth) return null
+  return (
+    <CategoryTile
+      section="growth"
+      title="Fastest-growing advisers"
+      stat={`Leaderboards over 3, 5 and 10 years · median wealth manager grew its AUM ${wealth.median >= 2 ? fmtMultiple(wealth.median) : `${Math.round((wealth.median - 1) * 100)}%`} in five years`}
+    />
+  )
+}
+
 function CategoryTile({ section, title, stat, series }) {
   const path = pulsePath(section)
   return (
@@ -261,6 +276,7 @@ export default function PulsePage({ firms }) {
         <DisclosuresTile />
         <CapitalFormationTile />
         <ServiceProvidersTile />
+        <GrowthTile />
       </div>
 
       <ScalingCard firms={firms} />

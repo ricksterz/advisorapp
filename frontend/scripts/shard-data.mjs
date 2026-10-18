@@ -40,6 +40,7 @@ const DATASETS = [
   'form_13f',
   'deal_flags',
   'advisor_bios',
+  'firm_growth',
 ]
 
 export const shardOf = (crd) => Number(crd) % SHARD_COUNT

@@ -42,6 +42,7 @@ import math
 import re
 import time
 import zipfile
+from bisect import bisect_left, bisect_right
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -59,6 +60,7 @@ SOURCE_PAGE = (
 )
 HISTORY_RAW_DIR = RAW_DIR / "ia_history"
 DEFAULT_OUT = REPO_ROOT / "frontend" / "public" / "firm_trajectory.json"
+DEFAULT_GROWTH_OUT = REPO_ROOT / "frontend" / "public" / "firm_growth.json"
 FIRST_YEAR = 2013
 THROTTLE_SECONDS = 1.0
 
@@ -305,7 +307,82 @@ def growth_fits(series: dict[int, dict], years: list[int], segments: dict[int, s
     return out
 
 
-def export(db_path: Path, out_path: Path) -> bool:
+GROWTH_PERIODS = (3, 5, 10)
+# A firm qualifies for growth rankings only above this AUM at the start of
+# the period: from a $5M base, tripling is a few new clients, not a trend.
+RANK_FLOOR_M = 100
+# A single-year AUM step this large is usually an acquisition, a merger or
+# a change in how the firm reports, rather than organic growth.
+JUMP_MULTIPLE = 2.0
+JUMP_FLOOR_M = 50
+
+
+def _ratio(a, b):
+    return round(b / a, 3) if a and b and a > 0 and b > 0 else None
+
+
+def percentile_ranks(values: dict) -> dict:
+    """crd -> share of the group growing less (0-100, ties counted half)."""
+    ordered = sorted(values.values())
+    n = len(ordered)
+    out = {}
+    for crd, v in values.items():
+        below = bisect_left(ordered, v)
+        equal = bisect_right(ordered, v) - below
+        out[crd] = round((below + equal / 2) / n * 100)
+    return out
+
+
+def growth_table(series: dict[int, dict], years: list[int], segments: dict[int, str]) -> dict:
+    """AUM and headcount growth per firm over the last 3, 5 and 10 years.
+
+    Each firm's growth is ranked against firms with the same business model
+    that started the period above RANK_FLOOR_M, and each model's median is
+    published. Comparing with peers rather than an index takes out most of
+    the market's effect: a rally lifts every wealth manager's AUM alike, so
+    beating the median says something about the firm.
+    """
+    end = len(years) - 1
+    firms: dict[str, dict] = {}
+    by_group: dict[tuple[int, str], dict] = {}
+    for crd, s in series.items():
+        if crd not in segments:
+            continue
+        entry: dict = {}
+        for k in GROWTH_PERIODS:
+            start = end - k
+            if start < 0:
+                continue
+            a0, a1 = s["aum"][start], s["aum"][end]
+            aum = _ratio(a0, a1)
+            if aum is None:
+                continue
+            entry[f"a{k}"] = aum
+            emp = _ratio(s["employees"][start], s["employees"][end])
+            if emp is not None:
+                entry[f"e{k}"] = emp
+            if a0 >= RANK_FLOOR_M and segments[crd]:
+                by_group.setdefault((k, segments[crd]), {})[crd] = aum
+        # The most recent big one-year step in the last ten years, if any.
+        for i in range(end, max(0, end - 10), -1):
+            prev, cur = s["aum"][i - 1], s["aum"][i]
+            if prev and cur and prev >= JUMP_FLOOR_M and cur / prev >= JUMP_MULTIPLE:
+                entry["jump"] = years[i]
+                break
+        if entry:
+            firms[str(crd)] = entry
+    medians: dict[str, dict] = {}
+    for (k, seg), values in by_group.items():
+        for crd, rank in percentile_ranks(values).items():
+            firms[str(crd)][f"r{k}"] = rank
+        ordered = sorted(values.values())
+        mid = len(ordered) // 2
+        median = ordered[mid] if len(ordered) % 2 else (ordered[mid - 1] + ordered[mid]) / 2
+        medians.setdefault(seg, {})[str(k)] = {"firms": len(values), "median": round(median, 3)}
+    return {"end_year": years[end], "periods": list(GROWTH_PERIODS), "rank_floor": RANK_FLOOR_M * 1e6, "segment_medians": medians, "firms": firms}
+
+
+def export(db_path: Path, out_path: Path, growth_out: Path | None = None) -> bool:
     con = duckdb.connect(str(db_path), read_only=True)
     try:
         try:
@@ -359,6 +436,11 @@ def export(db_path: Path, out_path: Path) -> bool:
         # [aum $M, employees, non-advisory employees, accounts], one value per year.
         firms[str(crd)] = [s["aum"], s["employees"], s["support"], s["accounts"]]
 
+    if growth_out is not None:
+        growth = {"generated_at": datetime.now(UTC).isoformat(timespec="seconds"), **growth_table(series, years, segments)}
+        growth_out.write_text(json.dumps(growth, separators=(",", ":")) + "\n")
+        print(f"wrote {growth_out}: growth for {len(growth['firms']):,} firms to {years[-1]}")
+
     payload = {
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "years": years,
@@ -385,6 +467,7 @@ def main() -> int:
     parser.add_argument("stage", choices=["fetch", "load", "export"])
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    parser.add_argument("--growth-out", type=Path, default=DEFAULT_GROWTH_OUT)
     args = parser.parse_args()
     if args.stage == "fetch":
         stage_fetch()
@@ -396,7 +479,7 @@ def main() -> int:
         finally:
             con.close()
     else:
-        export(args.db, args.out)
+        export(args.db, args.out, args.growth_out)
     return 0
 
 

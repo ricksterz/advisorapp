@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 
+import { useFirmGrowth } from '../growth.js'
 import { fmtCompactUsd, fmtCount } from '../pulse.js'
+import { navigate, pulsePath } from '../router.js'
 import { SEGMENT_BY_ID } from '../segments.js'
 import { firmTrajectory, fmtMultiple, growthSummary, useTrajectoryData } from '../trajectory.js'
 import { useWidth } from './useWidth.js'
@@ -179,6 +181,33 @@ function summarySentence(g, segment) {
   return out
 }
 
+// Where the firm's AUM growth ranks among peers, for the longest period it
+// has a rank for: "faster than 88% of wealth managers ...".
+function PeerRank({ crd, segment }) {
+  const growth = useFirmGrowth(crd)
+  if (!growth || !segment) return null
+  const { entry, medians, endYear, rankFloor } = growth
+  const period = [10, 5, 3].find((k) => entry[`r${k}`] != null)
+  if (!period) return null
+  const rank = entry[`r${period}`]
+  const median = medians?.[segment]?.[String(period)]?.median
+  const seg = SEGMENT_BY_ID[segment]
+  const peers = segment === 'mixed' ? 'firms with a mixed client base' : seg.plural
+  const path = pulsePath('growth')
+  const jumped = entry.jump != null && entry.jump > endYear - period
+  return (
+    <p className="growth-rank">
+      Over the last {period} years, AUM grew <strong>{fmtMultiple(entry[`a${period}`])}</strong>, faster
+      than {Math.max(1, Math.min(99, rank))}% of {peers} that started above $
+      {Math.round(rankFloor / 1e6)}M{median ? ` (median ${fmtMultiple(median)})` : ''}.
+      {jumped && ` Much of it came in ${entry.jump}, when AUM at least doubled in a single year, usually an acquisition or merger.`}{' '}
+      <a href={path} onClick={(e) => navigate(e, path)}>
+        See the fastest growers →
+      </a>
+    </p>
+  )
+}
+
 export default function GrowthCard({ crd, segment }) {
   const data = useTrajectoryData(crd)
   const raw = firmTrajectory(data, crd)
@@ -198,6 +227,7 @@ export default function GrowthCard({ crd, segment }) {
           The firm reports no non-advisory staff in enough years to compare its growth.
         </p>
       )}
+      <PeerRank crd={crd} segment={segment} />
       <IndexChart points={points} baseYear={baseYear} />
       <details className="growth-table">
         <summary>Year by year</summary>
