@@ -537,6 +537,22 @@ const SITE_URL = 'https://open-disclosure.com'
 // navigation (where no document load happens) and for link-preview scrapers
 // that run JS, so both layers are kept deliberately in sync — change the
 // strings here and in gen_static_pages.py together.
+// The page's meta description, with the firm's own numbers. Mirrors
+// description() in etl/firm_prerender.py, which writes it into the served HTML.
+export function firmDescription(firm) {
+  const name = firm.business_name || firm.legal_name
+  const segment = firmSegment(firm)
+  const kind = segment ? `${SEGMENT_BY_ID[segment].label.toLowerCase()} with ` : ''
+  const facts = [`${kind}${fmtCompactUsd(firm.aum_total)} in regulatory AUM`]
+  if (firm.employees_total != null) facts.push(`${firm.employees_total.toLocaleString()} employees`)
+  const disclosures = firm.disciplinary_flag_count ?? 0
+  facts.push(`${disclosures} disciplinary disclosure${disclosures === 1 ? '' : 's'}`)
+  return (
+    `${name} (CRD ${firm.crd}${firm.state ? `, ${firm.state}` : ''}): ${facts.join(', ')}. ` +
+    'Fees, client mix, staffing and growth from SEC Form ADV filings.'
+  )
+}
+
 function usePageMeta(firm) {
   useEffect(() => {
     if (!firm) return undefined
@@ -544,11 +560,7 @@ function usePageMeta(firm) {
     document.title = `${name} — Form ADV profile · Open Disclosure`
     const meta = document.querySelector('meta[name="description"]')
     const prev = meta?.getAttribute('content')
-    meta?.setAttribute(
-      'content',
-      `${name} (CRD ${firm.crd}${firm.state ? `, ${firm.state}` : ''}): regulatory AUM, ` +
-        'client mix, fee structure, and disciplinary history from SEC Form ADV filings.',
-    )
+    meta?.setAttribute('content', firmDescription(firm))
     // Keeps the canonical correct after in-app navigation; the served HTML
     // already carries it (see the note above usePageMeta).
     const canonical = document.querySelector('link[rel="canonical"]')

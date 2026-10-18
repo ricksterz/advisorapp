@@ -13,9 +13,9 @@ dist/firm/{crd}.html, dist/pulse.html, dist/pulse/{section}.html. Cloudflare's
 static-asset host serves /firm/105958 from firm/105958.html automatically, and
 an unknown CRD still falls through to the SPA shell via not_found_handling.
 
-Only the <head> is templated -- the body stays the empty shell React hydrates.
-That is enough to fix canonicalization and give each URL a distinct title and
-description; it does not attempt to pre-render visible firm content.
+Firm pages also carry visible content and structured data (etl/firm_prerender.py):
+a summary of the firm's filing beside the React root, which the app replaces
+once it renders, and schema.org JSON-LD. Pulse pages get only the <head>.
 
 The metadata strings here intentionally mirror the ones FirmDetail.jsx and
 App.jsx set at runtime, so the pre-rendered and hydrated states agree.
@@ -32,6 +32,8 @@ import html
 import json
 import re
 from pathlib import Path
+
+from etl import firm_prerender
 
 # Workers Static Assets caps a version at 20,000 files on the Free plan
 # (100,000 on Paid). One file per firm puts the site within a few thousand of
@@ -74,8 +76,18 @@ _SUBSTITUTIONS = {
 }
 
 
+# Where firm content goes: right after the React root, so the app can mount
+# beside it and remove it once the real page has rendered.
+ROOT_DIV = '<div id="root"></div>'
+
+
 def verify_template(template: str) -> None:
     """Fail before writing anything if the built HTML no longer matches."""
+    if template.count(ROOT_DIV) != 1 or template.count("</head>") != 1:
+        raise SystemExit(
+            f"error: expected exactly one {ROOT_DIV} and one </head> in the template — "
+            "frontend/index.html changed shape; update etl/gen_static_pages.py to match."
+        )
     for name, pattern in _SUBSTITUTIONS.items():
         found = len(pattern.findall(template))
         if found != 1:
@@ -108,21 +120,25 @@ def render(template: str, *, title: str, description: str, canonical: str) -> st
 
 def firm_meta(firm: dict, site: str) -> tuple[str, str, str]:
     """Title, description and canonical for one firm — mirrors FirmDetail.jsx."""
-    name = firm.get("business_name") or firm.get("legal_name") or f"CRD {firm['crd']}"
-    crd = firm["crd"]
-    state = f", {firm['state']}" if firm.get("state") else ""
-    description = (
-        f"{name} (CRD {crd}{state}): regulatory AUM, client mix, fee structure, "
-        "and disciplinary history from SEC Form ADV filings."
-    )
+    name = firm_prerender.name_of(firm)
     return (
         f"{name} — Form ADV profile · Open Disclosure",
-        description,
-        f"{site}/firm/{crd}",
+        firm_prerender.description(firm),
+        f"{site}/firm/{firm['crd']}",
     )
 
 
-def generate(data_path: Path, site: str, out_dir: Path, max_files: int) -> int:
+def render_firm(template: str, firm: dict, site: str, extras: dict) -> str:
+    """A firm's page: its <head> tags, JSON-LD, and the visible summary."""
+    title, description, canonical = firm_meta(firm, site)
+    page = render(template, title=title, description=description, canonical=canonical)
+    page = page.replace("</head>", f"    {firm_prerender.jsonld(firm, site)}\n  </head>", 1)
+    return page.replace(ROOT_DIV, ROOT_DIV + firm_prerender.body(firm, extras), 1)
+
+
+def generate(
+    data_path: Path, site: str, out_dir: Path, max_files: int, extras_dir: Path | None = None
+) -> int:
     site = site.rstrip("/")
     template_path = out_dir / "index.html"
     if not template_path.exists():
@@ -134,13 +150,13 @@ def generate(data_path: Path, site: str, out_dir: Path, max_files: int) -> int:
 
     payload = json.loads(data_path.read_text())
     firms = payload["firms"]
+    extras = firm_prerender.load_extras(extras_dir) if extras_dir else {}
     written = 0
 
     firm_dir = out_dir / "firm"
     firm_dir.mkdir(parents=True, exist_ok=True)
     for firm in firms:
-        title, description, canonical = firm_meta(firm, site)
-        page = render(template, title=title, description=description, canonical=canonical)
+        page = render_firm(template, firm, site, extras)
         (firm_dir / f"{firm['crd']}.html").write_text(page)
         written += 1
 
@@ -185,8 +201,14 @@ def main() -> None:
         default=DEFAULT_MAX_FILES,
         help=f"fail if dist ends up with more files than this (default {DEFAULT_MAX_FILES})",
     )
+    parser.add_argument(
+        "--extras",
+        type=Path,
+        default=Path(__file__).resolve().parent.parent / "frontend" / "public",
+        help="directory holding firm_growth.json, form_13f.json and firm_fund_types.json",
+    )
     args = parser.parse_args()
-    generate(args.data, args.site, args.out, args.max_files)
+    generate(args.data, args.site, args.out, args.max_files, args.extras)
 
 
 if __name__ == "__main__":
