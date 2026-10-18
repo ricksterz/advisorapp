@@ -123,3 +123,42 @@ def test_load_and_export(tmp_path, monkeypatch):
     assert data["years"] == [2024, 2025]
     # Firm 9 isn't registered today, so only firm 1 is exported.
     assert data["firms"] == {"1": [[100, 250], [10, 14], [6, 9], [50, 80]]}
+
+
+def test_percentile_ranks_count_ties_as_half():
+    ranks = ah.percentile_ranks({1: 1.0, 2: 2.0, 3: 2.0, 4: 4.0})
+    assert ranks == {1: 12, 2: 50, 3: 50, 4: 88}
+
+
+def test_growth_table_ranks_within_business_model_above_the_floor():
+    years = list(range(2016, 2027))  # 11 reports: 3, 5 and 10-year periods
+    flat = [None] * len(years)
+
+    def firm(start, end, staff=(10, 10), jump_at=None):
+        aum = [start] * len(years)
+        aum[-1] = end
+        if jump_at is not None:
+            i = years.index(jump_at)
+            aum = [start] * i + [end] * (len(years) - i)
+        emp = [staff[0]] * (len(years) - 1) + [staff[1]]
+        return {"aum": aum, "employees": emp, "support": flat, "accounts": flat}
+
+    series = {
+        1: firm(200, 600, staff=(10, 15)),  # 3x
+        2: firm(200, 400),  # 2x
+        3: firm(50, 500),  # 10x, but below the $100M floor: no rank
+        4: firm(300, 900, jump_at=2024),  # tripled in one step
+        5: firm(200, 1000),  # other business model
+    }
+    segments = {1: "wealth", 2: "wealth", 3: "wealth", 4: "wealth", 5: "private_funds"}
+    out = ah.growth_table(series, years, segments)
+
+    assert out["end_year"] == 2026 and out["periods"] == [3, 5, 10]
+    f1 = out["firms"]["1"]
+    assert f1["a5"] == 3.0 and f1["e5"] == 1.5
+    assert "r5" not in out["firms"]["3"] and out["firms"]["3"]["a5"] == 10.0
+    assert out["firms"]["4"]["jump"] == 2024
+    # Among wealth managers above the floor (1, 2, 4): 2x < 3x = 3x.
+    assert out["firms"]["2"]["r5"] < out["firms"]["1"]["r5"] == out["firms"]["4"]["r5"]
+    assert out["segment_medians"]["wealth"]["5"] == {"firms": 3, "median": 3.0}
+    assert out["segment_medians"]["private_funds"]["5"]["firms"] == 1

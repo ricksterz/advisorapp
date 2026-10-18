@@ -2160,3 +2160,37 @@ tbody tr:hover {
   color: var(--ink-2);
   cursor: pointer;
 }
+
+.growth-rank {
+  margin: 0 0 4px;
+  color: var(--ink-2);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.growth-controls {
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.segmented {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.growth-median {
+  max-width: 80ch;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.growth-jump {
+  margin-left: 8px;
+  font-size: 11px;
+}
+
+.growth-table-leaders td:first-child {
+  color: var(--ink-3);
+}
+
