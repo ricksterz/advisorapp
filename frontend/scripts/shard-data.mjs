@@ -67,8 +67,9 @@ export function listIndexes(dealFlags, advisorBios) {
   const out = {}
   if (dealFlags) {
     const firms = {}
-    for (const [crd, { evidence, ...flags }] of Object.entries(dealFlags.firms ?? {})) {
-      firms[crd] = flags
+    for (const [crd, entry] of Object.entries(dealFlags.firms ?? {})) {
+      // Only the booleans: the evidence snippets are most of the file.
+      firms[crd] = Object.fromEntries(Object.entries(entry).filter(([key]) => key !== 'evidence'))
     }
     out.deal_flags_index = { generated_at: dealFlags.generated_at, firms }
   }
