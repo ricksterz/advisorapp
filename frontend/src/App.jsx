@@ -12,6 +12,7 @@ import DealPatternsSection from './components/DealPatternsSection.jsx'
 import PulsePage from './components/PulsePage.jsx'
 import GrowthLeaders from './components/GrowthLeaders.jsx'
 import ComparePage from './components/ComparePage.jsx'
+import FirmSearch from './components/FirmSearch.jsx'
 import {
   DrilldownAdvisers,
   DrilldownAssets,
@@ -440,6 +441,8 @@ export default function App() {
           <img className="brand-mark" src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" />
           Open Disclosure
         </a>
+        {/* The homepage has its own, larger search box. */}
+        {!onList && <FirmSearch firms={data?.firms} className="header-search" shortcut />}
         <span className="spacer" />
         <a
           className={`topbar-link${pulse != null ? ' active' : ''}`}
@@ -505,6 +508,12 @@ export default function App() {
         <section className="page-head">
           <h1>Open Disclosure</h1>
           <p className="page-tagline">Investment adviser benchmarking, from the public record.</p>
+          <FirmSearch
+            firms={data?.firms}
+            className="hero-search"
+            placeholder="Find a firm: name, brand or CRD"
+            label="Find a firm"
+          />
           <p>
             Every SEC-registered advisory firm — assets under management, compensation structure,
             and disciplinary history — built from public Form ADV filings.

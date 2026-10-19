@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 
 import { compareChart, compareRows, useCompareExtras } from '../compare.js'
 import { comparePath, firmPath, MAX_COMPARE, navigate } from '../router.js'
@@ -6,6 +6,7 @@ import { useFundTypes } from '../segments.js'
 import { resolveWebsite, useWebsiteOverrides } from '../websiteOverrides.js'
 import FirmFavicon from './FirmFavicon.jsx'
 import { websiteHost } from './FirmDetail.jsx'
+import FirmSearch from './FirmSearch.jsx'
 import IndexChart from './IndexChart.jsx'
 
 const go = (crds) => {
@@ -14,60 +15,6 @@ const go = (crds) => {
 }
 
 const nameOf = (f) => f.business_name || f.legal_name
-
-/** Type-ahead over the firm list, by name or CRD. */
-function AddFirm({ allFirms, exclude }) {
-  const [query, setQuery] = useState('')
-  const q = query.trim().toLowerCase()
-  const matches = useMemo(() => {
-    if (q.length < 2) return []
-    const out = []
-    // firms.json is sorted by AUM, so the first matches are the largest firms.
-    for (const f of allFirms) {
-      if (exclude.includes(f.crd)) continue
-      if (
-        (f.legal_name || '').toLowerCase().includes(q) ||
-        (f.business_name || '').toLowerCase().includes(q) ||
-        String(f.crd).startsWith(q)
-      ) {
-        out.push(f)
-        if (out.length === 8) break
-      }
-    }
-    return out
-  }, [allFirms, exclude, q])
-
-  return (
-    <div className="compare-add">
-      <span className="search">
-        <span className="glyph">⌕</span>
-        <input
-          placeholder="Add a firm by name or CRD"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          aria-label="Add a firm to compare"
-        />
-      </span>
-      {matches.length > 0 && (
-        <ul className="compare-suggestions" role="listbox">
-          {matches.map((f) => (
-            <li key={f.crd}>
-              <button
-                type="button"
-                onClick={() => {
-                  setQuery('')
-                  go([...exclude, f.crd])
-                }}
-              >
-                {nameOf(f)} <span className="compare-sub">CRD {f.crd}{f.state ? ` · ${f.state}` : ''}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  )
-}
 
 export default function ComparePage({ crds, allFirms }) {
   const overrides = useWebsiteOverrides()
@@ -101,7 +48,16 @@ export default function ComparePage({ crds, allFirms }) {
         </p>
       </div>
 
-      {firms.length < MAX_COMPARE && <AddFirm allFirms={allFirms} exclude={firms.map((f) => f.crd)} />}
+      {firms.length < MAX_COMPARE && (
+        <FirmSearch
+          firms={allFirms}
+          exclude={firms.map((f) => f.crd)}
+          onSelect={(f) => go([...firms.map((g) => g.crd), f.crd])}
+          placeholder="Add a firm by name or CRD"
+          label="Add a firm to compare"
+          className="compare-add"
+        />
+      )}
       {missing.length > 0 && (
         <p className="detail-note">
           No firm with CRD {missing.join(', ')} in this snapshot; it may have withdrawn its registration.
