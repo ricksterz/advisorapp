@@ -5,6 +5,7 @@ import { fmtCompactUsd, fmtCount } from '../pulse.js'
 import { SEGMENT_BY_ID, SEGMENTS } from '../segments.js'
 import { useTrajectoryData } from '../trajectory.js'
 import { useWidth } from './useWidth.js'
+import DataNote from './DataNote.jsx'
 
 // Four segments on the chart, in the palette's fixed order. "Mixed" is only
 // ~200 firms, too few to draw a curve across sizes; it stays in the table.
@@ -199,7 +200,7 @@ export default function ScalingCard({ firms }) {
           </tbody>
         </table>
       </div>
-      <p className="detail-note">
+      <DataNote>
         Business model comes from where each firm says its AUM comes from (Form ADV Item 5.D).
         “Bigger firms” is a log-log trend fitted across each model’s firms today: how many more
         non-advisory staff a firm twice the size typically has. “Same firm over time” follows each
@@ -211,7 +212,7 @@ export default function ScalingCard({ firms }) {
         the trend and the medians. Chart points are the median across firms in each half-decade of
         AUM, where at least {MIN_BIN_FIRMS} firms report. Each firm’s own comparison is on its
         profile page.
-      </p>
+      </DataNote>
     </section>
   )
 }

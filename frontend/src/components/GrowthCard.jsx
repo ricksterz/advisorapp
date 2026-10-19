@@ -4,6 +4,7 @@ import { navigate, pulsePath } from '../router.js'
 import { SEGMENT_BY_ID } from '../segments.js'
 import { firmTrajectory, fmtMultiple, growthSummary, useTrajectoryData } from '../trajectory.js'
 import IndexChart from './IndexChart.jsx'
+import DataNote from './DataNote.jsx'
 
 // AUM and both kinds of staff, indexed to the first year both AUM and
 // support staff are above zero.
@@ -26,7 +27,7 @@ function summarySentence(g, segment) {
   let out = `From ${g.first.year} to ${g.last.year}, ${aum} and ${support}.`
   if (g.expectedSupport != null && segment) {
     const seg = SEGMENT_BY_ID[segment]
-    const expected = g.expectedSupport >= 10 ? Math.round(g.expectedSupport) : g.expectedSupport.toFixed(1)
+    const expected = g.expectedSupport >= 10 ? fmtCount(g.expectedSupport) : g.expectedSupport.toFixed(1)
     const ratio = g.last.support / g.expectedSupport
     const verdict =
       Math.abs(ratio - 1) < 0.15
@@ -122,14 +123,14 @@ export default function GrowthCard({ crd, segment }) {
           </table>
         </div>
       </details>
-      <p className="detail-note">
+      <DataNote>
         From the SEC’s registered-adviser report published each January, which shows each firm’s
         latest Form ADV, usually filed the spring before. A firm that didn’t amend repeats its
         figures, and a missing year means it wasn’t SEC-registered that January. AUM moves with
         markets as well as new clients. The comparison is fitted on how firms with the same
         business model changed their own non-advisory staff over five-year spans as their AUM
         changed.
-      </p>
+      </DataNote>
     </section>
   )
 }

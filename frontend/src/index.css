@@ -1158,6 +1158,9 @@ tbody tr:hover {
   border: 1px solid var(--hairline);
   border-radius: 12px;
   padding: 16px 18px;
+  /* A table wider than a phone scrolls inside its card rather than being
+     cut off at the card's edge. */
+  overflow-x: auto;
 }
 
 .detail-card h2 {
@@ -1651,6 +1654,11 @@ tbody tr:hover {
 .pulse-table .num {
   text-align: right;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pulse-table .nowrap {
+  white-space: nowrap;
 }
 
 .pulse-table td.migrated {
@@ -2348,5 +2356,100 @@ tbody tr:hover {
   color: var(--ink-2);
   font-size: 14px;
   line-height: 1.6;
+}
+
+/* "About this data" (DataNote): methodology folded under its card. */
+.data-note {
+  margin-top: 10px;
+}
+
+.data-note summary {
+  width: fit-content;
+  color: var(--ink-3);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.data-note summary:hover {
+  color: var(--ink-2);
+}
+
+.data-note[open] summary {
+  margin-bottom: -2px;
+}
+
+@media (max-width: 640px) {
+  .detail-card {
+    padding: 14px;
+  }
+
+  .detail-head h1 {
+    font-size: 21px;
+  }
+
+  .pulse-table th,
+  .pulse-table td {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  .pulse-table th {
+    white-space: nowrap;
+  }
+
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 20px 0;
+  }
+
+  .tile .value {
+    font-size: 22px;
+  }
+
+  /* Tables of people and roles become one block per row on a phone: name
+     on its own line, then each labelled field, instead of four columns
+     squeezed to a word or two each. */
+  .stack-mobile thead {
+    display: none;
+  }
+
+  .stack-mobile,
+  .stack-mobile tbody {
+    display: block;
+  }
+
+  .stack-mobile tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 14px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--grid);
+  }
+
+  .stack-mobile tr:last-child {
+    border-bottom: none;
+  }
+
+  .stack-mobile td {
+    display: block;
+    padding: 0;
+    border: none;
+    text-align: left;
+    white-space: normal;
+    color: var(--ink-2);
+    font-size: 12.5px;
+  }
+
+  .stack-mobile td:first-child {
+    flex-basis: 100%;
+    color: var(--ink);
+    font-size: 13.5px;
+  }
+
+  .stack-mobile td[data-label]::before {
+    content: attr(data-label) " ";
+    color: var(--ink-3);
+  }
 }
 
