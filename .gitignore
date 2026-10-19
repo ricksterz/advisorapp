@@ -7,7 +7,7 @@ venv/
 .pytest_cache/
 
 # Data (bulk downloads and local databases stay out of git)
-data/
+/data/
 *.duckdb
 *.duckdb.wal
 *.zip

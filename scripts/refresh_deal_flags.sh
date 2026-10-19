@@ -31,10 +31,12 @@ $PY -m etl.brochures run --db data/advisor.duckdb --rescan
 echo "== 3/14 extracting advisor bios from newly-cached brochures (Part 2B) =="
 $PY -m etl.advisor_bios run --db data/advisor.duckdb
 
-echo "== 4/14 refreshing individual disclosure flags (bulk IA_INDVL_Feed) =="
+echo "== 4/14 refreshing individual disclosure flags and advisor search (bulk IA_INDVL_Feed) =="
 $PY -m etl.individual_disclosures run --db data/advisor.duckdb
 $PY -m etl.individual_disclosures_stats --db data/advisor.duckdb \
     --out frontend/public/individual_disclosures.json
+# Advisor search and firm rosters, from the feed step 4 just downloaded.
+$PY -m etl.advisor_index --db data/advisor.duckdb --out frontend/data
 
 echo "== 5/14 exporting deal_flags.json + advisor_bios.json =="
 $PY -m etl.export_json --db data/advisor.duckdb --out "$TMP_FIRMS" \
@@ -135,5 +137,6 @@ echo "          frontend/public/individual_disclosures.json frontend/public/form
           frontend/public/firm_owners.json frontend/public/ownership_changes.json \\
           frontend/public/website_overrides.json frontend/public/favicons.json \\
           frontend/public/form_13f.json frontend/public/firm_fund_types.json \\
-          frontend/public/firm_trajectory.json frontend/public/firm_growth.json"
+          frontend/public/firm_trajectory.json frontend/public/firm_growth.json \\
+          frontend/data/advisors.json"
 echo "  git commit -m 'Refresh brochure corpus, advisor bios, private funds, disclosures, and sitemap'"
