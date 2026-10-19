@@ -10,6 +10,7 @@ import FirmFavicon from './FirmFavicon.jsx'
 import { websiteHost } from './FirmDetail.jsx'
 import { PulseBackLink } from './PulseDrilldowns.jsx'
 import { PulseDisclaimer } from './PulsePage.jsx'
+import DataNote from './DataNote.jsx'
 
 // "3.2×" from a doubling up, "63%" below it.
 const grewBy = (m) => (m >= 2 ? fmtMultiple(m) : `${Math.round((m - 1) * 100)}%`)
@@ -162,7 +163,7 @@ export default function GrowthLeaders({ firms }) {
         )}
       </div>
 
-      <p className="detail-note">
+      <DataNote>
         Growth is regulatory AUM in the SEC’s January report of each year, which reflects each
         firm’s latest Form ADV, usually filed the spring before. It includes market gains, new
         clients and acquisitions alike; “vs median” compares with firms of the same business model
@@ -170,7 +171,7 @@ export default function GrowthLeaders({ firms }) {
         {Math.round(growth.rank_floor / 1e6)}M at the start are ranked, since a small base makes
         multiples meaningless. Business model and size are as of today. “Employees” is the change in
         total headcount over the same period.
-      </p>
+      </DataNote>
     </section>
   )
 }

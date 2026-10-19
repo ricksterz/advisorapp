@@ -1,5 +1,6 @@
 import { SEGMENT_BY_ID } from '../segments.js'
 import { fmtCompactUsd } from '../pulse.js'
+import DataNote from './DataNote.jsx'
 
 const fmtAccounts = (v) => (v >= 10 ? Math.round(v).toLocaleString() : v.toFixed(1))
 
@@ -116,14 +117,14 @@ export default function LeverageCard({ profile, firm }) {
           )}
         </>
       )}
-      <p className="detail-note">
+      <DataNote>
         Non-advisory employees are all employees (Form ADV Item 5.A) minus those doing advisory
         work (Item 5.B(1)): operations, compliance, client service and support. Segments come from
         where the firm says its AUM comes from (Item 5.D). Peers are compared by median and
         percentile, not average. The trend line compares firms of different sizes at one point in
         time; it doesn’t track how any firm actually grew.
         {!profile.noSupportStaff && ` ${zeroNote}`}
-      </p>
+      </DataNote>
     </section>
   )
 }

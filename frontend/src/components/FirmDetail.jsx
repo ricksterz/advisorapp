@@ -6,7 +6,7 @@ import { BASE, comparePath, navigate } from '../router.js'
 import { DEAL_FLAG_DEFS, useDealFlags } from '../dealFlags.js'
 import { DISCLOSURE_FLAG_DEFS, useAdvisorBios } from '../advisorBios.js'
 import { PROVIDER_ROLE_LABELS, useFirmPrivateFunds } from '../privateFunds.js'
-import { fmtCompactUsd, fmtQuarter, ordinal } from '../pulse.js'
+import { fmtCompactUsd, fmtCount, fmtQuarter, ordinal } from '../pulse.js'
 import { useFirmHistory } from '../firmHistory.js'
 import { useFirmOwners, useOwnershipChanges } from '../firmOwners.js'
 import { resolveWebsite, useWebsiteOverrides, websiteNote } from '../websiteOverrides.js'
@@ -18,6 +18,7 @@ import { bandLabelOf, leverageHeadline, leverageProfile } from '../leverage.js'
 import { aumShare, firmSegment, firmTags, SEGMENT_BY_ID, useFundTypes } from '../segments.js'
 import GrowthCard from './GrowthCard.jsx'
 import LeverageCard from './LeverageCard.jsx'
+import DataNote from './DataNote.jsx'
 
 // Public IAPD document endpoints (all CORS-enabled, no key required).
 const firmApiUrl = (crd) => `https://api.adviserinfo.sec.gov/search/firm/${crd}`
@@ -315,7 +316,7 @@ function AdvisorBiosCard({ crd }) {
           </div>
         ))}
       </div>
-      <p className="detail-note">
+      <DataNote>
         Text extracted from Form ADV Part 2B brochure supplement filings — each advisor’s own
         regulatory disclosure of their education and business background. Not verified or
         curated; it is context, not a finding. Read the source brochure (linked above) before
@@ -329,7 +330,7 @@ function AdvisorBiosCard({ crd }) {
             actual record.
           </>
         )}
-      </p>
+      </DataNote>
     </div>
   )
 }
@@ -354,9 +355,9 @@ function OwnersCard({ crd }) {
         {o.public_reporting && <span className="fund-tag">public co.</span>}
         {o.owns && <span className="owner-owns">holds its stake through {o.owns}</span>}
       </td>
-      <td>{o.title ?? '—'}</td>
-      <td className="num">{o.stake ?? '—'}</td>
-      <td className="num">{o.since ?? '—'}</td>
+      <td data-label="Role">{o.title ?? '—'}</td>
+      <td className="num" data-label="Stake">{o.stake ?? '—'}</td>
+      <td className="num" data-label="Since">{o.since ?? '—'}</td>
     </tr>
   )
 
@@ -364,7 +365,7 @@ function OwnersCard({ crd }) {
     rows.length ? (
       <>
         <h3 className="owner-group">{title}</h3>
-        <table className="pulse-table">
+        <table className="pulse-table stack-mobile">
           <thead>
             <tr>
               <th>Name</th>
@@ -389,13 +390,13 @@ function OwnersCard({ crd }) {
           shown.
         </p>
       )}
-      <p className="detail-note">
+      <DataNote>
         Form ADV Schedule A (direct owners and executive officers) and Schedule B (the indirect
         owners above them), from this firm’s most recent filing to report them. Stake is the
         ownership band as filed, not an exact percentage — the SEC collects ranges. On Schedule B,
         “Other” covers general partners, trustees and elected managers, who hold control without a
         percentage stake. “Since” is when the person or entity acquired that status, as filed.
-      </p>
+      </DataNote>
     </div>
   )
 }
@@ -458,13 +459,13 @@ function OwnershipChangesCard({ crd }) {
           </li>
         ))}
       </ol>
-      <p className="detail-note">
+      <DataNote>
         Differences between this firm’s consecutive Form ADV filings, so each date is the first
         filing to report the change, not necessarily the day it happened — a firm that amends
         annually can report a departure months after the fact. Stakes are the filed bands, and a
         party is matched across filings by its SEC OwnerID where one exists, otherwise by name,
         always within the same schedule and parent entity.
-      </p>
+      </DataNote>
     </div>
   )
 }
@@ -495,30 +496,30 @@ function FirmHistoryCard({ crd }) {
         <thead>
           <tr>
             <th>Quarter</th>
-            <th className="num">Regulatory AUM</th>
+            <th className="num">AUM</th>
             <th className="num">Advisory staff</th>
-            <th className="num">Disciplinary</th>
+            <th className="num">Disclosures</th>
           </tr>
         </thead>
         <tbody>
           {quarters.map((q, i) => (
             <tr key={q}>
-              <td>{fmtQuarter(q)}</td>
+              <td className="nowrap">{fmtQuarter(q)}</td>
               <td className="num">{aum[i] != null ? fmtCompactUsd(aum[i]) : '—'}</td>
-              <td className="num">{staff[i] ?? '—'}</td>
-              <td className="num">{disc[i] ?? '—'}</td>
+              <td className="num">{fmtCount(staff[i])}</td>
+              <td className="num">{fmtCount(disc[i])}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <p className="detail-note">
+      <DataNote>
         From the same quarterly snapshots Industry Pulse aggregates — published only for quarters
         meeting Pulse’s completeness threshold, so a gap means the firm fell below it that quarter,
         not that nothing changed. Advisory-staff counts can swing sharply between quarters for
         reasons unrelated to hiring or layoffs: Form ADV Item 5.B’s basis for the count is not
         always applied consistently filing to filing, so a jump is a prompt to check the underlying
         filing, not evidence of a real event on its own.
-      </p>
+      </DataNote>
     </div>
   )
 }
@@ -626,7 +627,7 @@ function CompareStrip({ firm, allFirms }) {
           (firm.disciplinary_flag_count ?? 0) > medianDisclosures ? 'compare-worse' : ''
         }`}
       >
-        Disclosures <strong>{firm.disciplinary_flag_count ?? 0}</strong> vs median{' '}
+        Disclosures <strong>{fmtCount(firm.disciplinary_flag_count ?? 0)}</strong> vs median{' '}
         {medianDisclosures}
       </span>
     </div>
@@ -778,8 +779,10 @@ export default function FirmDetail({ firm, crd, allFirms }) {
         </div>
         <div className="tile">
           <div className="label">Advisory professionals</div>
-          <div className="value">{staffOf(firm) ?? '—'}</div>
-          {firm.employees_total != null && <div className="sub">{firm.employees_total} employees total</div>}
+          <div className="value">{fmtCount(staffOf(firm))}</div>
+          {firm.employees_total != null && (
+            <div className="sub">{fmtCount(firm.employees_total)} employees total</div>
+          )}
         </div>
         <div className="tile">
           <div className="label">Accounts</div>
@@ -787,7 +790,7 @@ export default function FirmDetail({ firm, crd, allFirms }) {
         </div>
         <div className="tile">
           <div className="label">Disciplinary disclosures</div>
-          <div className="value">{firm.disciplinary_flag_count ?? 0}</div>
+          <div className="value">{fmtCount(firm.disciplinary_flag_count ?? 0)}</div>
           <div className="sub">Form ADV Item 11 — see IAPD for the underlying records</div>
         </div>
       </div>
