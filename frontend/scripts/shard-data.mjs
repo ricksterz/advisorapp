@@ -27,6 +27,10 @@ import { fileURLToPath } from 'node:url'
 export const SHARD_COUNT = 32
 
 const PUBLIC = join(dirname(fileURLToPath(import.meta.url)), '..', 'public')
+// Build inputs that are never served: advisors.json is 27 MB, over the
+// 25 MiB a single Cloudflare static asset may be, and the site only ever
+// loads the pieces this script cuts from it.
+const DATA = join(dirname(fileURLToPath(import.meta.url)), '..', 'data')
 const OUT = join(PUBLIC, 'shards')
 
 // Datasets keyed by CRD under `firms`. form_13f also has `filers`, which a
@@ -172,7 +176,8 @@ function main() {
       files += 1
     })
   }
-  const advisors = readJson('advisors')
+  const advisorsPath = join(DATA, 'advisors.json')
+  const advisors = existsSync(advisorsPath) ? JSON.parse(readFileSync(advisorsPath, 'utf8')) : null
   if (advisors) {
     const { generated_at: generatedAt, source } = advisors
     const { small, big } = separateBigRosters(advisorRosters(advisors.people))

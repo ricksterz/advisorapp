@@ -41,7 +41,9 @@ from etl.config import DB_PATH as DEFAULT_DB
 from etl.config import RAW_DIR, REPO_ROOT
 
 FEED_DIR = RAW_DIR / "individual_disclosures"
-DEFAULT_OUT = REPO_ROOT / "frontend" / "public"
+# Not frontend/public: the file is a build input (27 MB, over Cloudflare's
+# 25 MiB per-asset limit) that frontend/scripts/shard-data.mjs splits up.
+DEFAULT_OUT = REPO_ROOT / "frontend" / "data"
 
 DESIGNATIONS = {
     "Certified Financial Planner": "CFP",

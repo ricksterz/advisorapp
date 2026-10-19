@@ -36,7 +36,7 @@ $PY -m etl.individual_disclosures run --db data/advisor.duckdb
 $PY -m etl.individual_disclosures_stats --db data/advisor.duckdb \
     --out frontend/public/individual_disclosures.json
 # Advisor search and firm rosters, from the feed step 4 just downloaded.
-$PY -m etl.advisor_index --db data/advisor.duckdb --out frontend/public
+$PY -m etl.advisor_index --db data/advisor.duckdb --out frontend/data
 
 echo "== 5/14 exporting deal_flags.json + advisor_bios.json =="
 $PY -m etl.export_json --db data/advisor.duckdb --out "$TMP_FIRMS" \
@@ -138,5 +138,5 @@ echo "          frontend/public/individual_disclosures.json frontend/public/form
           frontend/public/website_overrides.json frontend/public/favicons.json \\
           frontend/public/form_13f.json frontend/public/firm_fund_types.json \\
           frontend/public/firm_trajectory.json frontend/public/firm_growth.json \\
-          frontend/public/advisors.json"
+          frontend/data/advisors.json"
 echo "  git commit -m 'Refresh brochure corpus, advisor bios, private funds, disclosures, and sitemap'"
