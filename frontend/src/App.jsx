@@ -442,7 +442,16 @@ export default function App() {
           Open Disclosure
         </a>
         {/* The homepage has its own, larger search box. */}
-        {!onList && <FirmSearch firms={data?.firms} className="header-search" shortcut />}
+        {!onList && (
+          <FirmSearch
+            firms={data?.firms}
+            className="header-search"
+            shortcut
+            advisors
+            label="Search firms and advisors"
+            placeholder="Search firms or advisors"
+          />
+        )}
         <span className="spacer" />
         <a
           className={`topbar-link${pulse != null ? ' active' : ''}`}
@@ -511,8 +520,9 @@ export default function App() {
           <FirmSearch
             firms={data?.firms}
             className="hero-search"
-            placeholder="Find a firm: name, brand or CRD"
-            label="Find a firm"
+            advisors
+            placeholder="Find a firm or advisor by name, or a firm by CRD"
+            label="Find a firm or advisor"
           />
           <p>
             Every SEC-registered advisory firm — assets under management, compensation structure,

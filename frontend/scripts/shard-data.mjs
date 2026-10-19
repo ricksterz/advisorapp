@@ -84,6 +84,73 @@ export function listIndexes(dealFlags, advisorBios) {
   return out
 }
 
+// Advisor name search (advisors.json, from etl/advisor_index.py). Each person
+// is filed under their first and last name, so "john smith" and "smith" both
+// find John Smith. Every (name, person) filing is sorted alphabetically and
+// cut into buckets of SEARCH_BUCKET_SIZE; meta.json holds the first name in
+// each bucket, so the app can tell which buckets a typed prefix falls in
+// (src/advisors.js) and fetch only those. ~210 files of ~55 KB compressed.
+export const SEARCH_BUCKET_SIZE = 4000
+
+export const nameTokens = (name) =>
+  (name || '')
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .filter(Boolean)
+
+/** The tokens a person is filed under: first and last name. */
+function filingTokens(name) {
+  const tokens = nameTokens(name).filter((t) => t.length > 1)
+  return [...new Set([tokens[0], tokens[tokens.length - 1]].filter(Boolean))]
+}
+
+/** { meta: { starts, people }, buckets: entries[][] } from advisors.json's people. Pure. */
+export function advisorSearch(people, size = SEARCH_BUCKET_SIZE) {
+  const filed = []
+  for (const p of people) for (const t of filingTokens(p[1])) filed.push([t, p[1], p.slice(0, 7)])
+  filed.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1].localeCompare(b[1])))
+  const buckets = []
+  const starts = []
+  for (let i = 0; i < filed.length; i += size) {
+    const chunk = filed.slice(i, i + size)
+    starts.push(chunk[0][0])
+    buckets.push(chunk.map(([, , entry]) => entry))
+  }
+  return { meta: { starts, people: people.length }, buckets }
+}
+
+/** Per-firm rosters in the shape splitDataset expects. Pure. */
+export function advisorRosters(people) {
+  const firms = {}
+  for (const [crd, name, employers, city, state, designations, disclosure, firstYear] of people) {
+    for (const firm of employers) {
+      ;(firms[firm] ??= []).push([crd, name, city, state, designations, disclosure, firstYear])
+    }
+  }
+  const last = (name) => name.split(' ').at(-1)
+  for (const roster of Object.values(firms)) {
+    roster.sort((a, b) => last(a[1]).localeCompare(last(b[1])) || a[1].localeCompare(b[1]))
+  }
+  return { firms }
+}
+
+// A roster this long (Edward Jones has ~20,000 people) gets a file of its
+// own, so the firms sharing its shard don't download it.
+export const OWN_FILE_ROSTER = 1000
+
+/** Split rosters into the sharded ones and those big enough for their own file. Pure. */
+export function separateBigRosters({ firms }) {
+  const small = {}
+  const big = {}
+  for (const [crd, roster] of Object.entries(firms)) {
+    if (roster.length > OWN_FILE_ROSTER) {
+      big[crd] = roster
+      small[crd] = { own_file: true, count: roster.length }
+    } else small[crd] = roster
+  }
+  return { small: { firms: small }, big }
+}
+
 function readJson(name) {
   const path = join(PUBLIC, `${name}.json`)
   return existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : null
@@ -104,6 +171,29 @@ function main() {
       writeFileSync(join(dir, `${i}.json`), JSON.stringify(shard))
       files += 1
     })
+  }
+  const advisors = readJson('advisors')
+  if (advisors) {
+    const { generated_at: generatedAt, source } = advisors
+    const { small, big } = separateBigRosters(advisorRosters(advisors.people))
+    const dir = join(OUT, 'firm_advisors')
+    mkdirSync(join(dir, 'firm'), { recursive: true })
+    splitDataset('firm_advisors', { generated_at: generatedAt, source, ...small }).forEach((shard, i) => {
+      writeFileSync(join(dir, `${i}.json`), JSON.stringify(shard))
+      files += 1
+    })
+    for (const [crd, roster] of Object.entries(big)) {
+      writeFileSync(join(dir, 'firm', `${crd}.json`), JSON.stringify(roster))
+      files += 1
+    }
+    const { meta, buckets } = advisorSearch(advisors.people)
+    const searchDir = join(OUT, 'advisor_search')
+    mkdirSync(searchDir, { recursive: true })
+    writeFileSync(join(searchDir, 'meta.json'), JSON.stringify({ generated_at: generatedAt, source, ...meta }))
+    buckets.forEach((entries, i) => writeFileSync(join(searchDir, `${i}.json`), JSON.stringify(entries)))
+    files += 1 + buckets.length
+  } else {
+    console.log('shard-data: no advisors.json, skipping advisor search and rosters')
   }
   for (const [name, payload] of Object.entries(listIndexes(readJson('deal_flags'), readJson('advisor_bios')))) {
     writeFileSync(join(OUT, `${name}.json`), JSON.stringify(payload))
