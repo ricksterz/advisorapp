@@ -165,9 +165,10 @@ def generate(
         template,
         title="Disclaimer and terms of use · Open Disclosure",
         description=(
-            "For informational purposes only. Open Disclosure is independent and republishes "
-            "public U.S. government records as is. Not investment advice, not a consumer report, "
-            "and a disclosure is not a finding of wrongdoing. Read the full terms."
+            "Disclaimer and terms of use for Open Disclosure: information provided for "
+            "informational purposes only, derived from public U.S. government records, without "
+            "warranty. Not investment advice or a consumer report; a disclosure is not a finding "
+            "of wrongdoing."
         ),
         canonical=f"{site}/legal",
     )

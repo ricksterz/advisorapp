@@ -2741,6 +2741,14 @@ tbody tr:hover {
   max-width: 76ch;
 }
 
+.legal-summary {
+  margin-top: 18px;
+  padding: 4px 18px 8px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
 .legal-section h2 {
   margin: 26px 0 8px;
   font-size: 17px;

@@ -668,10 +668,12 @@ export default function App() {
               </RankCard>
             </div>
             <p className="pulse-disclaimer rank-disclaimer">
-              These lists are screens computed from public filings under the methodology above, not
-              ratings, endorsements or warnings. A place on the outlier list is a prompt to read the
-              firm’s official record, not an allegation or finding of wrongdoing: disclosures include
-              pending, dismissed and settled matters and matters concerning affiliates.{' '}
+              For informational purposes only. These lists are screens calculated from public
+              records under the methodology described above; they are not ratings, endorsements or
+              warnings. Inclusion on the outlier list indicates that a firm’s record differs from
+              those of its peers and warrants review of the official record. It does not constitute
+              an allegation or finding of wrongdoing, as disclosures include pending, dismissed and
+              settled matters and matters concerning affiliates.{' '}
               <a href={legalPath()} onClick={(e) => navigate(e, legalPath())}>
                 Full disclaimer
               </a>

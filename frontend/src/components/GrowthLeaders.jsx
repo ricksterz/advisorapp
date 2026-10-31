@@ -119,9 +119,9 @@ export default function GrowthLeaders({ firms }) {
       )}
       {median && (
         <p className="pulse-disclaimer">
-          AUM growth is not investment performance: it mixes market moves, new clients and
-          acquisitions, and says nothing about returns earned for clients. This list is not a
-          ranking of quality or a recommendation.
+          Growth in assets under management is not a measure of investment performance. It reflects
+          market movements, new clients and acquisitions, and indicates nothing about returns earned
+          for clients. This list is not a ranking of quality or a recommendation.
         </p>
       )}
 

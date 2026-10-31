@@ -134,8 +134,10 @@ export default function ComparePage({ crds, allFirms }) {
             Percentiles and “peers” compare each firm with firms of the same business model and size,
             as on its own page. Business model comes from where the firm says its AUM comes from (Form
             ADV Item 5.D). A dash means the firm didn’t report the figure or isn’t covered by that
-            data set. A comparison of filed figures is not a recommendation of any firm, and it leaves
-            out services, costs and results; check each firm’s official record before deciding.
+            data set. This comparison of reported figures is provided for informational purposes only
+            and does not constitute a recommendation of any firm. It omits services, costs and
+            investment results; users should review each firm’s official record before making any
+            decision.
           </p>
         </>
       )}

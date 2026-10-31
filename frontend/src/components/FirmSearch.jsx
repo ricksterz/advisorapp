@@ -229,8 +229,8 @@ export default function FirmSearch({
           )}
           {people.results.length > 0 && (
             <li className="search-note" role="presentation">
-              From public SEC records, which may be out of date. A disclosures badge is not a finding
-              of wrongdoing.
+              Source: public SEC records, which may be out of date. A disclosures indicator does not
+              constitute a finding of wrongdoing.
             </li>
           )}
           {advisors && people.tooBroad && (
