@@ -79,7 +79,9 @@ const byScoreThenName = (a, b) =>
 
 /**
  * extra.advisorCounts: { crd: [advisors, advisors with disclosures] } from
- * the advisor index. Without it the advisor-share signal can't trip.
+ * the advisor index. extra.disclosureIndex: { since, firms: { crd: [recent
+ * events against the firm, all against the firm, against affiliates] } }.
+ * Without them the signals that read them can't trip.
  */
 export function computeRankings(firms, config, extra = {}) {
   // --- Top list -----------------------------------------------------------
@@ -149,17 +151,20 @@ export function computeRankings(firms, config, extra = {}) {
         .filter((c) => c && c[0] >= params.minAdvisors)
         .map((c) => c[1] / c[0])
     : []
+  const disclosureIndex = extra.disclosureIndex ?? null
+  const bandShares = (value) =>
+    Array.from({ length: RISK_SIZE_BANDS.length + 1 }, (_, band) =>
+      shareBelow(riskUniverse.filter((f) => riskSizeBand(f.aum_total) === band).map(value)),
+    )
   const ctx = {
     pLoad,
     advisorCounts,
+    disclosureIndex,
+    recentShareBelow: disclosureIndex
+      ? bandShares((f) => disclosureIndex.firms?.[String(f.crd)]?.[0] ?? 0)
+      : null,
     advisorShareBelow: rates.length ? shareBelow(rates) : null,
-    disclosureShareBelow: Array.from({ length: RISK_SIZE_BANDS.length + 1 }, (_, band) =>
-      shareBelow(
-        riskUniverse
-          .filter((f) => riskSizeBand(f.aum_total) === band)
-          .map((f) => f.disciplinary_flag_count ?? 0),
-      ),
-    ),
+    disclosureShareBelow: bandShares((f) => f.disciplinary_flag_count ?? 0),
   }
 
   const atRisk = riskUniverse

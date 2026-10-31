@@ -26,6 +26,7 @@ import { fmtCount } from './pulse.js'
 import { DEAL_FLAG_DEFS, useAllDealFlags } from './dealFlags.js'
 import { bioCount, useAdvisorBioCounts } from './advisorBios.js'
 import { useAdvisorCounts } from './advisors.js'
+import { useDisclosureIndex } from './disclosures.js'
 import { computeDealPatterns } from './dealPatterns.js'
 import { resolveWebsite, useWebsiteOverrides } from './websiteOverrides.js'
 import { SORT_DEFS, makeComparator } from './firmSort.js'
@@ -377,9 +378,16 @@ export default function App() {
   }, [data])
 
   const advisorCounts = useAdvisorCounts(onList)
+  const disclosureIndex = useDisclosureIndex(onList)
   const rankings = useMemo(
-    () => (data ? computeRankings(data.firms, config, { advisorCounts: advisorCounts?.firms }) : null),
-    [data, config, advisorCounts],
+    () =>
+      data
+        ? computeRankings(data.firms, config, {
+            advisorCounts: advisorCounts?.firms,
+            disclosureIndex: disclosureIndex ?? null,
+          })
+        : null,
+    [data, config, advisorCounts, disclosureIndex],
   )
 
   const dealPatterns = useMemo(
@@ -626,7 +634,8 @@ export default function App() {
                 title="Disclosure outliers"
                 sub={`Firms ≥ ${compactUsd(config.risk.minAum)} AUM whose record stands out against their peers, scoring ${config.risk.threshold}+`}
               >
-                {advisorCounts === undefined && config.risk.points.advisorDisclosures > 0 ? (
+                {(advisorCounts === undefined && config.risk.points.advisorDisclosures > 0) ||
+                (disclosureIndex === undefined && config.risk.points.recentFirmDisclosures > 0) ? (
                   <div className="state">Loading advisor records…</div>
                 ) : rankings.atRisk.length === 0 ? (
                   <div className="state">No firms currently trip the risk threshold.</div>
@@ -692,6 +701,14 @@ export default function App() {
                       {config.risk.points.advisorDisclosures} points);{' '}
                     </>
                   )}
+                  {config.risk.points.recentFirmDisclosures > 0 && (
+                    <>
+                      dated disclosure events filed against the firm itself (not its affiliates)
+                      in the last {disclosureIndex?.years ?? 5} years, when the count is in the
+                      top {Math.round((1 - RISK_PARAM_DEFAULTS.sizeCut) * 100)}% for the firm’s size
+                      band (up to {config.risk.points.recentFirmDisclosures} points);{' '}
+                    </>
+                  )}
                   {config.risk.points.disclosuresForSize > 0 && (
                     <>
                       an Item 11 count in the top{' '}
@@ -714,9 +731,13 @@ export default function App() {
                   )}
                   firms at or above {compactUsd(config.risk.minAum)} AUM scoring{' '}
                   {config.risk.threshold}+ are listed, highest first. A listing is a prompt to read
-                  the filings, not a finding: the bulk data carries no dates or details, so an old
-                  settlement counts the same as a recent one. Affiliation counts and client load can
-                  be switched on in the methodology panel.
+                  the filings, not a finding. Dated events come from the disclosure pages firms
+                  filed or updated since{' '}
+                  {disclosureIndex?.as_of ? 'January 2025' : 'the first archive we hold'}; an older
+                  event a firm hasn’t touched since isn’t counted, and an advisor’s own disclosures
+                  carry no dates in the SEC’s bulk data. The firm’s page lists each event; the SEC’s
+                  record is complete. Affiliation counts, client load and raw Item 11 answers can be
+                  switched on in the methodology panel.
                 </p>
                 <p>
                   <strong>Presets.</strong>{' '}

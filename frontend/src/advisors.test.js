@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import { bucketRange, matchesName, nameTokens } from './advisors.js'
-import { advisorCounts, advisorRosters, advisorSearch, separateBigRosters } from '../scripts/shard-data.mjs'
+import { advisorCounts, advisorRosters, advisorSearch, disclosureIndex, separateBigRosters } from '../scripts/shard-data.mjs'
+import { summarize } from './disclosures.js'
 
 const person = (crd, name, firms = [1], extra = {}) => [
   crd, name, firms, extra.city ?? 'Denver', extra.state ?? 'CO', extra.designations ?? '', extra.disclosure ?? 0, extra.year ?? 2010,
@@ -72,6 +73,25 @@ describe('advisor counts', () => {
   it('counts each firm’s advisors and those with disclosures', () => {
     const people = [person(1, 'A B', [1, 2], { disclosure: 1 }), person(2, 'C D', [1]), person(3, 'E F', [2], { disclosure: 1 })]
     expect(advisorCounts(people).firms).toEqual({ 1: [2, 1], 2: [2, 2] })
+  })
+})
+
+describe('disclosure index', () => {
+  const events = [
+    { against: 'F', date: '2024-05-01', amount: 100 },
+    { against: 'B', date: '2019-01-01', amount: 50 },
+    { against: 'A', date: '2025-01-01' },
+    { against: 'F' }, // no date: counts, but not as recent
+  ]
+
+  it('counts recent and all events against the firm, and affiliates’ events', () => {
+    const index = disclosureIndex({ as_of: '2026-08-31', firms: { 7: events } })
+    expect(index.since).toBe('2021-08-31')
+    expect(index.firms[7]).toEqual([1, 3, 1])
+  })
+
+  it('summarizes a firm’s events for its card', () => {
+    expect(summarize(events, '2021-08-31')).toEqual({ own: 3, affiliates: 1, recentOwn: 1, ownAmount: 150 })
   })
 })
 

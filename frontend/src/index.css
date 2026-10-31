@@ -2623,3 +2623,80 @@ tbody tr:hover {
   margin-top: 10px;
 }
 
+/* Disclosure events (DisclosuresCard) */
+.disclosures-card {
+  margin: 0 0 14px;
+}
+
+.disclosures-summary {
+  margin: 0 0 10px;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+.disclosures-scope {
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.disclosure-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.disclosure-event {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--grid);
+}
+
+.disclosure-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  font-size: 13.5px;
+}
+
+.disclosure-date {
+  min-width: 100px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.disclosure-what {
+  flex: 1 1 260px;
+}
+
+.disclosure-amount {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.disclosure-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  margin-top: 4px;
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+
+.disclosure-toggle {
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.disclosure-text {
+  margin: 6px 0 0;
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
