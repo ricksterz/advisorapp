@@ -165,9 +165,9 @@ def generate(
         template,
         title="Disclaimer and terms of use · Open Disclosure",
         description=(
-            "Open Disclosure is independent and republishes public SEC and FINRA filings as is. "
-            "Not investment advice, not a consumer report, and a disclosure is not a finding of "
-            "wrongdoing. Read the full terms."
+            "For informational purposes only. Open Disclosure is independent and republishes "
+            "public U.S. government records as is. Not investment advice, not a consumer report, "
+            "and a disclosure is not a finding of wrongdoing. Read the full terms."
         ),
         canonical=f"{site}/legal",
     )

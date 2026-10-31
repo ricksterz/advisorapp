@@ -872,12 +872,14 @@ export default function FirmDetail({ firm, crd, allFirms }) {
       </div>
 
       <p className="pulse-disclaimer">
-        Open Disclosure is independent and not affiliated with, endorsed by, or a representative of{' '}
-        {firm.business_name || firm.legal_name}, the SEC or FINRA. Everything on this page comes from
-        public regulatory filings, mostly the firm’s own, and is shown as is: it may be incomplete,
+        For informational purposes only. Open Disclosure is independent and not affiliated with,
+        endorsed by, or a representative of {firm.business_name || firm.legal_name}, the SEC or
+        FINRA. Everything on this page comes from public records published by the U.S. government,
+        mostly the firm’s own filings, and is shown as is: it may be incomplete,
         out of date or wrong, and the segments, scores, ranks and comparisons are this site’s own
         calculations. Nothing here is investment, legal or tax advice, a rating, or a recommendation
-        to engage or avoid this firm or anyone at it. Disclosures are not findings of wrongdoing.
+        to engage or avoid this firm or anyone at it. Disclosures are not findings of wrongdoing,
+        and you are responsible for how you interpret all of it.
         Check the official record on{' '}
         <a href={`https://adviserinfo.sec.gov/firm/summary/${firm.crd}`} target="_blank" rel="noreferrer">
           adviserinfo.sec.gov

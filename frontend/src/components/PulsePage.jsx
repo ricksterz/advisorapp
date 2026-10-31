@@ -192,8 +192,8 @@ function CategoryTile({ section, title, stat, series }) {
 export function PulseDisclaimer() {
   return (
     <p className="pulse-disclaimer">
-      Open Disclosure is independent and not affiliated with the SEC or FINRA. These statistics are
-      this site’s own calculations from public regulatory filings, reconstructed on the cadence noted
+      For informational purposes only. Open Disclosure is independent and not affiliated with the
+      SEC or FINRA. These statistics are this site’s own calculations from public government records, reconstructed on the cadence noted
       per module; they may lag or differ from official sources and are not investment advice.{' '}
       <a href={legalPath()} onClick={(e) => navigate(e, legalPath())}>
         Full disclaimer

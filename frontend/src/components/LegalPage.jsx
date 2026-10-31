@@ -40,6 +40,17 @@ export default function LegalPage() {
       <Section id="summary" title="In short">
         <ul>
           <li>
+            Everything on this site is <strong>for informational purposes only</strong>. How you
+            interpret and use it is up to you: Open Disclosure is{' '}
+            <strong>not responsible for any interpretation or misinterpretation</strong> of the
+            information, or for any decision made on the basis of it.
+          </li>
+          <li>
+            All of the underlying data is <strong>public information published by the U.S.
+            government</strong>, chiefly the Securities and Exchange Commission. Nothing here is
+            proprietary or non-public: anyone can obtain the same records from the same sources.
+          </li>
+          <li>
             Open Disclosure republishes and analyzes <strong>public regulatory filings</strong>. It
             is independent and is not affiliated with, endorsed by or acting for the SEC, FINRA, any
             state regulator, or any firm or person shown here.
@@ -90,6 +101,15 @@ export default function LegalPage() {
 
       <Section id="sources" title="Where the data comes from">
         <p>
+          All of the data on this site is publicly available. It comes from records the U.S.
+          Securities and Exchange Commission publishes for anyone to download, and Open Disclosure
+          uses no proprietary, licensed or non-public data. The site organizes, combines and
+          summarizes those public records; its counts, percentiles, segments, scores and growth
+          figures are calculations that anyone could reproduce from the same sources. The only
+          material not from a government source is each firm’s website address and logo, which are
+          found automatically on the public web.
+        </p>
+        <p>
           The site is built from public data published by U.S. regulators, chiefly: Form ADV filed
           by investment advisers (including Schedules A, B and D, Part 2 brochures and Disclosure
           Reporting Pages) and the SEC’s bulk feeds of registered advisers and individual
@@ -117,6 +137,16 @@ export default function LegalPage() {
           example a firm’s 13F filing, its website, or an individual’s employer) are made
           automatically and can be wrong. Counts, percentiles, segments, scores and growth figures
           are derived by this site, not reported by regulators.
+        </p>
+      </Section>
+
+      <Section id="informational" title="For informational purposes only">
+        <p>
+          The site and everything on it are provided for general informational purposes only. You
+          are solely responsible for how you interpret, evaluate and use the information. Open
+          Disclosure is not responsible for any interpretation or misinterpretation of the
+          information by you or anyone else, for any conclusions drawn from it, or for any action
+          taken or not taken in reliance on it.
         </p>
       </Section>
 
@@ -206,7 +236,8 @@ export default function LegalPage() {
           To the fullest extent permitted by law, Open Disclosure and its contributors are not
           liable for any loss or damage of any kind, direct, indirect, incidental, consequential or
           otherwise, arising from use of or reliance on this site or its information, including
-          decisions made or actions taken on that basis. Your use of the site is at your own risk.
+          decisions made or actions taken on that basis, and from any interpretation or
+          misinterpretation of the information. Your use of the site is at your own risk.
         </p>
       </Section>
 

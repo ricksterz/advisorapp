@@ -7,11 +7,12 @@ export default function SiteFooter({ snapshot }) {
   return (
     <footer className="site-footer" role="contentinfo">
       <p>
-        <strong>Open Disclosure is independent</strong> and not affiliated with the SEC, FINRA or
-        any firm or person shown. Information is republished from public regulatory filings{' '}
-        {snapshot ? <>(latest firm snapshot {snapshot}) </> : null}
-        as is, may be incomplete, out of date or wrong, and is not investment, legal or tax advice
-        or a recommendation of any firm or person. A disclosure is not a finding of wrongdoing.
+        <strong>For informational purposes only.</strong> Open Disclosure is independent and not
+        affiliated with the SEC, FINRA or any firm or person shown. All data is public information
+        published by the U.S. government, chiefly the SEC
+        {snapshot ? <> (latest firm snapshot {snapshot})</> : null}, and is republished as is: it may be incomplete, out of date or wrong, and it is not
+        investment, legal or tax advice or a recommendation of any firm or person. You are
+        responsible for how you interpret and use it. A disclosure is not a finding of wrongdoing.
         This site is not a consumer reporting agency; don’t use it for employment, credit,
         insurance or other FCRA decisions. Verify everything on the official{' '}
         <a href="https://adviserinfo.sec.gov/" target="_blank" rel="noreferrer">
