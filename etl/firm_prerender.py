@@ -53,10 +53,12 @@ FAMILY_OFFICE_CLIENT_AUM = 25e6
 
 # Short form of the disclaimer page (frontend/src/components/LegalPage.jsx).
 DISCLAIMER = (
-    "Open Disclosure is independent and not affiliated with this firm, the SEC or FINRA. This "
-    "summary is republished from public regulatory filings as is and may be incomplete, out of "
-    "date or wrong. It is not investment, legal or tax advice or a recommendation, and a "
-    "disclosure is not a finding of wrongdoing. Verify on the official record before relying on it."
+    "For informational purposes only. Open Disclosure is independent and is not affiliated with "
+    "this firm, the SEC or FINRA. This summary is derived from public records published by the "
+    "U.S. government and is provided as is, without warranty as to its accuracy, completeness or "
+    "timeliness. It does not constitute investment, legal or tax advice or a recommendation, and a "
+    "disclosure is not a finding of wrongdoing. Users are solely responsible for their "
+    "interpretation of this information and should verify it against the official record."
 )
 
 IAPD_URL = "https://adviserinfo.sec.gov/firm/summary/{crd}"

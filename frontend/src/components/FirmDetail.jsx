@@ -872,25 +872,27 @@ export default function FirmDetail({ firm, crd, allFirms }) {
       </div>
 
       <p className="pulse-disclaimer">
-        Open Disclosure is independent and not affiliated with, endorsed by, or a representative of{' '}
-        {firm.business_name || firm.legal_name}, the SEC or FINRA. Everything on this page comes from
-        public regulatory filings, mostly the firm’s own, and is shown as is: it may be incomplete,
-        out of date or wrong, and the segments, scores, ranks and comparisons are this site’s own
-        calculations. Nothing here is investment, legal or tax advice, a rating, or a recommendation
-        to engage or avoid this firm or anyone at it. Disclosures are not findings of wrongdoing.
-        Check the official record on{' '}
+        For informational purposes only. Open Disclosure is independent and is not affiliated with,
+        endorsed by or acting on behalf of {firm.business_name || firm.legal_name}, the SEC or
+        FINRA. The information on this page is derived from public records published by the U.S.
+        government, principally the firm’s own regulatory filings, and is provided as is, without
+        warranty as to its accuracy, completeness or timeliness. Segments, scores, rankings and
+        comparisons are calculations performed by this site. Nothing on this page constitutes
+        investment, legal or tax advice, a rating, or a recommendation to engage or avoid this firm
+        or any individual associated with it, and a disclosure is not a finding of wrongdoing. Users
+        are solely responsible for their interpretation of this information and should verify it
+        against the official record on{' '}
         <a href={`https://adviserinfo.sec.gov/firm/summary/${firm.crd}`} target="_blank" rel="noreferrer">
           adviserinfo.sec.gov
-        </a>{' '}
-        before relying on any of it.{' '}
+        </a>
+        .{' '}
         <a href={legalPath()} onClick={(e) => navigate(e, legalPath())}>
           Full disclaimer
         </a>{' '}
         ·{' '}
         <a href={BASE} onClick={(e) => navigate(e, BASE)}>
-          methodology and sourcing
+          Methodology and sources
         </a>
-        .
       </p>
     </section>
   )

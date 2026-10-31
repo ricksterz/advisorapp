@@ -11,10 +11,12 @@ export const LAST_UPDATED = 'October 30, 2026'
 const IAPD = 'https://adviserinfo.sec.gov/'
 const BROKERCHECK = 'https://brokercheck.finra.org/'
 
-function Section({ id, title, children }) {
+function Section({ id, n, title, children }) {
   return (
     <section id={id} className="legal-section">
-      <h2>{title}</h2>
+      <h2>
+        {n}. {title}
+      </h2>
       {children}
     </section>
   )
@@ -33,124 +35,149 @@ export default function LegalPage() {
     <article className="legal-page">
       <div className="page-head">
         <h1>Disclaimer and terms of use</h1>
-        <p className="page-tagline">Read this before relying on anything on this site.</p>
-        <p>Last updated {LAST_UPDATED}. By using Open Disclosure you accept these terms.</p>
+        <p className="page-tagline">Important information regarding the use of this website</p>
+        <p>
+          Last updated {LAST_UPDATED}. Access to and use of Open Disclosure (the “Site”) are subject
+          to the terms set out below. By accessing or using the Site, you acknowledge that you have
+          read, understood and agree to be bound by these terms. If you do not agree, you should not
+          use the Site.
+        </p>
       </div>
 
-      <Section id="summary" title="In short">
+      <section id="summary" className="legal-section legal-summary">
+        <h2>Summary</h2>
         <ul>
           <li>
-            Open Disclosure republishes and analyzes <strong>public regulatory filings</strong>. It
-            is independent and is not affiliated with, endorsed by or acting for the SEC, FINRA, any
-            state regulator, or any firm or person shown here.
+            The Site and all information on it (the “Information”) are provided{' '}
+            <strong>for informational purposes only</strong>.
           </li>
           <li>
-            The information may be <strong>incomplete, out of date or wrong</strong>, whether in the
-            filings themselves or in how this site processes them. It is provided “as is”, with no
-            warranty.
+            The Information is derived exclusively from <strong>public records published by the
+            U.S. government</strong>, principally the Securities and Exchange Commission. The Site
+            contains no proprietary or non-public data.
           </li>
           <li>
-            Nothing here is <strong>investment, legal, tax or other professional advice</strong>, or
-            a recommendation, rating or endorsement of any firm or person.
+            The Information is provided <strong>“as is”, without warranty</strong>, and may be
+            incomplete, inaccurate or out of date.
           </li>
           <li>
-            A <strong>disclosure is not a finding of wrongdoing</strong>. It can be an allegation, a
-            pending or dismissed matter, or a settlement without admission.
+            The Information does not constitute <strong>investment, legal, tax or other
+            professional advice</strong>, or a recommendation, rating or endorsement of any firm or
+            individual.
           </li>
           <li>
-            This site is <strong>not a consumer reporting agency</strong>. Do not use it to decide
-            anyone’s eligibility for employment, credit, insurance, housing or any other purpose
-            covered by the Fair Credit Reporting Act.
+            A disclosure or disciplinary record <strong>is not a finding of wrongdoing</strong>.
           </li>
           <li>
-            Always <strong>check the official record</strong> on the SEC’s{' '}
+            Open Disclosure is <strong>not a consumer reporting agency</strong>, and the Information
+            may not be used for any purpose governed by the Fair Credit Reporting Act.
+          </li>
+          <li>
+            Users are <strong>solely responsible for their interpretation and use</strong> of the
+            Information, and should verify it against the official records maintained by the{' '}
             <a href={IAPD} target="_blank" rel="noreferrer">
-              Investment Adviser Public Disclosure
+              SEC
             </a>{' '}
-            site and FINRA’s{' '}
+            and{' '}
             <a href={BROKERCHECK} target="_blank" rel="noreferrer">
-              BrokerCheck
-            </a>{' '}
-            before making any decision.
+              FINRA
+            </a>
+            .
           </li>
         </ul>
-      </Section>
+      </section>
 
-      <Section id="independence" title="Independence">
+      <Section id="informational" n={1} title="Informational purposes only">
         <p>
-          Open Disclosure is an independent research project. It is not affiliated with, sponsored
-          by, licensed by or endorsed by the U.S. Securities and Exchange Commission, the Financial
-          Industry Regulatory Authority, the North American Securities Administrators Association,
-          any state securities regulator, or any investment adviser, broker-dealer, fund or person
-          that appears on the site. It receives no payment from any firm shown, and no firm can pay
-          to change how it appears. Open Disclosure is not a registered investment adviser or
-          broker-dealer.
+          The Site and the Information are provided solely for general informational purposes. Users
+          are solely responsible for how they interpret, evaluate and use the Information. Open
+          Disclosure accepts no responsibility for any interpretation or misinterpretation of the
+          Information by any person, for any conclusion drawn from it, or for any action taken or
+          omitted in reliance on it.
         </p>
       </Section>
 
-      <Section id="sources" title="Where the data comes from">
+      <Section id="independence" n={2} title="Independence">
         <p>
-          The site is built from public data published by U.S. regulators, chiefly: Form ADV filed
-          by investment advisers (including Schedules A, B and D, Part 2 brochures and Disclosure
-          Reporting Pages) and the SEC’s bulk feeds of registered advisers and individual
-          representatives; Form 13F holdings reports; and Form D notices of exempt offerings. Firm
-          websites and logos are located automatically and may be wrong. Each page and section
-          states its source and the period it covers.
-        </p>
-        <p>
-          Filings are completed by the firms themselves. Regulators do not verify most of their
-          contents, and Open Disclosure does not either. Figures can be stale between a firm’s
-          amendments, and some sections cover only filings made within a stated period. Regulatory
-          assets under management (AUM) is a figure defined by SEC rules; it is not the same as
-          assets a firm may describe elsewhere, and it is not a measure of performance or of client
-          wealth.
+          Open Disclosure is an independent research resource. It is not affiliated with, sponsored
+          by, licensed by or endorsed by the U.S. Securities and Exchange Commission (SEC), the
+          Financial Industry Regulatory Authority (FINRA), the North American Securities
+          Administrators Association, any state securities regulator, or any investment adviser,
+          broker-dealer, fund or individual referenced on the Site. Open Disclosure receives no
+          compensation from any firm or individual referenced on the Site, and no firm or individual
+          may pay to influence its presentation. Open Disclosure is not a registered investment
+          adviser or broker-dealer.
         </p>
       </Section>
 
-      <Section id="accuracy" title="No warranty">
+      <Section id="sources" n={3} title="Sources of information">
         <p>
-          The information is provided “as is” and “as available”, without warranties of any kind,
-          express or implied, including warranties of accuracy, completeness, timeliness,
-          merchantability, fitness for a particular purpose and non-infringement. Errors can arise
-          in the original filings, in the regulators’ bulk data, and in the way this site collects,
-          matches, combines, deduplicates, summarizes or labels it. Matches between data sets (for
-          example a firm’s 13F filing, its website, or an individual’s employer) are made
-          automatically and can be wrong. Counts, percentiles, segments, scores and growth figures
-          are derived by this site, not reported by regulators.
+          All data presented on the Site is publicly available. It is obtained from records that the
+          SEC publishes for unrestricted public access, including Form ADV filed by investment
+          advisers (with its schedules, Part 2 brochures and Disclosure Reporting Pages), the SEC’s
+          bulk data on registered advisers and their representatives, Form 13F holdings reports and
+          Form D notices of exempt offerings. Open Disclosure does not use proprietary, licensed or
+          non-public data. The Site organizes, combines and summarizes these public records; any
+          counts, percentiles, segments, scores and growth figures it presents are calculations that
+          may be reproduced by any person from the same public sources. The sole exception is the
+          website address and logo associated with each firm, which are identified automatically
+          from the public internet and may be incorrect.
+        </p>
+        <p>
+          Regulatory filings are prepared by the filing firms and individuals. Their contents are
+          generally not verified by regulators, and they are not independently verified by Open
+          Disclosure. Information may be out of date between filings, and certain sections cover
+          only filings made within a stated period. Regulatory assets under management is a measure
+          defined by SEC rules; it is not a measure of investment performance or of client wealth,
+          and it may differ from figures a firm presents elsewhere.
         </p>
       </Section>
 
-      <Section id="not-advice" title="Not advice, not a recommendation">
+      <Section id="warranty" n={4} title="No warranty">
         <p>
-          Nothing on this site is investment, financial, legal, tax, accounting or other
-          professional advice, an offer or solicitation to buy or sell any security, or a
-          recommendation to engage, retain or avoid any firm or person. Rankings, standing scores,
-          “disclosure outliers”, growth leaderboards, peer comparisons, business-model segments and
-          tags are informational screens built from public data under a published, adjustable
-          methodology. They are not ratings, credit or due-diligence opinions, endorsements or
-          warnings, and they leave out most of what matters when choosing an adviser, such as
-          services, fees actually charged, investment results, conflicts in practice and fit with
-          your needs. Consult a qualified professional and do your own research before making any
-          financial decision.
+          The Site and the Information are provided on an “as is” and “as available” basis, without
+          representations or warranties of any kind, whether express or implied, including without
+          limitation warranties of accuracy, completeness, timeliness, merchantability, fitness for a
+          particular purpose and non-infringement. Errors may arise in the original filings, in the
+          regulators’ published data, or in the collection, matching, combination,
+          de-duplication, summarization or labeling of that data by the Site. Associations between
+          data sets, such as a firm’s 13F filing, website or an individual’s employer, are made
+          automatically and may be inaccurate.
         </p>
       </Section>
 
-      <Section id="disclosures" title="Disclosures and disciplinary history">
+      <Section id="not-advice" n={5} title="No advice or recommendation">
         <p>
-          Disclosure information comes from what firms and individuals report to regulators. A
-          disclosure may describe an allegation, an investigation, a matter that is pending,
-          dismissed, settled without admitting or denying the allegations, overturned on appeal,
-          or resolved in the person’s or firm’s favor. Form ADV Item 11 asks about the firm{' '}
-          <em>and all of its advisory affiliates</em>, so a large firm can report matters that
-          concern other companies in its group. The bulk data for individuals shows only whether a
-          category of disclosure exists, without dates or details. A disclosure, a flag, a count or
-          a place on any list is therefore <strong>not a finding or suggestion of wrongdoing</strong>{' '}
-          by any firm or person, and must not be read as one. The complete and authoritative record
-          is on the SEC’s{' '}
+          Nothing on the Site constitutes investment, financial, legal, tax, accounting or other
+          professional advice; an offer or solicitation to buy or sell any security; or a
+          recommendation to engage, retain or avoid any firm or individual. Rankings, standing
+          scores, disclosure outlier lists, growth leaderboards, peer comparisons, business-model
+          segments and related tags are informational screens derived from public data under a
+          published and adjustable methodology. They are not ratings, credit or due-diligence
+          opinions, endorsements or warnings, and they omit many factors relevant to the selection
+          of an adviser, including the services provided, fees actually charged, investment results
+          and suitability. Users should consult a qualified professional and conduct their own
+          research before making any financial decision.
+        </p>
+      </Section>
+
+      <Section id="disclosures" n={6} title="Disclosures and disciplinary history">
+        <p>
+          Disclosure information reflects matters reported by firms and individuals to regulators.
+          A reported matter may be an allegation, an investigation, or a proceeding that is pending,
+          dismissed, settled without admission or denial of the allegations, overturned on appeal,
+          or resolved in favor of the firm or individual. Form ADV Item 11 requires a firm to report
+          matters concerning the firm <em>and each of its advisory affiliates</em>; accordingly, a
+          firm may report matters relating to other entities within its corporate group. Bulk data
+          concerning individuals indicates only whether a category of disclosure exists, without
+          dates or details. The presence of a disclosure, flag or count, or the inclusion of a firm
+          or individual in any list, <strong>does not constitute or imply a finding of
+          wrongdoing</strong> and should not be construed as such. Complete and authoritative records
+          are available from the SEC’s{' '}
           <a href={IAPD} target="_blank" rel="noreferrer">
-            IAPD
+            Investment Adviser Public Disclosure
           </a>{' '}
-          site and FINRA’s{' '}
+          website and FINRA’s{' '}
           <a href={BROKERCHECK} target="_blank" rel="noreferrer">
             BrokerCheck
           </a>
@@ -158,68 +185,75 @@ export default function LegalPage() {
         </p>
       </Section>
 
-      <Section id="fcra" title="Not a consumer reporting agency">
+      <Section id="fcra" n={7} title="Not a consumer reporting agency">
         <p>
-          Open Disclosure is not a consumer reporting agency, and the information on this site is
-          not a consumer report as defined by the Fair Credit Reporting Act (FCRA). You may not use
-          it, in whole or in part, as a factor in deciding any person’s eligibility for employment,
-          credit, insurance, housing, a license or any other purpose covered by the FCRA or similar
-          state laws. Employers and others with a permissible purpose should use FINRA’s and the
-          SEC’s official records or a consumer reporting agency that complies with the FCRA.
+          Open Disclosure is not a consumer reporting agency, and the Information is not a consumer
+          report, as those terms are defined in the Fair Credit Reporting Act (FCRA). The Information
+          may not be used, in whole or in part, as a factor in determining any individual’s
+          eligibility for employment, credit, insurance, housing, licensing or any other purpose
+          covered by the FCRA or comparable state law. Persons with a permissible purpose should rely
+          on the official records of the SEC and FINRA or on a consumer reporting agency that
+          complies with the FCRA.
         </p>
       </Section>
 
-      <Section id="individuals" title="Information about individuals">
+      <Section id="individuals" n={8} title="Information concerning individuals">
         <p>
           Names, employers, registration history, branch locations, professional designations and
-          disclosure categories of individual representatives are republished from regulators’
-          public records, which exist so the public can check who they deal with. They may be out
-          of date: a person may have changed firms, retired or had a matter resolved since the data
-          was published. Use this information only to research a financial professional, not to
-          contact, harass, profile or make decisions about anyone.
+          disclosure categories of individual representatives are republished from public regulatory
+          records maintained to enable investors to research financial professionals. Such
+          information may be out of date; an individual may have changed firms or retired, or a
+          matter may have been resolved, since the data was published. The Information may be used
+          only to research financial professionals and may not be used to contact, harass or profile
+          any individual or to make any determination concerning an individual.
         </p>
       </Section>
 
-      <Section id="corrections" title="Corrections">
+      <Section id="corrections" n={9} title="Corrections">
         <p>
-          The site reflects regulatory filings as published. A firm or individual who believes a
-          record is wrong should correct it at the source: firms by amending Form ADV, individuals
-          through their firm or through FINRA’s dispute process for BrokerCheck information. The
-          change will appear here after the next data refresh. Errors in how this site processes or
-          presents the data can be reported through the project’s public repository on GitHub.
+          The Site reflects regulatory records as published. A firm or individual who believes a
+          record is inaccurate should seek correction at the source: firms by amending Form ADV, and
+          individuals through their firm or through FINRA’s dispute process for BrokerCheck
+          information. Corrections will be reflected on the Site following the next data refresh.
+          Errors in the Site’s processing or presentation of the data may be reported through the
+          project’s public repository on GitHub.
         </p>
       </Section>
 
-      <Section id="third-parties" title="Third-party names, trademarks and links">
+      <Section id="third-parties" n={10} title="Third-party names, trademarks and links">
         <p>
-          Firm names, fund names, logos and other marks belong to their owners and are used only to
-          identify the subject of public filings; their use does not imply any affiliation or
-          endorsement. Logos are fetched automatically from public icon services and may be
-          incorrect. References to other publications, rankings or data providers describe
-          comparable methodologies and do not imply affiliation. Links to other websites are
-          provided for convenience; Open Disclosure is not responsible for their content.
+          Firm names, fund names, logos and other marks are the property of their respective owners
+          and are used solely to identify the subjects of public filings. Their use does not imply
+          any affiliation with or endorsement by those owners. Logos are retrieved automatically
+          from public icon services and may be inaccurate. References to other publications,
+          rankings or data providers are made solely to describe comparable methodologies and do
+          not imply affiliation. Links to third-party websites are provided for convenience only,
+          and Open Disclosure is not responsible for their content.
         </p>
       </Section>
 
-      <Section id="liability" title="Limitation of liability">
+      <Section id="liability" n={11} title="Limitation of liability">
         <p>
-          To the fullest extent permitted by law, Open Disclosure and its contributors are not
-          liable for any loss or damage of any kind, direct, indirect, incidental, consequential or
-          otherwise, arising from use of or reliance on this site or its information, including
-          decisions made or actions taken on that basis. Your use of the site is at your own risk.
+          To the fullest extent permitted by applicable law, Open Disclosure and its contributors
+          shall not be liable for any loss or damage of any kind, whether direct, indirect,
+          incidental, special, consequential or otherwise, arising out of or in connection with the
+          use of, inability to use, or reliance on the Site or the Information, including any
+          interpretation or misinterpretation of the Information and any decision made or action
+          taken on the basis of it. Use of the Site is at the user’s sole risk.
         </p>
       </Section>
 
-      <Section id="changes" title="Changes">
+      <Section id="changes" n={12} title="Changes to these terms">
         <p>
-          These terms and the site’s methodology may change at any time; the date at the top shows
-          the latest revision. Continued use of the site means you accept the current version.
+          Open Disclosure may amend these terms and the Site’s methodology at any time. The date
+          shown at the top of this page indicates the most recent revision. Continued use of the
+          Site following any amendment constitutes acceptance of the revised terms.
         </p>
       </Section>
 
       <p className="detail-note">
         <a href={BASE} onClick={(e) => navigate(e, BASE)}>
-          Back to Open Disclosure
+          Return to Open Disclosure
         </a>
       </p>
     </article>
