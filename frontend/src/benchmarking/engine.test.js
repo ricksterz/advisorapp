@@ -169,30 +169,72 @@ describe('cohorted rankings', () => {
   })
 })
 
-describe('risk list config', () => {
-  it('threshold and point values drive the list', () => {
+describe('disclosure outliers', () => {
+  it('the clean-record preset lists a single raw disclosure; the default does not', () => {
     const clean = universe(12)
     const flagged = firm({ aum_total: 6e8, disciplinary_flag_count: 1 })
-    const zeroTolerance = cloneConfig(PRESET_BY_ID.cleanRecord.config)
-    const lax = defaultConfig()
-
     expect(
-      computeRankings([...clean, flagged], zeroTolerance).atRisk.map((r) => r.firm.crd),
+      computeRankings([...clean, flagged], cloneConfig(PRESET_BY_ID.cleanRecord.config)).atRisk.map(
+        (r) => r.firm.crd,
+      ),
     ).toContain(flagged.crd)
-    // One disclosure = 15 points < default 40 threshold.
-    expect(
-      computeRankings([...clean, flagged], lax).atRisk.map((r) => r.firm.crd),
-    ).not.toContain(flagged.crd)
+    expect(computeRankings([...clean, flagged], defaultConfig()).atRisk).toEqual([])
   })
 
   it('a signal set to zero points stops tripping', () => {
-    const conflicted = firm({ aum_total: 6e8, fee_commissions: true, fee_performance_based: true, affil_count: 5 })
+    const conflicted = firm({ aum_total: 6e8, fee_commissions: true, fee_performance_based: true })
+    const config = defaultConfig()
+    config.risk.threshold = 5
+    const listed = computeRankings([...universe(12), conflicted], config).atRisk
+    expect(listed.find((r) => r.firm.crd === conflicted.crd).signals).toEqual(['Commissions + performance fees'])
+    config.risk.points.commissionsPlusPerf = 0
+    expect(computeRankings([...universe(12), conflicted], config).atRisk).toEqual([])
+  })
+
+  // 40 firms with 20-200 advisors and 5-15% of them with disclosures, and
+  // one where 60% have them.
+  const peers = universe(40)
+  const counts = Object.fromEntries(peers.map((f, i) => [f.crd, [20 + i * 5, Math.round((20 + i * 5) * (0.05 + (i % 10) / 100))]]))
+  const outlier = firm({ aum_total: 4e8 })
+  counts[outlier.crd] = [80, 48]
+
+  it('flags a firm whose advisors have far more disclosures than peers’', () => {
+    const { atRisk } = computeRankings([...peers, outlier], defaultConfig(), { advisorCounts: counts })
+    // The highest-rate peer may qualify too; the outlier must lead.
+    expect(atRisk[0].firm.crd).toBe(outlier.crd)
+    expect(atRisk[0].signals).toEqual(['60% of 80 advisors have disclosures'])
+    expect(atRisk[0].score).toBe(50) // the top of the sliding scale
+  })
+
+  it('needs the advisor counts, and enough advisors to judge', () => {
+    const crds = (extra) => computeRankings([...peers, outlier], defaultConfig(), extra).atRisk.map((r) => r.firm.crd)
+    expect(crds()).toEqual([])
+    expect(crds({ advisorCounts: { ...counts, [outlier.crd]: [10, 9] } })).not.toContain(outlier.crd)
+  })
+
+  it('judges Item 11 counts against firms of the same size', () => {
+    // Every $100B+ firm reports some; the giant with the median count is
+    // ordinary for its size, while the same count at a small firm stands out.
+    const giants = Array.from({ length: 30 }, (_, i) => firm({ aum_total: 2e11 + i * 1e9, disciplinary_flag_count: 4 + (i % 12) }))
+    const typicalGiant = firm({ aum_total: 9e11, disciplinary_flag_count: 9 })
+    const small = Array.from({ length: 30 }, (_, i) => firm({ aum_total: 2e8 + i * 1e7 }))
+    const smallWithNine = firm({ aum_total: 3e8, disciplinary_flag_count: 9 })
     const config = defaultConfig()
     config.risk.threshold = 10
-    config.risk.points.commissionsPlusPerf = 0
-    const { atRisk } = computeRankings([...universe(12), conflicted], config)
-    const entry = atRisk.find((r) => r.firm.crd === conflicted.crd)
-    expect(entry.signals).toEqual(['Dense affiliations'])
+    const listed = computeRankings([...giants, typicalGiant, ...small, smallWithNine], config).atRisk.map((r) => r.firm.crd)
+    expect(listed).toContain(smallWithNine.crd)
+    expect(listed).not.toContain(typicalGiant.crd)
+  })
+
+  it('orders equal scores by name, never by size', () => {
+    const a = firm({ legal_name: 'B FIRM', aum_total: 9e11, fee_commissions: true, fee_performance_based: true })
+    const b = firm({ legal_name: 'A FIRM', aum_total: 2e8, fee_commissions: true, fee_performance_based: true })
+    const config = defaultConfig()
+    config.risk.threshold = 5
+    expect(computeRankings([...universe(12), a, b], config).atRisk.map((r) => r.firm.legal_name)).toEqual([
+      'A FIRM',
+      'B FIRM',
+    ])
   })
 })
 
@@ -285,9 +327,11 @@ describe('performance', () => {
     const config = defaultConfig()
     config.cohorts = { aumBand: true, clientMix: true, region: true }
     config.weights.hnwFocus = 0.1
-    computeRankings(firms, config) // warm-up
+    // Advisor counts for every firm, so the advisor-share signal runs too.
+    const advisorCounts = Object.fromEntries(firms.map((f, i) => [f.crd, [30 + (i % 50), i % 37]]))
+    computeRankings(firms, config, { advisorCounts }) // warm-up
     const start = performance.now()
-    const { top, atRisk } = computeRankings(firms, config)
+    const { top, atRisk } = computeRankings(firms, config, { advisorCounts })
     const elapsed = performance.now() - start
     expect(top.length).toBe(10)
     expect(atRisk.length).toBeGreaterThan(0)

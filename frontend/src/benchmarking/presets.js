@@ -13,7 +13,7 @@ export const PRESETS = [
       risk: {
         minAum: 1e8,
         threshold: 40,
-        points: { disclosures: 15, commissionsPlusPerf: 15, denseAffiliations: 10, highClientLoad: 15 },
+        points: { advisorDisclosures: 50, disclosuresForSize: 25, commissionsPlusPerf: 10, disclosures: 0, denseAffiliations: 0, highClientLoad: 0 },
       },
       cohorts: { aumBand: false, clientMix: false, region: false },
     },
@@ -29,7 +29,7 @@ export const PRESETS = [
       risk: {
         minAum: 2.5e7,
         threshold: 40,
-        points: { disclosures: 15, commissionsPlusPerf: 15, denseAffiliations: 10, highClientLoad: 15 },
+        points: { advisorDisclosures: 50, disclosuresForSize: 25, commissionsPlusPerf: 10, disclosures: 0, denseAffiliations: 0, highClientLoad: 0 },
       },
       cohorts: { aumBand: true, clientMix: true, region: false },
     },
@@ -45,7 +45,7 @@ export const PRESETS = [
       risk: {
         minAum: 1e9,
         threshold: 40,
-        points: { disclosures: 15, commissionsPlusPerf: 15, denseAffiliations: 10, highClientLoad: 15 },
+        points: { advisorDisclosures: 50, disclosuresForSize: 25, commissionsPlusPerf: 10, disclosures: 0, denseAffiliations: 0, highClientLoad: 0 },
       },
       cohorts: { aumBand: true, clientMix: false, region: false },
     },
@@ -54,14 +54,14 @@ export const PRESETS = [
     id: 'cleanRecord',
     label: 'Clean-record only',
     description:
-      'Zero tolerance: scale ignored entirely, standing driven by productivity and fee alignment, and the risk list trips on a single disclosure.',
+      'Zero tolerance: scale ignored entirely, standing driven by productivity and fee alignment, and the outlier list counts raw Item 11 disclosures, so a single one lists a firm.',
     config: {
       weights: { scale: 0, productivity: 0.5, feeAlignment: 0.5, disciplinaryRecord: 0, hnwFocus: 0 },
       top: { minAum: 1e8, minStaff: 3, maxDisclosures: 0 },
       risk: {
         minAum: 1e8,
         threshold: 15,
-        points: { disclosures: 15, commissionsPlusPerf: 15, denseAffiliations: 10, highClientLoad: 15 },
+        points: { advisorDisclosures: 0, disclosuresForSize: 0, commissionsPlusPerf: 0, disclosures: 15, denseAffiliations: 0, highClientLoad: 0 },
       },
       cohorts: { aumBand: false, clientMix: false, region: false },
     },
