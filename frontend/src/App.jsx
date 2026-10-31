@@ -13,6 +13,8 @@ import PulsePage from './components/PulsePage.jsx'
 import GrowthLeaders from './components/GrowthLeaders.jsx'
 import ComparePage from './components/ComparePage.jsx'
 import FirmSearch from './components/FirmSearch.jsx'
+import LegalPage from './components/LegalPage.jsx'
+import SiteFooter from './components/SiteFooter.jsx'
 import {
   DrilldownAdvisers,
   DrilldownAssets,
@@ -21,7 +23,7 @@ import {
   DrilldownPrivateFunds,
   DrilldownServiceProviders,
 } from './components/PulseDrilldowns.jsx'
-import { BASE, comparePath, firmPath, navigate, pulsePath, useRoute } from './router.js'
+import { BASE, comparePath, firmPath, legalPath, navigate, pulsePath, useRoute } from './router.js'
 import { fmtCount } from './pulse.js'
 import { DEAL_FLAG_DEFS, useAllDealFlags } from './dealFlags.js'
 import { bioCount, useAdvisorBioCounts } from './advisorBios.js'
@@ -267,7 +269,7 @@ const PULSE_TITLES = {
 
 export default function App() {
   const [theme, setTheme] = useTheme()
-  const { firmCrd, pulse, compare } = useRoute()
+  const { firmCrd, pulse, compare, legal } = useRoute()
 
   useEffect(() => {
     // Firm pages manage their own title (usePageMeta); pulse routes here.
@@ -331,7 +333,7 @@ export default function App() {
 
   // Deal-structuring flags (etl/brochures.py) — a separate committed file,
   // since the brochure corpus that produces it can't be built in CI.
-  const onList = firmCrd == null && pulse == null && compare == null
+  const onList = firmCrd == null && pulse == null && compare == null && !legal
   const dealFlagsData = useAllDealFlags(onList)
 
   // Advisor bios (etl/advisor_bios.py) — same reasoning, same pattern. Only
@@ -491,7 +493,11 @@ export default function App() {
         </button>
       </header>
 
-      {compare != null ? (
+      {legal ? (
+        <main className="shell">
+          <LegalPage />
+        </main>
+      ) : compare != null ? (
         <main className="shell">
           {error && <div className="state error">{error}</div>}
           <ComparePage crds={compare} allFirms={data?.firms} />
@@ -661,6 +667,16 @@ export default function App() {
                 )}
               </RankCard>
             </div>
+            <p className="pulse-disclaimer rank-disclaimer">
+              These lists are screens computed from public filings under the methodology above, not
+              ratings, endorsements or warnings. A place on the outlier list is a prompt to read the
+              firm’s official record, not an allegation or finding of wrongdoing: disclosures include
+              pending, dismissed and settled matters and matters concerning affiliates.{' '}
+              <a href={legalPath()} onClick={(e) => navigate(e, legalPath())}>
+                Full disclaimer
+              </a>
+              .
+            </p>
 
             <details className="methodology">
               <summary>Methodology &amp; how it compares to third-party rankings</summary>
@@ -1061,9 +1077,11 @@ export default function App() {
                   <dd>
                     “Disclosures” counts affirmative answers to Form ADV Item 11, which covers
                     criminal, regulatory, and civil-judicial events — including matters that were
-                    settled, dismissed, or involve affiliates rather than the firm itself. A
-                    disclosure is a reason to read the underlying record, not a finding of
-                    wrongdoing.
+                    settled, dismissed, or involve affiliates rather than the firm itself. Dated
+                    events on firm pages come from the disclosure pages firms filed or updated in
+                    the period stated there, and an individual’s disclosure badge shows only that a
+                    category is on file. A disclosure is a reason to read the underlying record,
+                    not a finding of wrongdoing.
                   </dd>
                 </div>
                 <div>
@@ -1080,9 +1098,15 @@ export default function App() {
                 <div>
                   <dt>No investment advice</dt>
                   <dd>
-                    Nothing on this page is investment, legal, or tax advice, or a solicitation to
+                    Nothing on this site is investment, legal, or tax advice, or a solicitation to
                     engage any adviser. Selecting an adviser involves factors this data cannot
                     capture. Consult a qualified professional before making financial decisions.
+                    This site is not a consumer reporting agency and must not be used for
+                    employment, credit, insurance or other FCRA decisions.{' '}
+                    <a href={legalPath()} onClick={(e) => navigate(e, legalPath())}>
+                      Full disclaimer and terms of use
+                    </a>
+                    .
                   </dd>
                 </div>
                 <div>
@@ -1101,6 +1125,7 @@ export default function App() {
       )}
       </>
       )}
+      <SiteFooter snapshot={data?.generated_at?.slice(0, 10)} />
     </>
   )
 }

@@ -1,7 +1,7 @@
 import { useGrowthData } from '../growth.js'
 import { fmtMultiple } from '../trajectory.js'
 import ScalingCard from './ScalingCard.jsx'
-import { navigate, pulsePath } from '../router.js'
+import { legalPath, navigate, pulsePath } from '../router.js'
 import {
   PULSE_META,
   concentrationKpi,
@@ -192,9 +192,13 @@ function CategoryTile({ section, title, stat, series }) {
 export function PulseDisclaimer() {
   return (
     <p className="pulse-disclaimer">
-      Open Disclosure is not affiliated with the SEC or FINRA. All statistics are derived from
-      public regulatory filings, reconstructed on the cadence noted per module, and may lag
-      official sources.
+      Open Disclosure is independent and not affiliated with the SEC or FINRA. These statistics are
+      this site’s own calculations from public regulatory filings, reconstructed on the cadence noted
+      per module; they may lag or differ from official sources and are not investment advice.{' '}
+      <a href={legalPath()} onClick={(e) => navigate(e, legalPath())}>
+        Full disclaimer
+      </a>
+      .
     </p>
   )
 }
