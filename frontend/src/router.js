@@ -23,6 +23,8 @@ export function navigate(e, path) {
 
 export const pulsePath = (section = '') => `${BASE}pulse${section ? `/${section}` : ''}`
 
+export const legalPath = () => `${BASE}legal`
+
 // Up to this many firms side by side; more columns stop fitting a laptop.
 export const MAX_COMPARE = 4
 
@@ -44,23 +46,25 @@ export function parseCompareFirms(search) {
 
 // Route shape: { firmCrd: number|null, pulse: string|null, compare:
 // number[]|null } — pulse is '' for /pulse itself, or the drill-down segment
-// ('advisers', 'assets', ...); compare is the CRDs on /compare.
+// ('advisers', 'assets', ...); compare is the CRDs on /compare; legal is true
+// on /legal, the disclaimer and terms of use.
 function parseRoute() {
   const legacy = window.location.hash.match(/^#\/firm\/(\d+)/)
   if (legacy) {
     window.history.replaceState(null, '', firmPath(legacy[1]) + window.location.search)
-    return { firmCrd: Number(legacy[1]), pulse: null, compare: null }
+    return { firmCrd: Number(legacy[1]), pulse: null, compare: null, legal: false }
   }
   const path = window.location.pathname
   const rel = path.startsWith(BASE) ? path.slice(BASE.length) : path.replace(/^\//, '')
   const firm = rel.match(/^firm\/(\d+)/)
-  if (firm) return { firmCrd: Number(firm[1]), pulse: null, compare: null }
+  if (firm) return { firmCrd: Number(firm[1]), pulse: null, compare: null, legal: false }
   const pulse = rel.match(/^pulse(?:\/([a-z-]+))?\/?$/)
-  if (pulse) return { firmCrd: null, pulse: pulse[1] ?? '', compare: null }
+  if (pulse) return { firmCrd: null, pulse: pulse[1] ?? '', compare: null, legal: false }
   if (/^compare\/?$/.test(rel)) {
-    return { firmCrd: null, pulse: null, compare: parseCompareFirms(window.location.search) }
+    return { firmCrd: null, pulse: null, compare: parseCompareFirms(window.location.search), legal: false }
   }
-  return { firmCrd: null, pulse: null, compare: null }
+  if (/^legal\/?$/.test(rel)) return { firmCrd: null, pulse: null, compare: null, legal: true }
+  return { firmCrd: null, pulse: null, compare: null, legal: false }
 }
 
 export function useRoute() {
@@ -76,7 +80,7 @@ export function useRoute() {
   }, [])
   useEffect(() => {
     window.scrollTo(0, 0)
-  }, [route.firmCrd, route.pulse, route.compare == null])
+  }, [route.firmCrd, route.pulse, route.compare == null, route.legal])
   return route
 }
 

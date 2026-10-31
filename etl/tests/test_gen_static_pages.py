@@ -125,6 +125,14 @@ def test_generate_writes_pulse_sections(tmp_path):
     assert "Capital formation — Industry Pulse · Open Disclosure" in capital
 
 
+def test_generate_writes_the_disclaimer_page(tmp_path):
+    data, dist = write_site(tmp_path, [])
+    generate(data, "https://open-disclosure.com", dist, max_files=1000)
+    legal = (dist / "legal.html").read_text()
+    assert '<link rel="canonical" href="https://open-disclosure.com/legal" />' in legal
+    assert "<title>Disclaimer and terms of use · Open Disclosure</title>" in legal
+
+
 def test_file_count_guard_fails_before_the_workers_limit(tmp_path):
     firms = [{"crd": i, "legal_name": f"F{i}", "state": "NY"} for i in range(30)]
     data, dist = write_site(tmp_path, firms)

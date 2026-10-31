@@ -51,6 +51,14 @@ FUND_TYPE_LABELS = {
 FAMILY_OFFICE_NAME = re.compile(r"\bfamily\s+offices?\b", re.IGNORECASE)
 FAMILY_OFFICE_CLIENT_AUM = 25e6
 
+# Short form of the disclaimer page (frontend/src/components/LegalPage.jsx).
+DISCLAIMER = (
+    "Open Disclosure is independent and not affiliated with this firm, the SEC or FINRA. This "
+    "summary is republished from public regulatory filings as is and may be incomplete, out of "
+    "date or wrong. It is not investment, legal or tax advice or a recommendation, and a "
+    "disclosure is not a finding of wrongdoing. Verify on the official record before relying on it."
+)
+
 IAPD_URL = "https://adviserinfo.sec.gov/firm/summary/{crd}"
 TOP_HOLDINGS = 5
 
@@ -280,5 +288,6 @@ def body(firm: dict, extras: dict) -> str:
         f'<div class="detail-card"><h2>At a glance</h2><ul class="prerender-facts">{"".join(facts)}</ul>'
         f'<p class="detail-note">From the firm’s Form ADV filing. '
         f'<a href="{esc(IAPD_URL.format(crd=crd))}">Official record on adviserinfo.sec.gov</a>.</p></div>'
+        f'<p class="pulse-disclaimer">{esc(DISCLAIMER)} <a href="/legal">Full disclaimer</a>.</p>'
         "</section></main></div>"
     )

@@ -67,6 +67,7 @@ def test_body_summarizes_the_filing():
     assert "faster than 99% of wealth managers that started above $100M" in out  # capped at 99
     assert "1,200 positions worth $9.5B. Largest: APPLE INC, MICROSOFT CORP." in out
     assert "adviserinfo.sec.gov/firm/summary/151736" in out
+    assert "not a finding of wrongdoing" in out and 'href="/legal"' in out
 
 
 def test_body_escapes_firm_names_and_works_without_extras():

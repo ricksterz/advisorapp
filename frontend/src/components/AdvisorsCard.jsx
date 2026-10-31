@@ -121,9 +121,12 @@ export default function AdvisorsCard({ crd }) {
         </button>
       )}
       <p className="detail-note">
-        People registered with the SEC through this firm, from the SEC’s individual adviser feed.
-        “Disclosures” means at least one regulatory, customer, criminal or employment event on file;
-        the SEC record has the details. A person registered with several firms is listed at each.
+        People registered through this firm, from the SEC’s public individual adviser feed, which
+        may be out of date. “Disclosures” means at least one regulatory, customer, criminal,
+        financial or employment matter is on file; it may be pending, dismissed or settled, and it is
+        not a finding of wrongdoing. The SEC record has the details. A person registered with
+        several firms is listed at each. Not a consumer report: don’t use this for employment,
+        credit or insurance decisions.
       </p>
     </section>
   )

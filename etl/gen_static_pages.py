@@ -160,6 +160,20 @@ def generate(
         (firm_dir / f"{firm['crd']}.html").write_text(page)
         written += 1
 
+    # The disclaimer page: its own canonical and a description that says what it is.
+    legal = render(
+        template,
+        title="Disclaimer and terms of use · Open Disclosure",
+        description=(
+            "Open Disclosure is independent and republishes public SEC and FINRA filings as is. "
+            "Not investment advice, not a consumer report, and a disclosure is not a finding of "
+            "wrongdoing. Read the full terms."
+        ),
+        canonical=f"{site}/legal",
+    )
+    (out_dir / "legal.html").write_text(legal)
+    written += 1
+
     # Pulse sections are a handful of URLs but hit the same homepage-canonical
     # problem, and they are in the sitemap too.
     for section, label in PULSE_TITLES.items():

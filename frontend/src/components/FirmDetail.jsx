@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { staffOf } from '../benchmarking/factors.js'
 import { percentiler } from '../benchmarking/engine.js'
-import { BASE, comparePath, navigate } from '../router.js'
+import { BASE, comparePath, legalPath, navigate } from '../router.js'
 import { DEAL_FLAG_DEFS, useDealFlags } from '../dealFlags.js'
 import { DISCLOSURE_FLAG_DEFS, useAdvisorBios } from '../advisorBios.js'
 import { PROVIDER_ROLE_LABELS, useFirmPrivateFunds } from '../privateFunds.js'
@@ -211,7 +211,8 @@ function Form13fCard({ crd, firmName }) {
       <p className="detail-note">
         A 13F lists US-listed stocks, ETFs, options and convertibles held at quarter end. It
         isn’t assets under management: bonds, private funds and cash never appear on it. Options
-        are shown as notional value and kept out of the total.
+        are shown as notional value and kept out of the total. Holdings are as of quarter end and
+        may have changed since; they are reported, not recommended.
         {!reliable && ' This filing’s dollar amounts don’t reconcile with market prices, so its largest positions are listed without dollar figures.'}
         {filingUrl && (
           <>
@@ -872,11 +873,22 @@ export default function FirmDetail({ firm, crd, allFirms }) {
 
       <p className="pulse-disclaimer">
         Open Disclosure is independent and not affiliated with, endorsed by, or a representative of{' '}
-        {firm.business_name || firm.legal_name}, the SEC, or FINRA. Figures above come from the
-        firm’s own Form ADV filing and may be stale between amendments. Nothing on this page is
-        investment, legal, or tax advice —{' '}
+        {firm.business_name || firm.legal_name}, the SEC or FINRA. Everything on this page comes from
+        public regulatory filings, mostly the firm’s own, and is shown as is: it may be incomplete,
+        out of date or wrong, and the segments, scores, ranks and comparisons are this site’s own
+        calculations. Nothing here is investment, legal or tax advice, a rating, or a recommendation
+        to engage or avoid this firm or anyone at it. Disclosures are not findings of wrongdoing.
+        Check the official record on{' '}
+        <a href={`https://adviserinfo.sec.gov/firm/summary/${firm.crd}`} target="_blank" rel="noreferrer">
+          adviserinfo.sec.gov
+        </a>{' '}
+        before relying on any of it.{' '}
+        <a href={legalPath()} onClick={(e) => navigate(e, legalPath())}>
+          Full disclaimer
+        </a>{' '}
+        ·{' '}
         <a href={BASE} onClick={(e) => navigate(e, BASE)}>
-          full methodology and sourcing
+          methodology and sourcing
         </a>
         .
       </p>

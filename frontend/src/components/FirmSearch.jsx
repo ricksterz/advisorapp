@@ -227,6 +227,12 @@ export default function FirmSearch({
               more of the name to narrow it.
             </li>
           )}
+          {people.results.length > 0 && (
+            <li className="search-note" role="presentation">
+              From public SEC records, which may be out of date. A disclosures badge is not a finding
+              of wrongdoing.
+            </li>
+          )}
           {advisors && people.tooBroad && (
             <li className="search-empty">Type more of a name to search advisors.</li>
           )}
