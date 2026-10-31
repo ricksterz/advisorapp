@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { bucketRange, matchesName, nameTokens } from './advisors.js'
-import { advisorRosters, advisorSearch, separateBigRosters } from '../scripts/shard-data.mjs'
+import { advisorCounts, advisorRosters, advisorSearch, separateBigRosters } from '../scripts/shard-data.mjs'
 
 const person = (crd, name, firms = [1], extra = {}) => [
   crd, name, firms, extra.city ?? 'Denver', extra.state ?? 'CO', extra.designations ?? '', extra.disclosure ?? 0, extra.year ?? 2010,
@@ -67,3 +67,11 @@ describe('rosters', () => {
     expect(Object.keys(own)).toEqual(['9'])
   })
 })
+
+describe('advisor counts', () => {
+  it('counts each firm’s advisors and those with disclosures', () => {
+    const people = [person(1, 'A B', [1, 2], { disclosure: 1 }), person(2, 'C D', [1]), person(3, 'E F', [2], { disclosure: 1 })]
+    expect(advisorCounts(people).firms).toEqual({ 1: [2, 1], 2: [2, 2] })
+  })
+})
+

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { BASE } from './router.js'
-import { loadShard } from './shards.js'
+import { loadIndex, loadShard } from './shards.js'
 
 // Individual advisors (etl/advisor_index.py -> scripts/shard-data.mjs):
 // SEC-registered firms' people from the SEC's IA_INDVL feed. Name search
@@ -104,6 +104,26 @@ export function useFirmAdvisors(crd) {
     }
   }, [crd])
   return roster
+}
+
+/**
+ * { firms: { crd: [advisors, with disclosures] } } for every firm, for the
+ * outlier list: undefined while loading, null if unavailable. `enabled`
+ * false skips the download on pages that don't show the list.
+ */
+export function useAdvisorCounts(enabled = true) {
+  const [data, setData] = useState(undefined)
+  useEffect(() => {
+    if (!enabled) return undefined
+    let alive = true
+    loadIndex('advisor_counts').then((d) => {
+      if (alive) setData(d ?? null)
+    })
+    return () => {
+      alive = false
+    }
+  }, [enabled])
+  return data
 }
 
 export const iapdIndividualUrl = (crd) => `https://adviserinfo.sec.gov/individual/summary/${crd}`

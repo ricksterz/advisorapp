@@ -123,6 +123,19 @@ export function advisorSearch(people, size = SEARCH_BUCKET_SIZE) {
   return { meta: { starts, people: people.length }, buckets }
 }
 
+/** Per firm: [advisors, advisors with disclosures], for the outlier list. Pure. */
+export function advisorCounts(people) {
+  const firms = {}
+  for (const p of people) {
+    for (const firm of p[2]) {
+      const c = (firms[firm] ??= [0, 0])
+      c[0] += 1
+      c[1] += p[6] ? 1 : 0
+    }
+  }
+  return { firms }
+}
+
 /** Per-firm rosters in the shape splitDataset expects. Pure. */
 export function advisorRosters(people) {
   const firms = {}
@@ -191,6 +204,11 @@ function main() {
       writeFileSync(join(dir, 'firm', `${crd}.json`), JSON.stringify(roster))
       files += 1
     }
+    writeFileSync(
+      join(OUT, 'advisor_counts.json'),
+      JSON.stringify({ generated_at: generatedAt, source, ...advisorCounts(advisors.people) }),
+    )
+    files += 1
     const { meta, buckets } = advisorSearch(advisors.people)
     const searchDir = join(OUT, 'advisor_search')
     mkdirSync(searchDir, { recursive: true })

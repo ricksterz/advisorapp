@@ -25,6 +25,7 @@ import { BASE, comparePath, firmPath, navigate, pulsePath, useRoute } from './ro
 import { fmtCount } from './pulse.js'
 import { DEAL_FLAG_DEFS, useAllDealFlags } from './dealFlags.js'
 import { bioCount, useAdvisorBioCounts } from './advisorBios.js'
+import { useAdvisorCounts } from './advisors.js'
 import { computeDealPatterns } from './dealPatterns.js'
 import { resolveWebsite, useWebsiteOverrides } from './websiteOverrides.js'
 import { SORT_DEFS, makeComparator } from './firmSort.js'
@@ -375,7 +376,11 @@ export default function App() {
     }
   }, [data])
 
-  const rankings = useMemo(() => (data ? computeRankings(data.firms, config) : null), [data, config])
+  const advisorCounts = useAdvisorCounts(onList)
+  const rankings = useMemo(
+    () => (data ? computeRankings(data.firms, config, { advisorCounts: advisorCounts?.firms }) : null),
+    [data, config, advisorCounts],
+  )
 
   const dealPatterns = useMemo(
     () => (data ? computeDealPatterns(data.firms, dealFlagsData, DEAL_FLAG_DEFS) : null),
@@ -618,10 +623,12 @@ export default function App() {
               </RankCard>
 
               <RankCard
-                title="Elevated-risk signals"
-                sub={`Firms ≥ ${compactUsd(config.risk.minAum)} AUM scoring ${config.risk.threshold}+ across the risk screens`}
+                title="Disclosure outliers"
+                sub={`Firms ≥ ${compactUsd(config.risk.minAum)} AUM whose record stands out against their peers, scoring ${config.risk.threshold}+`}
               >
-                {rankings.atRisk.length === 0 ? (
+                {advisorCounts === undefined && config.risk.points.advisorDisclosures > 0 ? (
+                  <div className="state">Loading advisor records…</div>
+                ) : rankings.atRisk.length === 0 ? (
                   <div className="state">No firms currently trip the risk threshold.</div>
                 ) : (
                   <ol className="rank-list">
@@ -636,7 +643,7 @@ export default function App() {
                             ))}
                           </span>
                         </span>
-                        <span className="score-badge risk" title="Risk signal score (0–100)">
+                        <span className="score-badge risk" title="Outlier score: how far the record stands out from peers">
                           {score}
                         </span>
                       </li>
@@ -672,18 +679,44 @@ export default function App() {
                   )}
                 </p>
                 <p>
-                  <strong>Risk signals (0–100).</strong> Inspired by the regulatory-record and
-                  practice-quality factors those rankings penalize: Item 11 disciplinary
-                  disclosures ({config.risk.points.disclosures} points each, capped at{' '}
-                  {RISK_PARAM_DEFAULTS.disclosureCap}), commission <em>and</em> performance-fee
-                  compensation together ({config.risk.points.commissionsPlusPerf} — stacked
-                  conflict exposure), {RISK_PARAM_DEFAULTS.minAffiliations} or more
-                  financial-industry affiliations ({config.risk.points.denseAffiliations} — larger
-                  conflict surface), and an accounts-per-professional ratio in the top{' '}
-                  {Math.round((1 - RISK_PARAM_DEFAULTS.loadPercentile) * 100)}% (
-                  {config.risk.points.highClientLoad} — service-capacity strain, the inverse of the
-                  advisor-to-client ratios CNBC’s methodology rewards). Firms at or above{' '}
-                  {compactUsd(config.risk.minAum)} AUM scoring {config.risk.threshold}+ are listed.
+                  <strong>Disclosure outliers.</strong> Firms whose disciplinary record stands out
+                  against their peers, not simply firms with a long one. The largest firms report
+                  the most Item 11 disclosures because the question covers the firm <em>and every
+                  advisory affiliate</em>: 63% of $100B+ firms report one, against 8% under $1B.
+                  So each firm is judged against comparable firms, on a sliding scale:{' '}
+                  {config.risk.points.advisorDisclosures > 0 && (
+                    <>
+                      the share of its own registered advisors with a disclosure on file, when that
+                      share is higher than {Math.round(RISK_PARAM_DEFAULTS.advisorShareCut * 100)}% of
+                      firms with {RISK_PARAM_DEFAULTS.minAdvisors}+ advisors (up to{' '}
+                      {config.risk.points.advisorDisclosures} points);{' '}
+                    </>
+                  )}
+                  {config.risk.points.disclosuresForSize > 0 && (
+                    <>
+                      an Item 11 count in the top{' '}
+                      {Math.round((1 - RISK_PARAM_DEFAULTS.sizeCut) * 100)}% for the firm’s size band
+                      (under $1B, $1–10B, $10–100B, $100B+; up to {config.risk.points.disclosuresForSize}{' '}
+                      points);{' '}
+                    </>
+                  )}
+                  {config.risk.points.commissionsPlusPerf > 0 && (
+                    <>
+                      commission <em>and</em> performance-fee compensation together, a stacked
+                      conflict of interest ({config.risk.points.commissionsPlusPerf} points);{' '}
+                    </>
+                  )}
+                  {config.risk.points.disclosures > 0 && (
+                    <>
+                      the raw Item 11 count ({config.risk.points.disclosures} points each, capped at{' '}
+                      {RISK_PARAM_DEFAULTS.disclosureCap});{' '}
+                    </>
+                  )}
+                  firms at or above {compactUsd(config.risk.minAum)} AUM scoring{' '}
+                  {config.risk.threshold}+ are listed, highest first. A listing is a prompt to read
+                  the filings, not a finding: the bulk data carries no dates or details, so an old
+                  settlement counts the same as a recent one. Affiliation counts and client load can
+                  be switched on in the methodology panel.
                 </p>
                 <p>
                   <strong>Presets.</strong>{' '}

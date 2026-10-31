@@ -3,7 +3,14 @@
 // function had ({ top, atRisk }), with cohort info added per top entry.
 
 import { FACTORS, staffOf } from './factors.js'
-import { RISK_PARAM_DEFAULTS, RISK_SIGNALS, TOP_SCREENS } from './screens.js'
+import {
+  RISK_PARAM_DEFAULTS,
+  RISK_SIGNALS,
+  RISK_SIZE_BANDS,
+  TOP_SCREENS,
+  advisorCountsOf,
+  riskSizeBand,
+} from './screens.js'
 import { MIN_COHORT_SIZE, assignCohorts } from './cohort.js'
 
 export const TOP_N = 10
@@ -21,6 +28,25 @@ export function percentiler(values) {
       else hi = mid
     }
     return lo / s.length
+  }
+}
+
+// Share of the *other* firms in the sample strictly below v, for a v that is
+// itself in the sample: ties don't count as beaten, so a value most of the
+// sample shares (zero disclosures) scores low, and the single highest value
+// scores 1.
+export function shareBelow(values) {
+  const s = values.filter(Number.isFinite).sort((a, b) => a - b)
+  return (v) => {
+    if (!Number.isFinite(v) || s.length < 2) return 0
+    let lo = 0
+    let hi = s.length
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1
+      if (s[mid] < v) lo = mid + 1
+      else hi = mid
+    }
+    return Math.min(1, lo / (s.length - 1))
   }
 }
 
@@ -46,7 +72,16 @@ function fallbackNote(pool, dims) {
   return `cohort too small — showing ${used.join(' × ')} only`
 }
 
-export function computeRankings(firms, config) {
+// Risk list: score, then name. Never size: breaking ties by AUM put the
+// largest firms first whenever scores bunched up.
+const byScoreThenName = (a, b) =>
+  b.score - a.score || (a.firm.legal_name ?? '').localeCompare(b.firm.legal_name ?? '')
+
+/**
+ * extra.advisorCounts: { crd: [advisors, advisors with disclosures] } from
+ * the advisor index. Without it the advisor-share signal can't trip.
+ */
+export function computeRankings(firms, config, extra = {}) {
   // --- Top list -----------------------------------------------------------
   // Percentile pools span every firm above the AUM floor (flagged firms
   // included), matching the original behavior; the remaining screens then
@@ -107,7 +142,25 @@ export function computeRankings(firms, config) {
     riskUniverse.map((f) => (staffOf(f) > 0 ? (f.accounts_total ?? NaN) / staffOf(f) : NaN)),
   )
   const params = { ...RISK_PARAM_DEFAULTS, ...config.risk.params }
-  const ctx = { pLoad }
+  const advisorCounts = extra.advisorCounts ?? null
+  const rates = advisorCounts
+    ? riskUniverse
+        .map((f) => advisorCountsOf(f, { advisorCounts }))
+        .filter((c) => c && c[0] >= params.minAdvisors)
+        .map((c) => c[1] / c[0])
+    : []
+  const ctx = {
+    pLoad,
+    advisorCounts,
+    advisorShareBelow: rates.length ? shareBelow(rates) : null,
+    disclosureShareBelow: Array.from({ length: RISK_SIZE_BANDS.length + 1 }, (_, band) =>
+      shareBelow(
+        riskUniverse
+          .filter((f) => riskSizeBand(f.aum_total) === band)
+          .map((f) => f.disciplinary_flag_count ?? 0),
+      ),
+    ),
+  }
 
   const atRisk = riskUniverse
     .map((f) => {
@@ -125,7 +178,7 @@ export function computeRankings(firms, config) {
       return { firm: f, score, signals }
     })
     .filter((r) => r.score >= config.risk.threshold)
-    .sort(bySpecificityThenAum)
+    .sort(byScoreThenName)
     .slice(0, TOP_N)
 
   return { top, atRisk }

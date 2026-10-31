@@ -143,7 +143,7 @@ export default function MethodologyPanel({ config, onChange }) {
         </fieldset>
 
         <fieldset className="mp-group">
-          <legend>Risk screens</legend>
+          <legend>Disclosure outliers</legend>
           <label className="mp-field">
             <span>Minimum AUM</span>
             <AumFloorSelect
