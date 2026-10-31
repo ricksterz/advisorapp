@@ -155,6 +155,47 @@ export function advisorRosters(people) {
 // own, so the firms sharing its shard don't download it.
 export const OWN_FILE_ROSTER = 1000
 
+/** Split per-firm lists into sharded ones and those longer than `limit`,
+ * which get a file of their own. Pure. */
+export function separateBig({ firms }, limit) {
+  const small = {}
+  const big = {}
+  for (const [crd, list] of Object.entries(firms)) {
+    if (list.length > limit) {
+      big[crd] = list
+      small[crd] = { own_file: true, count: list.length }
+    } else small[crd] = list
+  }
+  return { small: { firms: small }, big }
+}
+
+// Disclosure events (frontend/data/firm_disclosures.json, from
+// etl/firm_disclosures.py). Firms with more than this many get their own
+// file: Pruco has 11,525, mostly against affiliates.
+export const OWN_FILE_DISCLOSURES = 300
+export const RECENT_YEARS = 5
+
+/** Per firm: [against the firm in the last RECENT_YEARS, against the firm
+ * ever, against affiliates], for the outlier list. Pure. */
+export function disclosureIndex({ firms, as_of: asOf }) {
+  const cutoff = `${Number(asOf.slice(0, 4)) - RECENT_YEARS}${asOf.slice(4)}`
+  const out = {}
+  for (const [crd, events] of Object.entries(firms)) {
+    let recent = 0
+    let own = 0
+    let affiliates = 0
+    for (const e of events) {
+      if (e.against === 'A') affiliates += 1
+      else {
+        own += 1
+        if ((e.date ?? '') >= cutoff) recent += 1
+      }
+    }
+    out[crd] = [recent, own, affiliates]
+  }
+  return { as_of: asOf, since: cutoff, years: RECENT_YEARS, firms: out }
+}
+
 /** Split rosters into the sharded ones and those big enough for their own file. Pure. */
 export function separateBigRosters({ firms }) {
   const small = {}
@@ -221,6 +262,26 @@ function main() {
   for (const [name, payload] of Object.entries(listIndexes(readJson('deal_flags'), readJson('advisor_bios')))) {
     writeFileSync(join(OUT, `${name}.json`), JSON.stringify(payload))
     files += 1
+  }
+  const disclosuresPath = join(DATA, 'firm_disclosures.json')
+  if (existsSync(disclosuresPath)) {
+    const disclosures = JSON.parse(readFileSync(disclosuresPath, 'utf8'))
+    const { firms, ...meta } = disclosures
+    const { small, big } = separateBig({ firms }, OWN_FILE_DISCLOSURES)
+    const dir = join(OUT, 'firm_disclosures')
+    mkdirSync(join(dir, 'firm'), { recursive: true })
+    splitDataset('firm_disclosures', { ...meta, ...small }).forEach((shard, i) => {
+      writeFileSync(join(dir, `${i}.json`), JSON.stringify(shard))
+      files += 1
+    })
+    for (const [crd, events] of Object.entries(big)) {
+      writeFileSync(join(dir, 'firm', `${crd}.json`), JSON.stringify(events))
+      files += 1
+    }
+    writeFileSync(join(OUT, 'disclosure_index.json'), JSON.stringify(disclosureIndex(disclosures)))
+    files += 1
+  } else {
+    console.log('shard-data: no firm_disclosures.json, skipping disclosure events')
   }
   console.log(`shard-data: wrote ${files} files to public/shards/`)
 }

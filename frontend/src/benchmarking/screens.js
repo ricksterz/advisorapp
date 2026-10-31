@@ -101,9 +101,25 @@ export const RISK_SIGNALS = [
     },
   },
   {
-    id: 'disclosuresForSize',
-    label: 'Item 11 disclosures, top 5% for the firm’s size (sliding)',
+    id: 'recentFirmDisclosures',
+    label: 'Recent disclosure events against the firm itself, top 5% for its size (sliding)',
     defaultPoints: 25,
+    evaluate(f, points, params, ctx) {
+      const counts = ctx.disclosureIndex?.firms?.[String(f.crd)]
+      const n = counts?.[0] ?? 0
+      if (n <= 0 || !ctx.recentShareBelow) return null
+      const share = ctx.recentShareBelow[riskSizeBand(f.aum_total)]?.(n) ?? 0
+      if (share < params.sizeCut) return null
+      return {
+        points: slidingPoints(points, share, params.sizeCut),
+        label: `${n} event${n === 1 ? '' : 's'} against the firm since ${ctx.disclosureIndex.since.slice(0, 4)}, top ${Math.max(1, Math.round((1 - share) * 100))}% for its size`,
+      }
+    },
+  },
+  {
+    id: 'disclosuresForSize',
+    label: 'Item 11 yes answers (firm and affiliates, undated), top 5% for its size (sliding)',
+    defaultPoints: 0,
     evaluate(f, points, params, ctx) {
       const n = f.disciplinary_flag_count ?? 0
       if (n <= 0) return null

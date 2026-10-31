@@ -69,6 +69,8 @@ $PY -m etl.ownership_changes --db data/advisor.duckdb --out frontend/public/owne
 
 echo "== 8/14 refreshing private funds (Schedule D 7.B.1, reuses Pulse's cached archives) =="
 $PY -m etl.private_funds run --db data/advisor.duckdb
+# Dated disclosure events per firm, from the same cached monthly archives.
+$PY -m etl.firm_disclosures --out frontend/data/firm_disclosures.json
 $PY -m etl.private_fund_stats --db data/advisor.duckdb \
     --out frontend/public/private_funds.json --firm-out frontend/public/firm_private_funds.json
 # Each private fund manager's main fund type, for the firm list's filter.
@@ -138,5 +140,5 @@ echo "          frontend/public/individual_disclosures.json frontend/public/form
           frontend/public/website_overrides.json frontend/public/favicons.json \\
           frontend/public/form_13f.json frontend/public/firm_fund_types.json \\
           frontend/public/firm_trajectory.json frontend/public/firm_growth.json \\
-          frontend/data/advisors.json"
+          frontend/data/advisors.json frontend/data/firm_disclosures.json"
 echo "  git commit -m 'Refresh brochure corpus, advisor bios, private funds, disclosures, and sitemap'"

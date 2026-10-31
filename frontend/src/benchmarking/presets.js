@@ -13,7 +13,7 @@ export const PRESETS = [
       risk: {
         minAum: 1e8,
         threshold: 40,
-        points: { advisorDisclosures: 50, disclosuresForSize: 25, commissionsPlusPerf: 10, disclosures: 0, denseAffiliations: 0, highClientLoad: 0 },
+        points: { advisorDisclosures: 50, recentFirmDisclosures: 25, disclosuresForSize: 0, commissionsPlusPerf: 10, disclosures: 0, denseAffiliations: 0, highClientLoad: 0 },
       },
       cohorts: { aumBand: false, clientMix: false, region: false },
     },
@@ -29,7 +29,7 @@ export const PRESETS = [
       risk: {
         minAum: 2.5e7,
         threshold: 40,
-        points: { advisorDisclosures: 50, disclosuresForSize: 25, commissionsPlusPerf: 10, disclosures: 0, denseAffiliations: 0, highClientLoad: 0 },
+        points: { advisorDisclosures: 50, recentFirmDisclosures: 25, disclosuresForSize: 0, commissionsPlusPerf: 10, disclosures: 0, denseAffiliations: 0, highClientLoad: 0 },
       },
       cohorts: { aumBand: true, clientMix: true, region: false },
     },
@@ -45,7 +45,7 @@ export const PRESETS = [
       risk: {
         minAum: 1e9,
         threshold: 40,
-        points: { advisorDisclosures: 50, disclosuresForSize: 25, commissionsPlusPerf: 10, disclosures: 0, denseAffiliations: 0, highClientLoad: 0 },
+        points: { advisorDisclosures: 50, recentFirmDisclosures: 25, disclosuresForSize: 0, commissionsPlusPerf: 10, disclosures: 0, denseAffiliations: 0, highClientLoad: 0 },
       },
       cohorts: { aumBand: true, clientMix: false, region: false },
     },
@@ -61,7 +61,7 @@ export const PRESETS = [
       risk: {
         minAum: 1e8,
         threshold: 15,
-        points: { advisorDisclosures: 0, disclosuresForSize: 0, commissionsPlusPerf: 0, disclosures: 15, denseAffiliations: 0, highClientLoad: 0 },
+        points: { advisorDisclosures: 0, recentFirmDisclosures: 0, disclosuresForSize: 0, commissionsPlusPerf: 0, disclosures: 15, denseAffiliations: 0, highClientLoad: 0 },
       },
       cohorts: { aumBand: false, clientMix: false, region: false },
     },

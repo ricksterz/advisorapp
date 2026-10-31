@@ -212,18 +212,40 @@ describe('disclosure outliers', () => {
     expect(crds({ advisorCounts: { ...counts, [outlier.crd]: [10, 9] } })).not.toContain(outlier.crd)
   })
 
-  it('judges Item 11 counts against firms of the same size', () => {
-    // Every $100B+ firm reports some; the giant with the median count is
-    // ordinary for its size, while the same count at a small firm stands out.
-    const giants = Array.from({ length: 30 }, (_, i) => firm({ aum_total: 2e11 + i * 1e9, disciplinary_flag_count: 4 + (i % 12) }))
-    const typicalGiant = firm({ aum_total: 9e11, disciplinary_flag_count: 9 })
-    const small = Array.from({ length: 30 }, (_, i) => firm({ aum_total: 2e8 + i * 1e7 }))
-    const smallWithNine = firm({ aum_total: 3e8, disciplinary_flag_count: 9 })
+  // Giants all have some events against them; a typical count is ordinary for
+  // their size, while the same count at a small firm stands out.
+  const giants = Array.from({ length: 30 }, (_, i) => firm({ aum_total: 2e11 + i * 1e9, disciplinary_flag_count: 4 + (i % 12) }))
+  const typicalGiant = firm({ aum_total: 9e11, disciplinary_flag_count: 9 })
+  const small = Array.from({ length: 30 }, (_, i) => firm({ aum_total: 2e8 + i * 1e7 }))
+  const smallWithNine = firm({ aum_total: 3e8, disciplinary_flag_count: 9 })
+  const sizeUniverse = [...giants, typicalGiant, ...small, smallWithNine]
+  const listed = (config, extra) => computeRankings(sizeUniverse, config, extra).atRisk.map((r) => r.firm.crd)
+
+  it('judges recent events against the firm by firm size', () => {
+    const disclosureIndex = {
+      since: '2021-08-31',
+      firms: Object.fromEntries([
+        ...giants.map((g, i) => [g.crd, [4 + (i % 12), 20, 300]]),
+        [typicalGiant.crd, [9, 30, 2700]],
+        [smallWithNine.crd, [9, 9, 0]],
+      ]),
+    }
     const config = defaultConfig()
     config.risk.threshold = 10
-    const listed = computeRankings([...giants, typicalGiant, ...small, smallWithNine], config).atRisk.map((r) => r.firm.crd)
-    expect(listed).toContain(smallWithNine.crd)
-    expect(listed).not.toContain(typicalGiant.crd)
+    const crds = listed(config, { disclosureIndex })
+    expect(crds).toContain(smallWithNine.crd)
+    expect(crds).not.toContain(typicalGiant.crd)
+    const entry = computeRankings(sizeUniverse, config, { disclosureIndex }).atRisk.find((r) => r.firm.crd === smallWithNine.crd)
+    expect(entry.signals[0]).toMatch(/^9 events against the firm since 2021, top 1% for its size$/)
+    expect(listed(config)).toEqual([]) // no index, no signal
+  })
+
+  it('can still judge raw Item 11 answers by size when switched on', () => {
+    const config = defaultConfig()
+    config.risk.threshold = 10
+    config.risk.points.disclosuresForSize = 25
+    expect(listed(config)).toContain(smallWithNine.crd)
+    expect(listed(config)).not.toContain(typicalGiant.crd)
   })
 
   it('orders equal scores by name, never by size', () => {

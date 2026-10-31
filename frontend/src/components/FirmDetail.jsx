@@ -17,6 +17,7 @@ import { useForm13f } from '../form13f.js'
 import { bandLabelOf, leverageHeadline, leverageProfile } from '../leverage.js'
 import { aumShare, firmSegment, firmTags, SEGMENT_BY_ID, useFundTypes } from '../segments.js'
 import AdvisorsCard from './AdvisorsCard.jsx'
+import DisclosuresCard from './DisclosuresCard.jsx'
 import GrowthCard from './GrowthCard.jsx'
 import LeverageCard from './LeverageCard.jsx'
 import DataNote from './DataNote.jsx'
@@ -798,6 +799,7 @@ export default function FirmDetail({ firm, crd, allFirms }) {
 
       <LeverageCard profile={leverage} firm={firm} />
       <GrowthCard crd={firm.crd} segment={segment} />
+      <DisclosuresCard key={`d${firm.crd}`} crd={firm.crd} firmName={firm.business_name || firm.legal_name} />
       <AdvisorsCard key={firm.crd} crd={firm.crd} />
 
       <FirmHistoryCard crd={firm.crd} />
