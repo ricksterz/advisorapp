@@ -70,7 +70,6 @@ const SOURCES = [
   { name: 'CNBC FA 100', url: 'https://www.cnbc.com/fa-100/' },
   { name: 'Forbes / SHOOK Top Wealth Advisors', url: 'https://www.forbes.com/top-wealth-advisors/' },
   { name: 'UBS Global Family Office Report', url: 'https://www.ubs.com/global/en/family-office-uhnw.html' },
-  { name: 'Altrata World Ultra Wealth Report', url: 'https://altrata.com/reports/world-ultra-wealth-report-2025' },
   { name: 'Visual Capitalist — wealth management', url: 'https://www.visualcapitalist.com/' },
 ]
 
@@ -1053,25 +1052,15 @@ export default function App() {
                   </dd>
                 </div>
                 <div>
-                  <dt>Why regulatory AUM figures look enormous</dt>
+                  <dt>Regulatory AUM is not client wealth</dt>
                   <dd>
-                    Regulatory AUM is not private client wealth. It counts institutional and fund
-                    assets (mutual funds, ETFs, pensions) gross of leverage, and related advisers
-                    within one complex each file separately — three Vanguard-affiliated advisers
-                    alone report roughly $22T combined, and sub-advised assets can appear at both
-                    the adviser and the sub-adviser. Summing it across firms is therefore
-                    misleading, which is why no aggregate is shown here. For scale:{' '}
-                    <a
-                      href="https://altrata.com/reports/world-ultra-wealth-report-2025"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Altrata’s World Ultra Wealth Report 2025
-                    </a>{' '}
-                    puts the combined net worth of all 510,810 ultra-high-net-worth individuals
-                    worldwide at $59.8T — roughly a third of what these firms report in regulatory
-                    AUM combined. Exempt reporting advisers (which file no regulatory AUM) are
-                    excluded from this dataset.
+                    Regulatory AUM includes institutional and fund assets, such as mutual funds,
+                    ETFs and pension plans, and is reported gross of leverage. The same assets may
+                    be counted more than once: affiliated advisers within one group each file
+                    separately, and sub-advised assets may be reported by both the adviser and the
+                    sub-adviser. The figures should therefore not be added together across firms,
+                    and no total is shown. Exempt reporting advisers, which do not report
+                    regulatory AUM, are not included.
                   </dd>
                 </div>
                 <div>
