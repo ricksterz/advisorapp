@@ -171,21 +171,20 @@ function FirmNameCell({ firm, siteOverrides }) {
           CRD {firm.crd}
         </a>
         {segment && <> · {SEGMENT_BY_ID[segment].label}</>}
-        {host && (
-          <>
-            {' · '}
-            <a
-              className="crd-link"
-              href={site.url}
-              target="_blank"
-              rel="noreferrer"
-              title={site.redirected && site.filed ? `Filed as ${site.filed}` : undefined}
-            >
-              {host} ↗
-            </a>
-          </>
-        )}
       </div>
+      {host && (
+        <div className="firm-sub firm-site">
+          <a
+            className="crd-link"
+            href={site.url}
+            target="_blank"
+            rel="noreferrer"
+            title={site.redirected && site.filed ? `Filed as ${site.filed}` : undefined}
+          >
+            {host} ↗
+          </a>
+        </div>
+      )}
     </>
   )
 }
@@ -917,7 +916,7 @@ export default function App() {
             </section>
 
             <section className="table-card">
-              <table>
+              <table className="firms-table">
                 <thead>
                   <tr>
                     <SortHeader id="firm" sortField={sortField} sortDir={sortDir} onSort={handleSort}>
