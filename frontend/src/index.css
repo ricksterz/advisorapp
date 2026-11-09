@@ -228,8 +228,16 @@ select {
   flex-direction: column;
 }
 
+/* A grown row centers its content as one block (align-content on a
+   single wrapping line), while rank and score stay on the name's line. */
 .rank-grid.even .rank-list li {
   flex: 1 0 auto;
+  flex-wrap: wrap;
+  align-content: center;
+}
+
+.rank-grid.even .rank-firm {
+  flex: 1 1 0;
 }
 
 .rank-head {
@@ -863,6 +871,88 @@ tbody tr:hover {
   color: var(--ink-3);
   font-size: 12px;
   margin-top: 1px;
+}
+
+/* The website gets its own line, cut short rather than wrapped, so a long
+   host doesn't stretch the firm cell to five lines. */
+.firm-site {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The firm column keeps a readable width and stays in view while the
+   other columns scroll sideways (tablets, narrow windows). Sticky cells
+   need an opaque background; the row's hover wash is layered on top. */
+.firms-table th:first-child,
+.firms-table td:first-child {
+  position: sticky;
+  left: 0;
+  min-width: 250px;
+  background: var(--surface);
+}
+
+.firms-table th:first-child {
+  z-index: 2;
+}
+
+/* As in the rank lists, the favicon hangs left of the name so the name,
+   CRD line and website share one left edge. */
+.firms-table th:first-child,
+.firms-table td:first-child {
+  padding-left: 36px;
+}
+
+.firms-table .firm-name {
+  position: relative;
+  display: block;
+}
+
+.firms-table .firm-favicon {
+  position: absolute;
+  left: -20px;
+  top: 3px;
+}
+
+.firms-table .firm-sub {
+  white-space: nowrap;
+}
+
+.firms-table td:first-child {
+  z-index: 1;
+}
+
+.firms-table tbody tr:hover td:first-child {
+  background-image: linear-gradient(var(--hover-wash), var(--hover-wash));
+}
+
+@media (max-width: 1199px) {
+  .firms-table th,
+  .firms-table td {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .firms-table th:first-child,
+  .firms-table td:first-child {
+    box-shadow: 1px 0 0 var(--grid);
+  }
+}
+
+/* On a phone a pinned 250px column would leave almost nothing for the
+   rest; the whole table scrolls instead. */
+@media (max-width: 640px) {
+  .firms-table th:first-child,
+  .firms-table td:first-child {
+    left: auto;
+    min-width: 200px;
+    box-shadow: none;
+  }
+
+  .firms-table td:first-child {
+    position: static;
+  }
 }
 
 /* discretionary meter: accent fill on a lighter step of the same ramp */
