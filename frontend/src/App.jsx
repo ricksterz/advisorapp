@@ -646,14 +646,14 @@ export default function App() {
                   <div className="state">No firms currently trip the risk threshold.</div>
                 ) : (
                   <ol className="rank-list">
-                    {rankings.atRisk.map(({ firm, score, signals }) => (
+                    {rankings.atRisk.map(({ firm, score, signals }, i) => (
                       <li key={firm.crd}>
-                        <span className="rank-n risk">⚑</span>
+                        <span className="rank-n">{i + 1}</span>
                         <span className="rank-firm">
                           <FirmLink firm={firm} siteOverrides={siteOverrides} />
-                          <span className="signal-chips">
+                          <span className="signal-list">
                             {signals.map((s) => (
-                              <span key={s} className="signal-chip">{s}</span>
+                              <span key={s}>{s}</span>
                             ))}
                           </span>
                         </span>
