@@ -390,6 +390,13 @@ export default function App() {
         : null,
     [data, config, advisorCounts, disclosureIndex],
   )
+  const outliersLoading =
+    (advisorCounts === undefined && config.risk.points.advisorDisclosures > 0) ||
+    (disclosureIndex === undefined && config.risk.points.recentFirmDisclosures > 0)
+  // Side by side, two lists of the same length share a height: the shorter
+  // card's rows grow to match rather than leaving a gap below it.
+  const evenLists =
+    !!rankings && !outliersLoading && rankings.top.length > 0 && rankings.top.length === rankings.atRisk.length
 
   const dealPatterns = useMemo(
     () => (data ? computeDealPatterns(data.firms, dealFlagsData, DEAL_FLAG_DEFS) : null),
@@ -606,7 +613,7 @@ export default function App() {
 
             <MethodologyPanel config={config} onChange={setConfig} />
 
-            <div className="rank-grid">
+            <div className={`rank-grid${evenLists ? ' even' : ''}`}>
               <RankCard
                 title="Top advisory firms"
                 sub={[topScreenSummary(config), cohortSummary(config)].filter(Boolean).join(' · ')}
@@ -639,8 +646,7 @@ export default function App() {
                 title="Disclosure outliers"
                 sub={`Firms ≥ ${compactUsd(config.risk.minAum)} AUM whose record stands out against their peers, scoring ${config.risk.threshold}+`}
               >
-                {(advisorCounts === undefined && config.risk.points.advisorDisclosures > 0) ||
-                (disclosureIndex === undefined && config.risk.points.recentFirmDisclosures > 0) ? (
+                {outliersLoading ? (
                   <div className="state">Loading advisor records…</div>
                 ) : rankings.atRisk.length === 0 ? (
                   <div className="state">No firms currently trip the risk threshold.</div>

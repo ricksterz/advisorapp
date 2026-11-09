@@ -201,7 +201,7 @@ select {
   display: grid;
   /* Side by side only when each list has room for a firm name on one line
      (iPad landscape and up); stacked on iPad portrait and phones. */
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(400px, 100%), 1fr));
   align-items: start;
   gap: 14px;
 }
@@ -211,6 +211,25 @@ select {
   border: 1px solid var(--hairline);
   border-radius: 12px;
   overflow: hidden;
+}
+
+.rank-grid.even {
+  align-items: stretch;
+}
+
+.rank-grid.even .rank-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.rank-grid.even .rank-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.rank-grid.even .rank-list li {
+  flex: 1 0 auto;
 }
 
 .rank-head {
@@ -477,12 +496,28 @@ select {
   padding: 2px 7px;
 }
 
+/* The three short groups share a row at equal height; the outlier
+   signals, the longest group, take a full-width row of their own with
+   the fields in columns, instead of one tall box beside short ones. */
 .mp-groups {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  align-items: start;
+  display: flex;
+  flex-wrap: wrap;
   gap: 14px;
   margin-top: 14px;
+}
+
+.mp-groups > .mp-group {
+  flex: 1 1 240px;
+}
+
+.mp-groups > .mp-group-wide {
+  flex-basis: 100%;
+}
+
+.mp-group-wide .mp-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  column-gap: 28px;
 }
 
 .mp-group {

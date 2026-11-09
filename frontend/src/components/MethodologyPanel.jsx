@@ -143,33 +143,6 @@ export default function MethodologyPanel({ config, onChange }) {
         </fieldset>
 
         <fieldset className="mp-group">
-          <legend>Disclosure outliers</legend>
-          <label className="mp-field">
-            <span>Minimum AUM</span>
-            <AumFloorSelect
-              value={config.risk.minAum}
-              onChange={(v) => set('risk.minAum', v)}
-              ariaLabel="Risk list minimum AUM"
-            />
-          </label>
-          {RISK_SIGNALS.map((s) => (
-            <NumberField
-              key={s.id}
-              label={s.label}
-              value={config.risk.points[s.id]}
-              onChange={(v) => set(`risk.points.${s.id}`, v)}
-              max={500}
-            />
-          ))}
-          <NumberField
-            label="Listing threshold (points)"
-            value={config.risk.threshold}
-            onChange={(v) => set('risk.threshold', v)}
-            max={1000}
-          />
-        </fieldset>
-
-        <fieldset className="mp-group">
           <legend>Peer cohorts</legend>
           <div className="mp-cohorts">
             {DIMENSION_ORDER.map((d) => (
@@ -190,6 +163,35 @@ export default function MethodologyPanel({ config, onChange }) {
             affected entries). With cohorts on, scores compare firms <em>within</em> their cohort —
             a 99 in one cohort doesn’t outrank a 98 in another.
           </p>
+        </fieldset>
+
+        <fieldset className="mp-group mp-group-wide">
+          <legend>Disclosure outliers</legend>
+          <div className="mp-fields">
+            <label className="mp-field">
+              <span>Minimum AUM</span>
+              <AumFloorSelect
+                value={config.risk.minAum}
+                onChange={(v) => set('risk.minAum', v)}
+                ariaLabel="Risk list minimum AUM"
+              />
+            </label>
+            {RISK_SIGNALS.map((s) => (
+              <NumberField
+                key={s.id}
+                label={s.label}
+                value={config.risk.points[s.id]}
+                onChange={(v) => set(`risk.points.${s.id}`, v)}
+                max={500}
+              />
+            ))}
+            <NumberField
+              label="Listing threshold (points)"
+              value={config.risk.threshold}
+              onChange={(v) => set('risk.threshold', v)}
+              max={1000}
+            />
+          </div>
         </fieldset>
       </div>
     </div>
