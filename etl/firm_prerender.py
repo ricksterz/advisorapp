@@ -199,8 +199,17 @@ def jsonld(firm: dict, site: str) -> str:
         data["address"] = address
     if firm.get("employees_total") is not None:
         data["numberOfEmployees"] = {"@type": "QuantitativeValue", "value": firm["employees_total"]}
-    # "</" can't appear inside a <script> block, whatever a firm is called.
-    body = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
+    # Filers choose their own names, so nothing they write may be read as
+    # markup inside the <script> block. Escaping "</" alone isn't enough: a
+    # name containing "<!--<script" makes the HTML parser swallow the rest of
+    # the page. JSON's \uXXXX escapes decode to the same characters, so the
+    # structured data is unchanged.
+    body = (
+        json.dumps(data, ensure_ascii=False)
+        .replace("&", "\\u0026")
+        .replace("<", "\\u003c")
+        .replace(">", "\\u003e")
+    )
     return f'<script type="application/ld+json">{body}</script>'
 
 

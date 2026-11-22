@@ -86,6 +86,18 @@ def test_jsonld_is_valid_and_cannot_close_its_script_tag():
     assert data["address"] == {"@type": "PostalAddress", "addressRegion": "NJ", "addressCountry": "United States"}
 
 
+def test_jsonld_cannot_open_a_comment_that_swallows_the_page():
+    # "<!--<script" would put the HTML parser in a state where the closing
+    # </script> no longer ends the block, blanking the rest of the page.
+    name = "Evil <!--<script> & Co"
+    tag = fp.jsonld({**PATHSTONE, "legal_name": name, "state": "<!--"}, "https://open-disclosure.com")
+    inner = tag.removeprefix('<script type="application/ld+json">').removesuffix("</script>")
+    assert not any(ch in inner for ch in "<>&")
+    data = json.loads(inner)
+    assert data["legalName"] == name
+    assert data["address"]["addressRegion"] == "<!--"
+
+
 def test_render_firm_places_summary_after_the_root_and_jsonld_in_the_head():
     template = f"<html><head><title>T</title></head><body>{ROOT_DIV}</body></html>"
     # render() needs the real head tags; exercise only the two insertions here.
