@@ -26,3 +26,14 @@
 
 /index.html
   Cache-Control: no-cache
+
+# Security headers for every response. HSTS stops a first visit being
+# downgraded to http:// on the network path (the platform already redirects
+# http to https, but only HSTS makes the browser skip the http hop). No CSP
+# yet: it needs an inventory of GA4, the Cloudflare beacon, the favicon
+# proxies and api.adviserinfo.sec.gov before it can be enforced safely.
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
