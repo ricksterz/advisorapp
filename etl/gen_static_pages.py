@@ -129,7 +129,11 @@ def verify_template(template: str) -> None:
 
 # Inline <script> blocks a browser executes: no src, and not a data block
 # such as JSON-LD (which a Content Security Policy doesn't govern).
-_INLINE_SCRIPT = re.compile(r"<script(?P<attrs>[^>]*)>(?P<body>.*?)</script>", re.DOTALL)
+# HTML tag names are case-insensitive and an end tag may carry whitespace
+# ("</SCRIPT >"); a narrower pattern would let such a script skip the check.
+_INLINE_SCRIPT = re.compile(
+    r"<script\b(?P<attrs>[^>]*)>(?P<body>.*?)</script\s*>", re.DOTALL | re.IGNORECASE
+)
 _DATA_TYPES = ("application/ld+json", "application/json")
 
 
@@ -137,7 +141,7 @@ def inline_script_hashes(page: str) -> list[str]:
     """CSP source expressions ('sha256-...') for each executable inline script."""
     out = []
     for m in _INLINE_SCRIPT.finditer(page):
-        attrs, body = m.group("attrs"), m.group("body")
+        attrs, body = m.group("attrs").lower(), m.group("body")
         if "src=" in attrs or any(t in attrs for t in _DATA_TYPES) or not body.strip():
             continue
         digest = base64.b64encode(hashlib.sha256(body.encode()).digest()).decode()

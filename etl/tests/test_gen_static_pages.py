@@ -209,3 +209,10 @@ def test_the_real_index_html_matches_the_real_csp():
     assert len(hashes) == 2  # canonical-domain redirect, theme
     for h in hashes:
         assert h in headers, f"{h} missing from frontend/public/_headers script-src"
+
+
+def test_inline_script_hashes_match_any_case_and_spaced_end_tags():
+    from etl.gen_static_pages import inline_script_hashes
+
+    page = '<SCRIPT>alert(1)</SCRIPT ><Script Type="Application/LD+JSON">{}</script>'
+    assert inline_script_hashes(page) == ["'sha256-bhHHL3z2vDgxUt0W3dWQOrprscmda2Y5pLsLg4GF+pI='"]
