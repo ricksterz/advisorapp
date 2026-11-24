@@ -35,6 +35,9 @@ def generate(data_path: Path, site: str, out_dir: Path) -> int:
         "pulse/service-providers",
         "pulse/growth",
         "legal",
+        "compare",
+        "fees",
+        "benchmark",
     ]
     urls = [f"{site}/{p}".rstrip("/") + ("/" if not p else "") for p in static_pages] + [
         f"{site}/firm/{f['crd']}" for f in payload["firms"]

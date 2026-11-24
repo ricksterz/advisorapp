@@ -68,6 +68,9 @@ def test_body_summarizes_the_filing():
     assert "1,200 positions worth $9.5B. Largest: APPLE INC, MICROSOFT CORP." in out
     assert "adviserinfo.sec.gov/firm/summary/151736" in out
     assert "not a finding of wrongdoing" in out and 'href="/legal"' in out
+    # crawlable links to the firm's tools
+    assert 'href="/firm/151736?view=report"' in out
+    assert 'href="/benchmark?firm=151736"' in out and 'href="/compare?firms=151736"' in out
 
 
 def test_body_escapes_firm_names_and_works_without_extras():

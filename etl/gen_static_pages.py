@@ -41,7 +41,7 @@ from etl import firm_prerender
 # where the error surfaces as an opaque upload rejection.
 DEFAULT_MAX_FILES = 19_000
 
-DEFAULT_TITLE = "Open Disclosure — SEC Form ADV adviser benchmarking"
+DEFAULT_TITLE = "Open Disclosure — Investment adviser due diligence from SEC filings"
 
 # Mirrors PULSE_TITLES in App.jsx.
 PULSE_TITLES = {
@@ -53,6 +53,33 @@ PULSE_TITLES = {
     "capital-formation": "Capital formation — Industry Pulse",
     "service-providers": "Service providers — Industry Pulse",
     "growth": "Fastest-growing advisers — Industry Pulse",
+}
+
+# The site's tools: each its own URL with its own canonical, title and
+# description. Mirrors the document.title each page sets at runtime.
+TOOL_PAGES = {
+    "compare": (
+        "Compare advisers · Open Disclosure",
+        ("Compare up to four SEC-registered investment advisers side by side: AUM, staffing, "
+        "client mix, fees, conflicts of interest, growth and disciplinary history, with peer "
+        "percentiles and the differences that matter, from public Form ADV filings."),
+    ),
+    "fees": (
+        "Wealth management fee calculator · Open Disclosure",
+        ("Calculate what an advisory fee schedule costs from $1M to $100M+, compare tiered and "
+        "breakpoint schedules, and see the long-term effect of advisory fees and fund expenses. "
+        "Every input is yours; no firm's fees or industry averages are assumed."),
+    ),
+    "benchmark": (
+        "Benchmark my firm · Open Disclosure",
+        ("Benchmark an RIA's growth, staffing, productivity, client composition and business model "
+        "against a peer group of SEC-registered advisers you define, from public Form ADV data."),
+    ),
+    "watchlist": (
+        "Watchlist · Open Disclosure",
+        ("Follow investment advisers and see material changes in their SEC filings since you started "
+        "following, with private notes kept in your browser."),
+    ),
 }
 
 # Each pattern must match exactly once in the template. A silently-unmatched
@@ -174,6 +201,11 @@ def generate(
     )
     (out_dir / "legal.html").write_text(legal)
     written += 1
+
+    for path, (title, description) in TOOL_PAGES.items():
+        page = render(template, title=title, description=description, canonical=f"{site}/{path}")
+        (out_dir / f"{path}.html").write_text(page)
+        written += 1
 
     # Pulse sections are a handful of URLs but hit the same homepage-canonical
     # problem, and they are in the sitemap too.
