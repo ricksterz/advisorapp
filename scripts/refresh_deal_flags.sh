@@ -130,7 +130,8 @@ $PY -m etl.adviser_history export --db data/advisor.duckdb --out frontend/public
     --growth-out frontend/public/firm_growth.json
 
 echo
-echo "Done. Review the diff, then:"
+echo "Done. Review the diff, then (main is protected, so data goes in through a pull request):"
+echo "  git switch -c data-refresh-\$(date +%Y-%m-%d)"
 echo "  git add frontend/public/deal_flags.json frontend/public/advisor_bios.json \\"
 echo "          frontend/public/sitemap.xml frontend/public/robots.txt frontend/public/pulse_stats.json \\"
 echo "          frontend/public/private_funds.json frontend/public/firm_private_funds.json \\"
@@ -142,3 +143,5 @@ echo "          frontend/public/individual_disclosures.json frontend/public/form
           frontend/public/firm_trajectory.json frontend/public/firm_growth.json \\
           frontend/data/advisors.json frontend/data/firm_disclosures.json"
 echo "  git commit -m 'Refresh brochure corpus, advisor bios, private funds, disclosures, and sitemap'"
+echo "  git push -u origin HEAD"
+echo "  gh pr create --fill    # then merge it on GitHub once the checks pass"
