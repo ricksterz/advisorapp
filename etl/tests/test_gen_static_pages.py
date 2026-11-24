@@ -9,6 +9,7 @@ Search Console keeps dropping every firm page.
 from __future__ import annotations
 
 import json
+import re
 
 import pytest
 
@@ -165,3 +166,56 @@ def test_generate_requires_a_built_template(tmp_path):
     empty.mkdir()
     with pytest.raises(SystemExit, match="run the frontend build"):
         generate(data, "https://open-disclosure.com", empty, max_files=1000)
+
+
+def test_inline_script_hashes_skip_external_and_data_scripts():
+    from etl.gen_static_pages import inline_script_hashes
+
+    page = (
+        '<script type="application/ld+json">{"a":1}</script>'
+        '<script src="/x.js"></script>'
+        "<script>alert(1)</script>"
+    )
+    # sha256 of "alert(1)"
+    assert inline_script_hashes(page) == ["'sha256-bhHHL3z2vDgxUt0W3dWQOrprscmda2Y5pLsLg4GF+pI='"]
+
+
+def test_build_fails_when_an_inline_script_is_missing_from_the_csp(tmp_path):
+    import pytest
+
+    from etl.gen_static_pages import inline_script_hashes, verify_csp
+
+    page = "<html><head><script>alert(1)</script></head></html>"
+    headers = tmp_path / "_headers"
+    headers.write_text("/*\n  Content-Security-Policy: script-src 'self'\n")
+    with pytest.raises(SystemExit):
+        verify_csp(page, headers)
+    headers.write_text(f"/*\n  Content-Security-Policy: script-src 'self' {inline_script_hashes(page)[0]}\n")
+    verify_csp(page, headers)  # no error
+    verify_csp(page, tmp_path / "missing")  # no _headers: nothing to check
+
+
+def test_the_real_index_html_matches_the_real_csp():
+    from pathlib import Path
+
+    from etl.gen_static_pages import inline_script_hashes
+
+    root = Path(__file__).resolve().parents[2] / "frontend"
+    headers = (root / "public" / "_headers").read_text()
+    # Vite bundles inline type="module" scripts into the app's JS file, so
+    # only the classic inline scripts survive into the served HTML.
+    source = re.sub(r'<script type="module">.*?</script>', "", (root / "index.html").read_text(), flags=re.DOTALL)
+    hashes = inline_script_hashes(source)
+    assert len(hashes) == 2  # canonical-domain redirect, theme
+    for h in hashes:
+        assert h in headers, f"{h} missing from frontend/public/_headers script-src"
+
+
+def test_inline_script_hashes_match_any_case_and_spaced_end_tags():
+    from etl.gen_static_pages import inline_script_hashes
+
+    page = (
+        '<SCRIPT>alert(1)</SCRIPT\t\n bar><Script Type="Application/LD+JSON">{}</script>'
+        "<script>alert(1)</script >"
+    )
+    assert inline_script_hashes(page) == ["'sha256-bhHHL3z2vDgxUt0W3dWQOrprscmda2Y5pLsLg4GF+pI='"] * 2

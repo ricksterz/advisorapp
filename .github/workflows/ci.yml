@@ -55,7 +55,9 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-      - run: pip install bandit pip-audit
+      # Pinned like ruff above: a new release can change findings or flags
+      # under us. Bump deliberately.
+      - run: pip install bandit==1.9.4 pip-audit==2.10.1
       - name: Static security analysis (bandit)
         run: bandit -r etl backend -x etl/tests
       - name: Dependency vulnerability audit (pip-audit)

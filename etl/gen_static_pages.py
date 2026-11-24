@@ -28,9 +28,12 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import base64
+import hashlib
 import html
 import json
 import re
+from html.parser import HTMLParser
 from pathlib import Path
 
 from etl import firm_prerender
@@ -125,6 +128,79 @@ def verify_template(template: str) -> None:
             )
 
 
+# Inline <script> blocks a browser executes: no src, and not a data block
+# such as JSON-LD (which a Content Security Policy doesn't govern).
+_DATA_TYPES = ("application/ld+json", "application/json")
+
+
+class _ScriptCollector(HTMLParser):
+    """Collects inline <script> bodies the way a browser tokenizes them.
+
+    A real HTML tokenizer rather than a regex: tag names in any case, end tags
+    with whitespace or junk attributes ("</SCRIPT foo>"), and script contents
+    taken verbatim (convert_charrefs=False), which is what the CSP hash covers.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=False)
+        self.scripts: list[tuple[dict, str]] = []
+        self._attrs: dict | None = None
+        self._body: list[str] = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "script":
+            self._attrs = {k.lower(): (v or "") for k, v in attrs}
+            self._body = []
+
+    def handle_data(self, data):
+        if self._attrs is not None:
+            self._body.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "script" and self._attrs is not None:
+            self.scripts.append((self._attrs, "".join(self._body)))
+            self._attrs = None
+
+
+def inline_script_hashes(page: str) -> list[str]:
+    """CSP source expressions ('sha256-...') for each executable inline script.
+
+    Skips scripts with a src and data blocks such as JSON-LD, which a Content
+    Security Policy doesn't govern.
+    """
+    collector = _ScriptCollector()
+    collector.feed(page)
+    collector.close()
+    out = []
+    for attrs, body in collector.scripts:
+        if "src" in attrs or attrs.get("type", "").strip().lower() in _DATA_TYPES or not body.strip():
+            continue
+        digest = base64.b64encode(hashlib.sha256(body.encode()).digest()).decode()
+        out.append(f"'sha256-{digest}'")
+    return out
+
+
+def verify_csp(template: str, headers_path: Path) -> None:
+    """Fail if an inline script in the page isn't allowed by the CSP in _headers.
+
+    A hash-based script-src breaks the moment someone edits one of those
+    inline scripts — silently, in production, and only once the policy is
+    enforced. Checking at build time turns that into a failed deploy instead.
+    """
+    if not headers_path.exists():
+        return
+    headers = headers_path.read_text()
+    if "script-src" not in headers:
+        return
+    missing = [h for h in inline_script_hashes(template) if h not in headers]
+    if missing:
+        raise SystemExit(
+            "error: index.html has inline scripts the Content Security Policy in _headers "
+            f"doesn't allow: {', '.join(missing)}. Update script-src in "
+            "frontend/public/_headers with these hashes (and drop any stale ones)."
+        )
+
+
 def render(template: str, *, title: str, description: str, canonical: str) -> str:
     t, d, c = (html.escape(x, quote=True) for x in (title, description, canonical))
     replacements = {
@@ -174,6 +250,7 @@ def generate(
         )
     template = template_path.read_text()
     verify_template(template)
+    verify_csp(template, out_dir / "_headers")
 
     payload = json.loads(data_path.read_text())
     firms = payload["firms"]
