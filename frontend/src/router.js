@@ -17,13 +17,29 @@ export const firmPath = (crd) => `${BASE}firm/${crd}`
 export function navigate(e, path) {
   if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
   e.preventDefault()
-  window.history.pushState(null, '', path)
+  go(path)
+}
+
+/** Programmatic SPA navigation. */
+export function go(path, { replace = false } = {}) {
+  window.history[replace ? 'replaceState' : 'pushState'](null, '', path)
   window.dispatchEvent(new PopStateEvent('popstate'))
 }
 
 export const pulsePath = (section = '') => `${BASE}pulse${section ? `/${section}` : ''}`
 
 export const legalPath = () => `${BASE}legal`
+
+// Firm sub-views live on the firm's own URL as ?view=, so the served HTML —
+// and the canonical it carries — is the firm page's: a report is a view of
+// the firm, not a second page competing with it in search results.
+export const FIRM_VIEWS = ['report', 'diligence']
+export const reportPath = (crd) => `${firmPath(crd)}?view=report`
+export const diligencePath = (crd) => `${firmPath(crd)}?view=diligence`
+
+export const watchlistPath = () => `${BASE}watchlist`
+export const feesPath = () => `${BASE}fees`
+export const benchmarkPath = (crd) => `${BASE}benchmark${crd ? `?firm=${crd}` : ''}`
 
 // Up to this many firms side by side; more columns stop fitting a laptop.
 export const MAX_COMPARE = 4
@@ -44,27 +60,38 @@ export function parseCompareFirms(search) {
   return out.slice(0, MAX_COMPARE)
 }
 
-// Route shape: { firmCrd: number|null, pulse: string|null, compare:
-// number[]|null } — pulse is '' for /pulse itself, or the drill-down segment
+// Route shape: { firmCrd, firmView, pulse, compare, legal, page } — firmCrd
+// is the CRD on /firm/:crd and firmView its ?view= ('report', 'diligence' or
+// null); pulse is '' for /pulse itself, or the drill-down segment
 // ('advisers', 'assets', ...); compare is the CRDs on /compare; legal is true
-// on /legal, the disclaimer and terms of use.
+// on /legal; page names the other top-level tools ('watchlist', 'fees',
+// 'benchmark').
+const EMPTY_ROUTE = { firmCrd: null, firmView: null, pulse: null, compare: null, legal: false, page: null, benchmarkCrd: null }
+
+const digits = (v) => (v && /^\d{1,9}$/.test(v) ? Number(v) : null)
+
 function parseRoute() {
   const legacy = window.location.hash.match(/^#\/firm\/(\d+)/)
   if (legacy) {
     window.history.replaceState(null, '', firmPath(legacy[1]) + window.location.search)
-    return { firmCrd: Number(legacy[1]), pulse: null, compare: null, legal: false }
+    return { ...EMPTY_ROUTE, firmCrd: Number(legacy[1]) }
   }
   const path = window.location.pathname
   const rel = path.startsWith(BASE) ? path.slice(BASE.length) : path.replace(/^\//, '')
+  const params = new URLSearchParams(window.location.search)
   const firm = rel.match(/^firm\/(\d+)/)
-  if (firm) return { firmCrd: Number(firm[1]), pulse: null, compare: null, legal: false }
-  const pulse = rel.match(/^pulse(?:\/([a-z-]+))?\/?$/)
-  if (pulse) return { firmCrd: null, pulse: pulse[1] ?? '', compare: null, legal: false }
-  if (/^compare\/?$/.test(rel)) {
-    return { firmCrd: null, pulse: null, compare: parseCompareFirms(window.location.search), legal: false }
+  if (firm) {
+    const view = params.get('view')
+    return { ...EMPTY_ROUTE, firmCrd: Number(firm[1]), firmView: FIRM_VIEWS.includes(view) ? view : null }
   }
-  if (/^legal\/?$/.test(rel)) return { firmCrd: null, pulse: null, compare: null, legal: true }
-  return { firmCrd: null, pulse: null, compare: null, legal: false }
+  const pulse = rel.match(/^pulse(?:\/([a-z-]+))?\/?$/)
+  if (pulse) return { ...EMPTY_ROUTE, pulse: pulse[1] ?? '' }
+  if (/^compare\/?$/.test(rel)) return { ...EMPTY_ROUTE, compare: parseCompareFirms(window.location.search) }
+  if (/^legal\/?$/.test(rel)) return { ...EMPTY_ROUTE, legal: true }
+  if (/^watchlist\/?$/.test(rel)) return { ...EMPTY_ROUTE, page: 'watchlist' }
+  if (/^fees\/?$/.test(rel)) return { ...EMPTY_ROUTE, page: 'fees' }
+  if (/^benchmark\/?$/.test(rel)) return { ...EMPTY_ROUTE, page: 'benchmark', benchmarkCrd: digits(params.get('firm')) }
+  return EMPTY_ROUTE
 }
 
 export function useRoute() {
@@ -80,7 +107,7 @@ export function useRoute() {
   }, [])
   useEffect(() => {
     window.scrollTo(0, 0)
-  }, [route.firmCrd, route.pulse, route.compare == null, route.legal])
+  }, [route.firmCrd, route.firmView, route.pulse, route.compare == null, route.legal, route.page])
   return route
 }
 

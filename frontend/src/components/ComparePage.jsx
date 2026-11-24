@@ -1,6 +1,8 @@
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 
-import { compareChart, compareRows, useCompareExtras } from '../compare.js'
+import { usePageMeta } from '../pageMeta.js'
+import { compareChart, compareCsvRows, compareRows, GROUP_SOURCES, meaningfulDifferences, useCompareExtras } from '../compare.js'
+import { downloadCsv } from '../csv.js'
 import { comparePath, firmPath, MAX_COMPARE, navigate } from '../router.js'
 import { useFundTypes } from '../segments.js'
 import { resolveWebsite, useWebsiteOverrides } from '../websiteOverrides.js'
@@ -8,6 +10,8 @@ import FirmFavicon from './FirmFavicon.jsx'
 import { websiteHost } from './FirmDetail.jsx'
 import FirmSearch from './FirmSearch.jsx'
 import IndexChart from './IndexChart.jsx'
+import CopyLinkButton from './CopyLinkButton.jsx'
+import WatchButton from './WatchButton.jsx'
 
 const go = (crds) => {
   window.history.pushState(null, '', comparePath(crds))
@@ -16,7 +20,7 @@ const go = (crds) => {
 
 const nameOf = (f) => f.business_name || f.legal_name
 
-export default function ComparePage({ crds, allFirms }) {
+export default function ComparePage({ crds, allFirms, snapshot }) {
   const overrides = useWebsiteOverrides()
   const fundTypes = useFundTypes()
   const firms = useMemo(
@@ -26,17 +30,18 @@ export default function ComparePage({ crds, allFirms }) {
   const extras = useCompareExtras(firms.map((f) => f.crd))
   const loaded = firms.every((f) => extras[f.crd])
 
-  useEffect(() => {
-    document.title = firms.length
-      ? `Compare ${firms.map(nameOf).join(' vs ')} · Open Disclosure`
-      : 'Compare advisers · Open Disclosure'
-  }, [firms])
+  usePageMeta({
+    title: firms.length ? `Compare ${firms.map(nameOf).join(' vs ')} · Open Disclosure` : 'Compare advisers · Open Disclosure',
+    path: 'compare',
+  })
 
   if (!allFirms) return <div className="state">Loading firm data…</div>
 
   const rows = compareRows(firms, { allFirms, fundTypes, extras })
   const chart = loaded ? compareChart(firms, extras) : null
   const missing = crds.filter((crd) => !firms.some((f) => f.crd === crd))
+  const differences = meaningfulDifferences(firms)
+  const shareUrl = `https://open-disclosure.com/compare${firms.length ? `?firms=${firms.map((f) => f.crd).join(',')}` : ''}`
 
   return (
     <section className="compare-page" aria-label="Compare advisers">
@@ -62,6 +67,30 @@ export default function ComparePage({ crds, allFirms }) {
         <p className="detail-note">
           No firm with CRD {missing.join(', ')} in this snapshot; it may have withdrawn its registration.
         </p>
+      )}
+
+      {firms.length > 0 && (
+        <div className="fee-actions compare-actions">
+          <CopyLinkButton url={shareUrl} label="Copy link to this comparison" className="chip share-link" />
+          <button
+            type="button"
+            className="chip share-link"
+            onClick={() => downloadCsv(compareCsvRows(firms, rows), `Compare ${firms.map(nameOf).join(' vs ')}`)}
+          >
+            Export CSV
+          </button>
+        </div>
+      )}
+
+      {firms.length >= 2 && differences.length > 0 && (
+        <div className="detail-card compare-card">
+          <h2>Differences that matter</h2>
+          <ul className="limit-list">
+            {differences.map((d) => (
+              <li key={d.id}>{d.text}</li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {firms.length === 0 ? (
@@ -97,7 +126,9 @@ export default function ComparePage({ crds, allFirms }) {
                               ×
                             </button>
                           </div>
-                          <div className="compare-sub">CRD {f.crd}</div>
+                          <div className="compare-sub">
+                            CRD {f.crd} <WatchButton firm={f} snapshotDate={snapshot} compact />
+                          </div>
                         </th>
                       )
                     })}
@@ -105,7 +136,7 @@ export default function ComparePage({ crds, allFirms }) {
                 </thead>
                 <tbody>
                   {rows.map((r, i) => (
-                    <FragmentRow key={r.label} row={r} first={i === 0 || rows[i - 1].group !== r.group} cols={firms.length} />
+                    <FragmentRow key={`${r.group}-${r.label}`} row={r} first={i === 0 || rows[i - 1].group !== r.group} cols={firms.length} />
                   ))}
                 </tbody>
               </table>
@@ -152,6 +183,7 @@ function FragmentRow({ row, first, cols }) {
         <tr className="compare-group">
           <th scope="rowgroup" colSpan={cols + 1}>
             {row.group}
+            {GROUP_SOURCES[row.group] && <span className="compare-group-source">{GROUP_SOURCES[row.group]}</span>}
           </th>
         </tr>
       )}

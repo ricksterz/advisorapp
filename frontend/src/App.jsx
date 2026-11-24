@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 
 import { computeRankings, normalizedWeights } from './benchmarking/engine.js'
 import { FACTOR_BY_ID, staffOf } from './benchmarking/factors.js'
@@ -11,10 +11,19 @@ import FirmDetail, { websiteHost } from './components/FirmDetail.jsx'
 import DealPatternsSection from './components/DealPatternsSection.jsx'
 import PulsePage from './components/PulsePage.jsx'
 import GrowthLeaders from './components/GrowthLeaders.jsx'
-import ComparePage from './components/ComparePage.jsx'
 import FirmSearch from './components/FirmSearch.jsx'
 import LegalPage from './components/LegalPage.jsx'
 import SiteFooter from './components/SiteFooter.jsx'
+// The tools beyond the firm list and profiles load on first use, so the
+// homepage and firm pages — where almost every visit lands — don't pay for them.
+const IntelligenceReport = lazy(() => import('./components/IntelligenceReport.jsx'))
+const DiligencePage = lazy(() => import('./components/DiligencePage.jsx'))
+const WatchlistPage = lazy(() => import('./components/WatchlistPage.jsx'))
+const FeeCalculator = lazy(() => import('./components/FeeCalculator.jsx'))
+const BenchmarkPage = lazy(() => import('./components/BenchmarkPage.jsx'))
+const ComparePage = lazy(() => import('./components/ComparePage.jsx'))
+import WatchButton from './components/WatchButton.jsx'
+import { useWatchlist } from './watchlist.js'
 import {
   DrilldownAdvisers,
   DrilldownAssets,
@@ -23,7 +32,7 @@ import {
   DrilldownPrivateFunds,
   DrilldownServiceProviders,
 } from './components/PulseDrilldowns.jsx'
-import { BASE, comparePath, firmPath, legalPath, navigate, pulsePath, useRoute } from './router.js'
+import { BASE, benchmarkPath, comparePath, feesPath, firmPath, legalPath, navigate, pulsePath, useRoute, watchlistPath } from './router.js'
 import { fmtCount } from './pulse.js'
 import { DEAL_FLAG_DEFS, useAllDealFlags } from './dealFlags.js'
 import { bioCount, useAdvisorBioCounts } from './advisorBios.js'
@@ -154,7 +163,7 @@ function SortHeader({ id, children, sortField, sortDir, onSort, className }) {
 // keep in sync with 17K firms' branding. Which proxy, or none, is decided at
 // refresh time (etl/favicons.py), because both send their "no icon"
 // placeholder as a valid image a browser renders.
-function FirmNameCell({ firm, siteOverrides }) {
+function FirmNameCell({ firm, siteOverrides, snapshot }) {
   const site = resolveWebsite(siteOverrides, firm.crd, firm.website_url)
   const host = site.url ? websiteHost(site.url) : null
   const segment = firmSegment(firm)
@@ -165,6 +174,7 @@ function FirmNameCell({ firm, siteOverrides }) {
         <a className="firm-link" href={firmPath(firm.crd)} onClick={(e) => navigate(e, firmPath(firm.crd))}>
           {firm.business_name || firm.legal_name}
         </a>
+        <WatchButton firm={firm} snapshotDate={snapshot} compact />
       </div>
       <div className="firm-sub">
         <a className="crd-link" href={iapdUrl(firm.crd)} target="_blank" rel="noreferrer">
@@ -193,7 +203,7 @@ function FirmNameCell({ firm, siteOverrides }) {
 // detail page's title row — every place a firm's name renders should carry
 // the same icon, resolved from the same website-overrides source, or a
 // missing favicon on one surface reads as broken rather than simply absent.
-function FirmLink({ firm, siteOverrides }) {
+function FirmLink({ firm, siteOverrides, snapshot }) {
   const path = firmPath(firm.crd)
   const site = resolveWebsite(siteOverrides, firm.crd, firm.website_url)
   const host = site.url ? websiteHost(site.url) : null
@@ -203,6 +213,7 @@ function FirmLink({ firm, siteOverrides }) {
       <a className="firm-link" href={path} onClick={(e) => navigate(e, path)}>
         {firm.business_name || firm.legal_name}
       </a>
+      {snapshot !== undefined && <WatchButton firm={firm} snapshotDate={snapshot} compact />}
     </span>
   )
 }
@@ -267,7 +278,9 @@ const PULSE_TITLES = {
 
 export default function App() {
   const [theme, setTheme] = useTheme()
-  const { firmCrd, pulse, compare, legal } = useRoute()
+  const { firmCrd, firmView, pulse, compare, legal, page, benchmarkCrd } = useRoute()
+  const watchlist = useWatchlist()
+  const watchCount = Object.keys(watchlist.firms).length
 
   useEffect(() => {
     // Firm pages manage their own title (usePageMeta); pulse routes here.
@@ -331,7 +344,7 @@ export default function App() {
 
   // Deal-structuring flags (etl/brochures.py) — a separate committed file,
   // since the brochure corpus that produces it can't be built in CI.
-  const onList = firmCrd == null && pulse == null && compare == null && !legal
+  const onList = firmCrd == null && pulse == null && compare == null && !legal && page == null
   const dealFlagsData = useAllDealFlags(onList)
 
   // Advisor bios (etl/advisor_bios.py) — same reasoning, same pattern. Only
@@ -451,6 +464,7 @@ export default function App() {
     advisorBiosData,
   ])
 
+  const snapshot = data?.generated_at?.slice(0, 10)
   const visible = firms.slice(0, limit)
   const resetPage = () => setLimit(PAGE)
 
@@ -473,20 +487,40 @@ export default function App() {
           />
         )}
         <span className="spacer" />
-        <a
-          className={`topbar-link${pulse != null ? ' active' : ''}`}
-          href={pulsePath()}
-          onClick={(e) => navigate(e, pulsePath())}
-        >
-          Pulse
-        </a>
-        <a
-          className={`topbar-link${compare != null ? ' active' : ''}`}
-          href={comparePath()}
-          onClick={(e) => navigate(e, comparePath())}
-        >
-          Compare
-        </a>
+        <nav className="topnav" aria-label="Main">
+          <a
+            className={`topbar-link${pulse != null ? ' active' : ''}`}
+            href={pulsePath()}
+            onClick={(e) => navigate(e, pulsePath())}
+          >
+            Pulse
+          </a>
+          <a
+            className={`topbar-link${compare != null ? ' active' : ''}`}
+            href={comparePath()}
+            onClick={(e) => navigate(e, comparePath())}
+          >
+            Compare
+          </a>
+          <a className={`topbar-link${page === 'fees' ? ' active' : ''}`} href={feesPath()} onClick={(e) => navigate(e, feesPath())}>
+            Fees
+          </a>
+          <a
+            className={`topbar-link${page === 'benchmark' ? ' active' : ''}`}
+            href={benchmarkPath()}
+            onClick={(e) => navigate(e, benchmarkPath())}
+          >
+            Benchmark
+          </a>
+          <a
+            className={`topbar-link${page === 'watchlist' ? ' active' : ''}`}
+            href={watchlistPath()}
+            onClick={(e) => navigate(e, watchlistPath())}
+          >
+            Watchlist
+            {watchCount > 0 && <span className="nav-count" aria-label={`${watchCount} followed`}>{watchCount}</span>}
+          </a>
+        </nav>
         {data && <span className="snapshot">SEC Form ADV · snapshot {data.generated_at.slice(0, 10)}</span>}
         <button
           type="button"
@@ -498,22 +532,59 @@ export default function App() {
         </button>
       </header>
 
+      <Suspense fallback={<main className="shell"><div className="state">Loading…</div></main>}>
       {legal ? (
         <main className="shell">
           <LegalPage />
         </main>
+      ) : page === 'watchlist' ? (
+        <main className="shell">
+          {error && <div className="state error">{error}</div>}
+          <WatchlistPage allFirms={data?.firms} snapshot={snapshot} />
+        </main>
+      ) : page === 'fees' ? (
+        <main className="shell">
+          <FeeCalculator allFirms={data?.firms} />
+        </main>
+      ) : page === 'benchmark' ? (
+        <main className="shell">
+          {error && <div className="state error">{error}</div>}
+          <BenchmarkPage allFirms={data?.firms} crd={benchmarkCrd} />
+        </main>
       ) : compare != null ? (
         <main className="shell">
           {error && <div className="state error">{error}</div>}
-          <ComparePage crds={compare} allFirms={data?.firms} />
+          <ComparePage crds={compare} allFirms={data?.firms} snapshot={snapshot} />
         </main>
       ) : firmCrd != null ? (
         <main className="shell">
           {error && <div className="state error">{error}</div>}
           {!error && !data && !prerendered && <div className="state">Loading firm data…</div>}
-          {data && (
-            <FirmDetail firm={data.firms.find((f) => f.crd === firmCrd)} crd={firmCrd} allFirms={data.firms} />
-          )}
+          {data &&
+            (firmView === 'report' ? (
+              <IntelligenceReport
+                key={firmCrd}
+                firm={data.firms.find((f) => f.crd === firmCrd)}
+                crd={firmCrd}
+                allFirms={data.firms}
+                snapshot={snapshot}
+              />
+            ) : firmView === 'diligence' ? (
+              <DiligencePage
+                key={firmCrd}
+                firm={data.firms.find((f) => f.crd === firmCrd)}
+                crd={firmCrd}
+                allFirms={data.firms}
+                snapshot={snapshot}
+              />
+            ) : (
+              <FirmDetail
+                firm={data.firms.find((f) => f.crd === firmCrd)}
+                crd={firmCrd}
+                allFirms={data.firms}
+                snapshot={snapshot}
+              />
+            ))}
         </main>
       ) : pulse != null ? (
         <main className="shell">
@@ -538,9 +609,14 @@ export default function App() {
       ) : (
       <>
       <main className="shell">
-        <section className="page-head">
-          <h1>Open Disclosure</h1>
-          <p className="page-tagline">Investment adviser benchmarking, from the public record.</p>
+        <section className="page-head hero" id="find">
+          <p className="hero-kicker">Independent adviser intelligence · from the public record</p>
+          <h1>Know who manages your wealth.</h1>
+          <p className="page-tagline hero-tagline">
+            Due diligence on every SEC-registered investment adviser: assets, clients, compensation,
+            conflicts of interest, ownership and regulatory history, from their own Form ADV filings.
+            No paywall, no sponsored rankings and no account.
+          </p>
           <FirmSearch
             firms={data?.firms}
             className="hero-search"
@@ -548,11 +624,52 @@ export default function App() {
             placeholder="Find a firm or advisor by name, or a firm by CRD"
             label="Find a firm or advisor"
           />
-          <p>
-            Every SEC-registered advisory firm — assets under management, compensation structure,
-            and disciplinary history — built from public Form ADV filings.
+          <p className="hero-proof">
+            {data ? `${fmtCount(data.count)} firms` : 'Every registered firm'} · SEC Form ADV snapshot{' '}
+            {snapshot ?? '—'} · every figure linked to its source
           </p>
         </section>
+
+        <nav className="pathways" aria-label="What you can do">
+          <div className="pathway-group">
+            <h2 className="pathway-audience">For investors, families and family offices</h2>
+            <div className="pathway-grid">
+              <a className="pathway" href="#find" onClick={(e) => { e.preventDefault(); document.querySelector('.hero-search input')?.focus() }}>
+                <span className="pathway-title">Evaluate an advisor</span>
+                <span className="pathway-sub">Profile, Intelligence Report and firm-specific due-diligence questions for any firm.</span>
+              </a>
+              <a className="pathway" href={comparePath()} onClick={(e) => navigate(e, comparePath())}>
+                <span className="pathway-title">Compare firms</span>
+                <span className="pathway-sub">Up to four side by side, with peer positions, conflicts and the differences that matter.</span>
+              </a>
+              <a className="pathway" href={feesPath()} onClick={(e) => navigate(e, feesPath())}>
+                <span className="pathway-title">Benchmark fees</span>
+                <span className="pathway-sub">What a fee schedule costs at $1M to $100M+, and over 20 years.</span>
+              </a>
+              <a className="pathway" href={watchlistPath()} onClick={(e) => navigate(e, watchlistPath())}>
+                <span className="pathway-title">Monitor advisors{watchCount > 0 ? ` (${watchCount})` : ''}</span>
+                <span className="pathway-sub">Follow firms and see material changes in their filings, with private notes.</span>
+              </a>
+            </div>
+          </div>
+          <div className="pathway-group">
+            <h2 className="pathway-audience">For advisors and RIA executives</h2>
+            <div className="pathway-grid">
+              <a className="pathway" href={benchmarkPath()} onClick={(e) => navigate(e, benchmarkPath())}>
+                <span className="pathway-title">Benchmark my firm</span>
+                <span className="pathway-sub">Growth, staffing, productivity and client mix against a peer group you define.</span>
+              </a>
+              <a className="pathway" href={pulsePath()} onClick={(e) => navigate(e, pulsePath())}>
+                <span className="pathway-title">Industry intelligence</span>
+                <span className="pathway-sub">Quarterly statistics on registrations, assets, private funds and disclosures.</span>
+              </a>
+              <a className="pathway" href={pulsePath('growth')} onClick={(e) => navigate(e, pulsePath('growth'))}>
+                <span className="pathway-title">Fastest-growing firms</span>
+                <span className="pathway-sub">AUM growth leaders by business model, over 3, 5 and 10 years.</span>
+              </a>
+            </div>
+          </div>
+        </nav>
 
         {error && <div className="state error">{error}</div>}
         {!error && !data && <div className="state">Loading firm data…</div>}
@@ -588,13 +705,6 @@ export default function App() {
           </section>
         )}
 
-        <a className="pulse-banner" href={pulsePath()} onClick={(e) => navigate(e, pulsePath())}>
-          <span className="pulse-banner-title">Industry Pulse →</span>
-          <span className="pulse-banner-sub">
-            Quarterly statistics on the adviser industry: registrations, assets, size-band
-            migration, and disclosure trends.
-          </span>
-        </a>
 
         <DealPatternsSection patterns={dealPatterns} />
 
@@ -625,7 +735,7 @@ export default function App() {
                       <li key={firm.crd}>
                         <span className="rank-n">{i + 1}</span>
                         <span className="rank-firm">
-                          <FirmLink firm={firm} siteOverrides={siteOverrides} />
+                          <FirmLink firm={firm} siteOverrides={siteOverrides} snapshot={snapshot} />
                           <span className="firm-sub">
                             {compactUsd(firm.aum_total)} AUM · {staffOf(firm)} advisory staff
                             {cohortSummary(config) && <> · vs {cohort.label}</>}
@@ -655,7 +765,7 @@ export default function App() {
                       <li key={firm.crd}>
                         <span className="rank-n">{i + 1}</span>
                         <span className="rank-firm">
-                          <FirmLink firm={firm} siteOverrides={siteOverrides} />
+                          <FirmLink firm={firm} siteOverrides={siteOverrides} snapshot={snapshot} />
                           <span className="signal-list">
                             {signals.map((s) => (
                               <span key={s}>{s}</span>
@@ -968,7 +1078,7 @@ export default function App() {
                   {visible.map((f) => (
                     <tr key={f.crd}>
                       <td>
-                        <FirmNameCell firm={f} siteOverrides={siteOverrides} />
+                        <FirmNameCell firm={f} siteOverrides={siteOverrides} snapshot={snapshot} />
                       </td>
                       <td className="num">{compactUsd(f.aum_total)}</td>
                       <td><DiscretionaryMeter firm={f} /></td>
@@ -1121,6 +1231,7 @@ export default function App() {
       )}
       </>
       )}
+      </Suspense>
       <SiteFooter snapshot={data?.generated_at?.slice(0, 10)} />
     </>
   )

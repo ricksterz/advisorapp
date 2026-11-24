@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 
 import { staffOf } from '../benchmarking/factors.js'
 import { percentiler } from '../benchmarking/engine.js'
-import { BASE, comparePath, legalPath, navigate } from '../router.js'
+import { BASE, benchmarkPath, comparePath, diligencePath, legalPath, navigate, reportPath } from '../router.js'
+import WatchButton from './WatchButton.jsx'
 import { DEAL_FLAG_DEFS, useDealFlags } from '../dealFlags.js'
 import { DISCLOSURE_FLAG_DEFS, useAdvisorBios } from '../advisorBios.js'
 import { PROVIDER_ROLE_LABELS, useFirmPrivateFunds } from '../privateFunds.js'
@@ -14,7 +15,8 @@ import { TrendLine } from './PulsePage.jsx'
 import CopyLinkButton from './CopyLinkButton.jsx'
 import FirmFavicon from './FirmFavicon.jsx'
 import { useForm13f } from '../form13f.js'
-import { bandLabelOf, leverageHeadline, leverageProfile } from '../leverage.js'
+import { leverageHeadline, leverageProfile } from '../leverage.js'
+import { peerCohort } from '../peers.js'
 import { aumShare, firmSegment, firmTags, SEGMENT_BY_ID, useFundTypes } from '../segments.js'
 import AdvisorsCard from './AdvisorsCard.jsx'
 import DisclosuresCard from './DisclosuresCard.jsx'
@@ -22,13 +24,8 @@ import GrowthCard from './GrowthCard.jsx'
 import LeverageCard from './LeverageCard.jsx'
 import DataNote from './DataNote.jsx'
 
-// Public IAPD document endpoints (all CORS-enabled, no key required).
-const firmApiUrl = (crd) => `https://api.adviserinfo.sec.gov/search/firm/${crd}`
-const brochureUrl = (id) =>
-  `https://files.adviserinfo.sec.gov/IAPD/Content/Common/crd_iapd_Brochure.aspx?BRCHR_VRSN_ID=${id}`
-const advPdfUrl = (crd) => `https://reports.adviserinfo.sec.gov/reports/ADV/${crd}/PDF/${crd}.pdf`
-const crsUrl = (crd) => `https://reports.adviserinfo.sec.gov/crs/crs_${crd}.pdf`
-const iapdUrl = (crd) => `https://adviserinfo.sec.gov/firm/summary/${crd}`
+import { brochureUrl, iapdUrl } from '../sources.js'
+import { useFirmDocs } from '../firmDocs.js'
 
 // Item 5.D column (3), grouped the way segments are.
 const AUM_MIX_GROUPS = [
@@ -53,64 +50,6 @@ export const websiteHost = (url) => {
   } catch {
     return null
   }
-}
-
-/**
- * Brochure and Form CRS links, fetched on demand when a detail view opens —
- * these have no bulk-data equivalent, so they are never in firms.json.
- * Anything that can't be confirmed to exist is simply not rendered.
- */
-function useFirmDocs(crd) {
-  const [docs, setDocs] = useState({ loading: true, brochures: [], crs: null, advPdf: null })
-
-  useEffect(() => {
-    let alive = true
-    setDocs({ loading: true, brochures: [], crs: null, advPdf: null })
-
-    const meta = fetch(firmApiUrl(crd))
-      .then((r) => (r.ok ? r.json() : null))
-      .then((json) => {
-        const source = json?.hits?.hits?.[0]?._source
-        const content = source?.iacontent ? JSON.parse(source.iacontent) : null
-        return {
-          brochures: (content?.brochures?.brochuredetails ?? []).map((b) => ({
-            id: b.brochureVersionID,
-            name: b.brochureName,
-            date: b.dateSubmitted,
-          })),
-          hasPdf: content?.basicInformation?.hasPdf === 'Y',
-        }
-      })
-      .catch(() => ({ brochures: [], hasPdf: false }))
-
-    // Form CRS only exists for firms with retail investors; probe and read
-    // just the status, aborting before the PDF body downloads.
-    const crsController = new AbortController()
-    const crs = fetch(crsUrl(crd), { signal: crsController.signal })
-      .then((r) => {
-        const ok = r.ok
-        crsController.abort()
-        return ok
-      })
-      .catch(() => false)
-
-    Promise.all([meta, crs]).then(([m, hasCrs]) => {
-      if (!alive) return
-      setDocs({
-        loading: false,
-        brochures: m.brochures,
-        crs: hasCrs ? crsUrl(crd) : null,
-        advPdf: m.hasPdf ? advPdfUrl(crd) : null,
-      })
-    })
-
-    return () => {
-      alive = false
-      crsController.abort()
-    }
-  }, [crd])
-
-  return docs
 }
 
 const fmtUsd = (v) =>
@@ -527,7 +466,7 @@ function FirmHistoryCard({ crd }) {
   )
 }
 
-const DEFAULT_TITLE = 'Open Disclosure — SEC Form ADV adviser benchmarking'
+const DEFAULT_TITLE = 'Open Disclosure — Investment adviser due diligence from SEC filings'
 const SITE_URL = 'https://open-disclosure.com'
 
 // Per-firm title + meta description, applied on client-side navigation.
@@ -579,23 +518,14 @@ function usePageMeta(firm) {
 }
 
 // "How does this compare?" — live percentile ranks vs same-segment,
-// same-AUM-band peers, computed client-side with the ranking engine's own
-// percentiler (read-only reuse; no ranking behavior is touched). Bands are the
+// same-AUM-band peers (peers.js, shared with the report, Compare and Benchmark
+// My Firm), computed with the ranking engine's own percentiler. Bands are the
 // operational leverage card's, so the header never names two different bands.
-const bandOf = (aum) => bandLabelOf(aum ?? 0)
-
 function CompareStrip({ firm, allFirms }) {
-  if (!allFirms?.length) return null
-  const band = bandOf(firm.aum_total)
-  const inBand = allFirms.filter((f) => bandOf(f.aum_total) === band)
-  // Same business model first: a venture adviser's AUM per professional says
-  // nothing about a wealth manager's. Band-only when the segment is too thin.
-  const segment = firmSegment(firm)
-  const sameSegment = segment ? inBand.filter((f) => firmSegment(f) === segment) : []
-  const bySegment = sameSegment.length >= 10
-  const peers = bySegment ? sameSegment : inBand
-  if (peers.length < 10) return null // a percentile over a handful of peers is noise
-  const peerLabel = bySegment ? SEGMENT_BY_ID[segment].plural : 'firms'
+  const cohort = peerCohort(firm, allFirms)
+  if (!cohort) return null // a percentile over a handful of peers is noise
+  const { peers, band } = cohort
+  const peerLabel = cohort.bySegment ? SEGMENT_BY_ID[cohort.segment].plural : 'firms'
 
   const staff = staffOf(firm)
   const metrics = [
@@ -654,7 +584,7 @@ function OutboundLink({ href, children, sub }) {
   )
 }
 
-export default function FirmDetail({ firm, crd, allFirms }) {
+export default function FirmDetail({ firm, crd, allFirms, snapshot }) {
   const docs = useFirmDocs(crd)
   const overrides = useWebsiteOverrides()
   const fundTypes = useFundTypes()
@@ -693,6 +623,7 @@ export default function FirmDetail({ firm, crd, allFirms }) {
             <FirmFavicon host={host} size={28} className="detail-favicon" />
             <h1>{firm.business_name || firm.legal_name}</h1>
           </div>
+          <div className="detail-actions">
           {/* Share the canonical absolute URL, not window.location: the page
               is reachable on the Pages mirror and on localhost, and a link
               pasted into an email should point at the indexed page. */}
@@ -710,6 +641,8 @@ export default function FirmDetail({ firm, crd, allFirms }) {
           >
             Compare
           </a>
+          <WatchButton firm={firm} snapshotDate={snapshot} />
+          </div>
         </div>
         <p className="detail-sub">
           {firm.business_name && firm.business_name !== firm.legal_name && (
@@ -717,6 +650,11 @@ export default function FirmDetail({ firm, crd, allFirms }) {
           )}
           CRD {firm.crd}
           {firm.state && <> · {firm.state}</>}
+          {snapshot && (
+            <>
+              {' '}· <span title="Date of the SEC bulk data this page is built from">Form ADV data as of {snapshot}</span>
+            </>
+          )}
         </p>
         {segment && (
           <div className="segment-row">
@@ -734,6 +672,24 @@ export default function FirmDetail({ firm, crd, allFirms }) {
           <p className="detail-headline">{leverageHeadline(leverage, firm.aum_total, fmtCompactUsd)}</p>
         )}
         <CompareStrip firm={firm} allFirms={allFirms} />
+        <nav className="firm-tools" aria-label={`Tools for ${firm.business_name || firm.legal_name}`}>
+          <a className="firm-tool primary" href={reportPath(firm.crd)} onClick={(e) => navigate(e, reportPath(firm.crd))}>
+            <span className="firm-tool-title">Intelligence report</span>
+            <span className="firm-tool-sub">Printable summary, peers, conflicts, sources</span>
+          </a>
+          <a className="firm-tool" href={diligencePath(firm.crd)} onClick={(e) => navigate(e, diligencePath(firm.crd))}>
+            <span className="firm-tool-title">Due-diligence questions</span>
+            <span className="firm-tool-sub">Firm-specific checklist with notes</span>
+          </a>
+          <a className="firm-tool" href={benchmarkPath(firm.crd)} onClick={(e) => navigate(e, benchmarkPath(firm.crd))}>
+            <span className="firm-tool-title">Benchmark</span>
+            <span className="firm-tool-sub">Against a peer group you choose</span>
+          </a>
+          <a className="firm-tool" href={`${BASE}fees?firm=${firm.crd}`} onClick={(e) => navigate(e, `${BASE}fees?firm=${firm.crd}`)}>
+            <span className="firm-tool-title">Fee calculator</span>
+            <span className="firm-tool-sub">Model this firm’s schedule from its brochure</span>
+          </a>
+        </nav>
       </div>
 
       <div className="doc-links">
@@ -789,7 +745,7 @@ export default function FirmDetail({ firm, crd, allFirms }) {
         </div>
         <div className="tile">
           <div className="label">Accounts</div>
-          <div className="value">{firm.accounts_total?.toLocaleString() ?? '—'}</div>
+          <div className="value">{firm.accounts_total?.toLocaleString() ?? 'Not reported'}</div>
         </div>
         <div className="tile">
           <div className="label">Disciplinary disclosures</div>
