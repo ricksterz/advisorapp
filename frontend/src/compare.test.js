@@ -76,3 +76,23 @@ describe('compareChart', () => {
     expect(compareChart([firm(1), firm(2)], { 1: { points: [{ year: 2020, aum: 1 }] }, 2: { points: null } })).toBeNull()
   })
 })
+
+describe('meaningfulDifferences', async () => {
+  const { meaningfulDifferences, compareCsvRows } = await import('./compare.js')
+  it('reports large gaps and one-sided arrangements in plain English', () => {
+    const a = firm(1, { aum_total: 1e10, fee_performance_based: true })
+    const b = firm(2, { aum_total: 1e9, aum_mix: [0, 0, 100, 0] })
+    const ids = meaningfulDifferences([a, b]).map((d) => d.id)
+    expect(ids).toEqual(expect.arrayContaining(['aum', 'aum_per_pro', 'segment', 'fee_performance_based']))
+    const perf = meaningfulDifferences([a, b]).find((d) => d.id === 'fee_performance_based')
+    expect(perf.text).toMatch(/not misconduct/)
+  })
+  it('says nothing when the firms are alike', () => {
+    expect(meaningfulDifferences([firm(1), firm(2)])).toEqual([])
+  })
+  it('exports a header, one row per measure and a source column', () => {
+    const rows = compareCsvRows([firm(1)], [{ group: 'Fees', label: '% of AUM', values: ['Yes'] }])
+    expect(rows[0]).toEqual(['Group', 'Measure', 'FIRM 1 (CRD 1)', 'Source'])
+    expect(rows[1][3]).toMatch(/Item 5.E/)
+  })
+})

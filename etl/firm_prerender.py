@@ -218,6 +218,23 @@ def _tile(label: str, value: str, sub: str | None = None) -> str:
     return f'<div class="tile"><div class="label">{esc(label)}</div><div class="value">{esc(value)}</div>{sub_html}</div>'
 
 
+# Links to the firm's tools, in the served HTML so crawlers can follow them
+# before any JavaScript runs. The report and questionnaire are ?view= of this
+# same URL, so they share its canonical rather than competing with it.
+TOOL_LINKS = (
+    ("/firm/{crd}?view=report", "Advisor Intelligence Report"),
+    ("/firm/{crd}?view=diligence", "Due-diligence questionnaire"),
+    ("/benchmark?firm={crd}", "Benchmark against peers"),
+    ("/compare?firms={crd}", "Compare with other firms"),
+    ("/fees?firm={crd}", "Fee calculator"),
+)
+
+
+def _tools(crd: int) -> str:
+    links = "".join(f'<li><a href="{esc(href.format(crd=crd))}">{esc(label)}</a></li>' for href, label in TOOL_LINKS)
+    return f'<nav class="detail-card" aria-label="Tools for this firm"><h2>Tools</h2><ul class="prerender-facts">{links}</ul></nav>'
+
+
 def body(firm: dict, extras: dict) -> str:
     """The summary block shown until the app renders the full page."""
     crd = firm["crd"]
@@ -299,6 +316,7 @@ def body(firm: dict, extras: dict) -> str:
         f'<div class="detail-card"><h2>At a glance</h2><ul class="prerender-facts">{"".join(facts)}</ul>'
         f'<p class="detail-note">From the firm’s Form ADV filing. '
         f'<a href="{esc(IAPD_URL.format(crd=crd))}">Official record on adviserinfo.sec.gov</a>.</p></div>'
+        f'{_tools(crd)}'
         f'<p class="pulse-disclaimer">{esc(DISCLAIMER)} <a href="/legal">Full disclaimer</a>.</p>'
         "</section></main></div>"
     )
