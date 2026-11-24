@@ -214,5 +214,8 @@ def test_the_real_index_html_matches_the_real_csp():
 def test_inline_script_hashes_match_any_case_and_spaced_end_tags():
     from etl.gen_static_pages import inline_script_hashes
 
-    page = '<SCRIPT>alert(1)</SCRIPT ><Script Type="Application/LD+JSON">{}</script>'
-    assert inline_script_hashes(page) == ["'sha256-bhHHL3z2vDgxUt0W3dWQOrprscmda2Y5pLsLg4GF+pI='"]
+    page = (
+        '<SCRIPT>alert(1)</SCRIPT\t\n bar><Script Type="Application/LD+JSON">{}</script>'
+        "<script>alert(1)</script >"
+    )
+    assert inline_script_hashes(page) == ["'sha256-bhHHL3z2vDgxUt0W3dWQOrprscmda2Y5pLsLg4GF+pI='"] * 2

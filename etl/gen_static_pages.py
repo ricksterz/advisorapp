@@ -33,6 +33,7 @@ import hashlib
 import html
 import json
 import re
+from html.parser import HTMLParser
 from pathlib import Path
 
 from etl import firm_prerender
@@ -129,20 +130,50 @@ def verify_template(template: str) -> None:
 
 # Inline <script> blocks a browser executes: no src, and not a data block
 # such as JSON-LD (which a Content Security Policy doesn't govern).
-# HTML tag names are case-insensitive and an end tag may carry whitespace
-# ("</SCRIPT >"); a narrower pattern would let such a script skip the check.
-_INLINE_SCRIPT = re.compile(
-    r"<script\b(?P<attrs>[^>]*)>(?P<body>.*?)</script\s*>", re.DOTALL | re.IGNORECASE
-)
 _DATA_TYPES = ("application/ld+json", "application/json")
 
 
+class _ScriptCollector(HTMLParser):
+    """Collects inline <script> bodies the way a browser tokenizes them.
+
+    A real HTML tokenizer rather than a regex: tag names in any case, end tags
+    with whitespace or junk attributes ("</SCRIPT foo>"), and script contents
+    taken verbatim (convert_charrefs=False), which is what the CSP hash covers.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=False)
+        self.scripts: list[tuple[dict, str]] = []
+        self._attrs: dict | None = None
+        self._body: list[str] = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "script":
+            self._attrs = {k.lower(): (v or "") for k, v in attrs}
+            self._body = []
+
+    def handle_data(self, data):
+        if self._attrs is not None:
+            self._body.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "script" and self._attrs is not None:
+            self.scripts.append((self._attrs, "".join(self._body)))
+            self._attrs = None
+
+
 def inline_script_hashes(page: str) -> list[str]:
-    """CSP source expressions ('sha256-...') for each executable inline script."""
+    """CSP source expressions ('sha256-...') for each executable inline script.
+
+    Skips scripts with a src and data blocks such as JSON-LD, which a Content
+    Security Policy doesn't govern.
+    """
+    collector = _ScriptCollector()
+    collector.feed(page)
+    collector.close()
     out = []
-    for m in _INLINE_SCRIPT.finditer(page):
-        attrs, body = m.group("attrs").lower(), m.group("body")
-        if "src=" in attrs or any(t in attrs for t in _DATA_TYPES) or not body.strip():
+    for attrs, body in collector.scripts:
+        if "src" in attrs or attrs.get("type", "").strip().lower() in _DATA_TYPES or not body.strip():
             continue
         digest = base64.b64encode(hashlib.sha256(body.encode()).digest()).decode()
         out.append(f"'sha256-{digest}'")
