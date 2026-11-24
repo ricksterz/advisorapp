@@ -32,7 +32,19 @@
 # http to https, but only HSTS makes the browser skip the http hop). No CSP
 # yet: it needs an inventory of GA4, the Cloudflare beacon, the favicon
 # proxies and api.adviserinfo.sec.gov before it can be enforced safely.
+# Content Security Policy, REPORT-ONLY for now: browsers log what it would
+# block (DevTools console, "[Report Only]") but block nothing. Once the live
+# site shows no violations from its own pages, rename the header to
+# Content-Security-Policy to enforce it.
+#   script-src: our bundle, the two classic inline scripts in index.html
+#     (canonical-domain redirect and theme), Google Analytics and Cloudflare
+#     Web Analytics. The hashes must match the scripts byte for byte;
+#     etl/gen_static_pages.py fails the build if they drift.
+#   style-src 'unsafe-inline': React style attributes (meters, bars).
+#   img-src: favicon proxies (Google redirects to *.gstatic.com) and analytics.
+#   connect-src: SEC IAPD document lookups and the analytics endpoints.
 /*
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'sha256-E4OXB5h+lYwfyQAUCRqkkc1YFmPZgNKIGFOJSByvSkM=' 'sha256-1R/heO3mFcHDGWMM8RDxkIq1TI1mBLO6EF62oP01rvI=' https://www.googletagmanager.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://www.google.com https://*.gstatic.com https://icons.duckduckgo.com https://www.googletagmanager.com https://*.google-analytics.com; connect-src 'self' https://api.adviserinfo.sec.gov https://reports.adviserinfo.sec.gov https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://cloudflareinsights.com; font-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin

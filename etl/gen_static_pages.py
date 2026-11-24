@@ -28,6 +28,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import base64
+import hashlib
 import html
 import json
 import re
@@ -125,6 +127,45 @@ def verify_template(template: str) -> None:
             )
 
 
+# Inline <script> blocks a browser executes: no src, and not a data block
+# such as JSON-LD (which a Content Security Policy doesn't govern).
+_INLINE_SCRIPT = re.compile(r"<script(?P<attrs>[^>]*)>(?P<body>.*?)</script>", re.DOTALL)
+_DATA_TYPES = ("application/ld+json", "application/json")
+
+
+def inline_script_hashes(page: str) -> list[str]:
+    """CSP source expressions ('sha256-...') for each executable inline script."""
+    out = []
+    for m in _INLINE_SCRIPT.finditer(page):
+        attrs, body = m.group("attrs"), m.group("body")
+        if "src=" in attrs or any(t in attrs for t in _DATA_TYPES) or not body.strip():
+            continue
+        digest = base64.b64encode(hashlib.sha256(body.encode()).digest()).decode()
+        out.append(f"'sha256-{digest}'")
+    return out
+
+
+def verify_csp(template: str, headers_path: Path) -> None:
+    """Fail if an inline script in the page isn't allowed by the CSP in _headers.
+
+    A hash-based script-src breaks the moment someone edits one of those
+    inline scripts — silently, in production, and only once the policy is
+    enforced. Checking at build time turns that into a failed deploy instead.
+    """
+    if not headers_path.exists():
+        return
+    headers = headers_path.read_text()
+    if "script-src" not in headers:
+        return
+    missing = [h for h in inline_script_hashes(template) if h not in headers]
+    if missing:
+        raise SystemExit(
+            "error: index.html has inline scripts the Content Security Policy in _headers "
+            f"doesn't allow: {', '.join(missing)}. Update script-src in "
+            "frontend/public/_headers with these hashes (and drop any stale ones)."
+        )
+
+
 def render(template: str, *, title: str, description: str, canonical: str) -> str:
     t, d, c = (html.escape(x, quote=True) for x in (title, description, canonical))
     replacements = {
@@ -174,6 +215,7 @@ def generate(
         )
     template = template_path.read_text()
     verify_template(template)
+    verify_csp(template, out_dir / "_headers")
 
     payload = json.loads(data_path.read_text())
     firms = payload["firms"]
