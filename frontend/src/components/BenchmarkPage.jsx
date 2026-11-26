@@ -11,6 +11,7 @@ import { SEGMENT_BY_ID } from '../segments.js'
 import CopyLinkButton from './CopyLinkButton.jsx'
 import FirmSearch from './FirmSearch.jsx'
 import { PercentileBar } from './IntelligenceReport.jsx'
+import { track, useTrackView } from '../analytics.js'
 
 const SITE_URL = 'https://open-disclosure.com'
 const nameOf = (f) => f.business_name || f.legal_name
@@ -41,6 +42,7 @@ export default function BenchmarkPage({ allFirms, crd }) {
     path: 'benchmark',
   })
 
+  useTrackView('benchmark_firm', { firm_crd: firm?.crd }, !!firm)
   const cohort = useMemo(() => (firm ? selectCohort(firm, allFirms, opts) : null), [firm, allFirms, opts])
   const sections = useMemo(
     () => (firm && cohort && !cohort.tooSmall ? benchmark(firm, cohort.peers, growth) : null),
@@ -59,10 +61,13 @@ export default function BenchmarkPage({ allFirms, crd }) {
     for (const p of prev) rows.push(['Arrangements', p.label, p.firm, null, p.share != null ? Math.round(p.share * 100) : null, null, null, cohort.peers.length])
     rows.push([])
     rows.push(['Peer group', cohort.label, `${cohort.peers.length} firms`])
-    downloadCsv(rows, `${nameOf(firm)} benchmark`)
+    downloadCsv(rows, `${nameOf(firm)} benchmark`, 'benchmark')
   }
 
-  const toggle = (k) => setOpts((o) => ({ ...o, [k]: !o[k] }))
+  const toggle = (k) => {
+    track('change_benchmark_peers', { dimension: k, enabled: !opts[k] })
+    setOpts((o) => ({ ...o, [k]: !o[k] }))
+  }
   const query = new URLSearchParams()
   if (firm) query.set('firm', firm.crd)
 
@@ -125,7 +130,7 @@ export default function BenchmarkPage({ allFirms, crd }) {
               Compared with <strong>{cohort.peers.length.toLocaleString()}</strong> {cohort.label}.
             </p>
             <div className="fee-actions">
-              <CopyLinkButton url={`${SITE_URL}/benchmark?${query}`} label="Copy link" className="chip share-link" />
+              <CopyLinkButton url={`${SITE_URL}/benchmark?${query}`} label="Copy link" className="chip share-link" trackAs="benchmark" />
               <button type="button" className="chip share-link" disabled={!sections} onClick={exportCsv}>Export CSV</button>
               <a className="chip share-link" href={reportPath(firm.crd)} onClick={(e) => navigate(e, reportPath(firm.crd))}>Intelligence report</a>
             </div>

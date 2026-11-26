@@ -1,3 +1,5 @@
+import { track } from './analytics.js'
+
 // CSV export for the watchlist, comparisons, benchmarks and questionnaires.
 //
 // Cells are RFC 4180-quoted, and any cell a spreadsheet would read as a
@@ -31,7 +33,8 @@ export function csvFileName(label, date = new Date()) {
 }
 
 /** Hand the CSV to the browser as a download. Browser-only. */
-export function downloadCsv(rows, label) {
+export function downloadCsv(rows, label, contentType = 'other') {
+  track('export_csv', { content_type: contentType })
   // BOM so Excel opens UTF-8 names (accents, curly quotes) correctly.
   const blob = new Blob(['﻿', toCsv(rows)], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)

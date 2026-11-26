@@ -4,6 +4,7 @@ import { searchAdvisors } from '../advisors.js'
 import { fmtCompactUsd } from '../pulse.js'
 import { firmPath, navigate } from '../router.js'
 import { resultDetail, searchFirms } from '../search.js'
+import { track } from '../analytics.js'
 
 const goToFirm = (firm) => {
   window.history.pushState(null, '', firmPath(firm.crd))
@@ -97,6 +98,7 @@ export default function FirmSearch({
   }, [shortcut])
 
   const choose = (item) => {
+    track('select_search_result', { result_type: item.kind === 'advisor' ? 'advisor' : 'firm' })
     setQuery('')
     setOpen(false)
     input.current?.blur()
@@ -169,6 +171,7 @@ export default function FirmSearch({
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={(e) => {
                   if (onSelect === goToFirm) {
+                    track('select_search_result', { result_type: 'firm' })
                     navigate(e, firmPath(f.crd))
                     setQuery('')
                     setOpen(false)
@@ -202,6 +205,7 @@ export default function FirmSearch({
                   onMouseEnter={() => setActive(i)}
                   onMouseDown={(ev) => ev.preventDefault()}
                   onClick={(ev) => {
+                    track('select_search_result', { result_type: 'advisor' })
                     navigate(ev, advisorPath(e))
                     setQuery('')
                     setOpen(false)

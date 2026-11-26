@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { usePageMeta } from '../pageMeta.js'
 import { downloadCsv } from '../csv.js'
@@ -19,6 +19,7 @@ import { fmtCompactUsd } from '../pulse.js'
 import { firmPath, navigate } from '../router.js'
 import { ITEMS, iapdUrl } from '../sources.js'
 import CopyLinkButton from './CopyLinkButton.jsx'
+import { track, useTrackView } from '../analytics.js'
 
 const SITE_URL = 'https://open-disclosure.com'
 const usd = (v) => `$${Math.round(v).toLocaleString()}`
@@ -235,6 +236,19 @@ export default function FeeCalculator({ allFirms }) {
   }, [encoded])
 
   const result = useMemo(() => compareScenarios(a, scenarios), [a, scenarios])
+
+  // One event per visit, on the first change; amounts and rates are never
+  // sent. A scenario restored from a shared link is counted separately.
+  const [fromLink] = useState(() => new URLSearchParams(window.location.search).has('c'))
+  useTrackView('open_shared_fee_scenario', {}, fromLink)
+  const used = useRef(false)
+  const initial = useRef(encoded)
+  useEffect(() => {
+    if (!used.current && encoded !== initial.current) {
+      used.current = true
+      track('use_fee_calculator', { firm_context: firmCrd ? 'firm' : 'none' })
+    }
+  }, [encoded, firmCrd])
   const setA = (patch) => setState((s) => ({ ...s, assumptions: { ...s.assumptions, ...patch } }))
   const setScenario = (i, next) => setState((s) => ({ ...s, scenarios: s.scenarios.map((x, j) => (j === i ? next : x)) }))
   const addScenario = () =>
@@ -256,7 +270,7 @@ export default function FeeCalculator({ allFirms }) {
     rows.push([])
     rows.push(['Assumptions', `Starting assets ${a.assets}`, `Years ${a.years}`, `Gross return ${a.grossReturn}%`, `Annual flow ${a.flow}`])
     rows.push(['Note', 'Illustrative projection from user-entered assumptions; not a forecast and not any firm’s actual fees.'])
-    downloadCsv(rows, 'Open Disclosure fee projection')
+    downloadCsv(rows, 'Open Disclosure fee projection', 'fee_projection')
   }
 
   return (
@@ -390,7 +404,7 @@ export default function FeeCalculator({ allFirms }) {
           </div>
 
           <div className="fee-actions">
-            <CopyLinkButton url={`${SITE_URL}/fees?c=${encoded}`} label="Copy link to this scenario" className="chip share-link" />
+            <CopyLinkButton url={`${SITE_URL}/fees?c=${encoded}`} label="Copy link to this scenario" className="chip share-link" trackAs="fee_scenario" />
             <button type="button" className="chip share-link" onClick={exportCsv}>Export CSV</button>
             <button type="button" className="chip share-link" aria-expanded={showYears} onClick={() => setShowYears(!showYears)}>
               {showYears ? 'Hide' : 'Show'} year-by-year

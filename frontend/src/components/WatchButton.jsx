@@ -1,4 +1,5 @@
 import { follow, isWatched, unfollow, useWatchlist } from '../watchlist.js'
+import { track } from '../analytics.js'
 
 /**
  * Follow / unfollow a firm. `compact` renders an icon-only star for dense
@@ -9,7 +10,11 @@ export default function WatchButton({ firm, snapshotDate, compact = false, class
   if (!firm) return null
   const on = isWatched(list, firm.crd)
   const name = firm.business_name || firm.legal_name
-  const toggle = () => (on ? unfollow(firm.crd) : follow(firm, snapshotDate))
+  const toggle = () => {
+    track(on ? 'unfollow_firm' : 'follow_firm', { firm_crd: firm.crd, location: compact ? 'list' : 'page' })
+    if (on) unfollow(firm.crd)
+    else follow(firm, snapshotDate)
+  }
   return (
     <button
       type="button"
