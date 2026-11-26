@@ -4305,3 +4305,162 @@ tbody tr:hover {
     display: none;
   }
 }
+
+
+/* =====================================================================
+   Tablet and phone density pass. Measured at iPad portrait (768), iPad
+   landscape (1024) and iPhone (390): every hole below came from a grid
+   whose column count didn't divide its item count, or from rows sized by
+   one tall card beside a short one.
+   ===================================================================== */
+
+/* Stat tiles: three per row from 700px (the homepage's six make an even
+   3 x 2), and a four-tile strip (firm page, report) in one row. */
+@media (min-width: 700px) {
+  .tiles {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .tiles > :last-child:nth-child(odd) {
+    grid-column: auto;
+  }
+
+  .tiles:has(> :nth-child(4):last-child) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Homepage pathways: each audience gets its own full-width row, so four
+   investor cards sit four across and three advisor cards three across,
+   instead of 3 + 1 with a hole. */
+.pathways {
+  grid-template-columns: 1fr;
+}
+
+.pathway-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+@media (max-width: 639px) {
+  .pathway-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pathway-grid > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .pathway {
+    min-height: 0;
+    padding: 12px 14px;
+  }
+}
+
+/* Firm tools: four across on a tablet, 2 x 2 on a phone (four full-width
+   rows pushed the firm's numbers a screen down). */
+.firm-tools {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 700px) {
+  .firm-tools {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 639px) {
+  .firm-tool {
+    padding: 9px 11px;
+  }
+
+  .firm-tool-sub {
+    font-size: 11.5px;
+    line-height: 1.35;
+  }
+}
+
+/* Firm page and benchmark card grid: two even columns from 700px; the
+   table-heavy cards take the full width, where their tables have room. */
+.detail-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 700px) {
+  .detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .detail-grid > .private-funds-card,
+  .detail-grid > .holdings-card,
+  .detail-grid > .advisor-bios-card {
+    grid-column: 1 / -1;
+  }
+}
+
+.detail-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* Header search: on a tablet in portrait it was squeezed to a few
+   characters between the logo and five nav links; give it its own row. */
+@media (max-width: 900px) {
+  .header-search {
+    order: 10;
+    flex: 1 1 100%;
+    margin: 4px 0 0;
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+  }
+}
+
+/* Report observations: the label column was 128px of mostly empty space;
+   below desktop width the label sits above its text. */
+@media (max-width: 1023px) {
+  .observation {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
+
+/* Fee calculator, tablet portrait: the two schedules side by side, so the
+   results aren't two long forms below the fold. */
+@media (min-width: 640px) and (max-width: 920px) {
+  .fee-inputs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .fee-inputs > .fee-assumptions,
+  .fee-inputs > .chip {
+    grid-column: 1 / -1;
+  }
+
+  .fee-inputs > .chip {
+    justify-self: start;
+  }
+}
+
+/* Benchmark header: below desktop the firm name was squeezed into a narrow
+   column beside the peer-group controls; stack them. */
+@media (max-width: 899px) {
+  .bench-head {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 700px) {
+  .benchmark-page .limit-list {
+    columns: 2;
+    column-gap: 28px;
+  }
+
+  .benchmark-page .limit-list li {
+    break-inside: avoid;
+  }
+}

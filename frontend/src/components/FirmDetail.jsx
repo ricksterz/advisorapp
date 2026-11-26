@@ -804,6 +804,10 @@ export default function FirmDetail({ firm, crd, allFirms, snapshot }) {
           )}
         </div>
 
+        {/* Compensation is short and the deal-structuring card often absent,
+            so the two share the column beside Client mix instead of each
+            claiming a full grid row and leaving a hole beside it. */}
+        <div className="detail-stack">
         <div className="detail-card">
           <h2>Compensation & affiliations</h2>
           <div className="fee-chips">
@@ -822,6 +826,7 @@ export default function FirmDetail({ firm, crd, allFirms, snapshot }) {
         </div>
 
         <DealStructuringCard crd={firm.crd} />
+        </div>
         <PrivateFundsCard crd={firm.crd} />
         <Form13fCard crd={firm.crd} firmName={firm.business_name || firm.legal_name} />
         <AdvisorBiosCard crd={firm.crd} />
