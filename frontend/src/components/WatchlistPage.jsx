@@ -110,7 +110,7 @@ export default function WatchlistPage({ allFirms, snapshot }) {
         iapdUrl(r.entry.crd),
       ])
     }
-    downloadCsv(out, 'Open Disclosure watchlist')
+    downloadCsv(out, 'Open Disclosure watchlist', 'watchlist')
   }
 
   const changed = rows.filter((r) => r.changes.length).length
@@ -141,6 +141,7 @@ export default function WatchlistPage({ allFirms, snapshot }) {
           type="button"
           className="chip share-link"
           disabled={selected.length < 2}
+          data-track="compare_from_watchlist"
           onClick={() => go(comparePath(selected))}
           title={`Pick 2–${MAX_COMPARE} firms with the checkboxes`}
         >
@@ -215,7 +216,7 @@ export default function WatchlistPage({ allFirms, snapshot }) {
                       ))}
                     </ul>
                     {firm && (
-                      <button type="button" className="link-btn" onClick={() => resetBaseline(entry.crd, firm, snapshot)}>
+                      <button type="button" className="link-btn" data-track="review_watchlist_changes" onClick={() => resetBaseline(entry.crd, firm, snapshot)}>
                         Mark as reviewed
                       </button>
                     )}

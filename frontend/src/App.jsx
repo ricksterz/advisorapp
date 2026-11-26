@@ -634,19 +634,19 @@ export default function App() {
           <div className="pathway-group">
             <h2 className="pathway-audience">For investors, families and family offices</h2>
             <div className="pathway-grid">
-              <a className="pathway" href="#find" onClick={(e) => { e.preventDefault(); document.querySelector('.hero-search input')?.focus() }}>
+              <a data-track="select_pathway" data-track-pathway="evaluate" className="pathway" href="#find" onClick={(e) => { e.preventDefault(); document.querySelector('.hero-search input')?.focus() }}>
                 <span className="pathway-title">Evaluate an advisor</span>
                 <span className="pathway-sub">Profile, Intelligence Report and firm-specific due-diligence questions for any firm.</span>
               </a>
-              <a className="pathway" href={comparePath()} onClick={(e) => navigate(e, comparePath())}>
+              <a data-track="select_pathway" data-track-pathway="compare" className="pathway" href={comparePath()} onClick={(e) => navigate(e, comparePath())}>
                 <span className="pathway-title">Compare firms</span>
                 <span className="pathway-sub">Up to four side by side, with peer positions, conflicts and the differences that matter.</span>
               </a>
-              <a className="pathway" href={feesPath()} onClick={(e) => navigate(e, feesPath())}>
+              <a data-track="select_pathway" data-track-pathway="fees" className="pathway" href={feesPath()} onClick={(e) => navigate(e, feesPath())}>
                 <span className="pathway-title">Benchmark fees</span>
                 <span className="pathway-sub">What a fee schedule costs at $1M to $100M+, and over 20 years.</span>
               </a>
-              <a className="pathway" href={watchlistPath()} onClick={(e) => navigate(e, watchlistPath())}>
+              <a data-track="select_pathway" data-track-pathway="watchlist" className="pathway" href={watchlistPath()} onClick={(e) => navigate(e, watchlistPath())}>
                 <span className="pathway-title">Monitor advisors{watchCount > 0 ? ` (${watchCount})` : ''}</span>
                 <span className="pathway-sub">Follow firms and see material changes in their filings, with private notes.</span>
               </a>
@@ -655,15 +655,15 @@ export default function App() {
           <div className="pathway-group">
             <h2 className="pathway-audience">For advisors and RIA executives</h2>
             <div className="pathway-grid">
-              <a className="pathway" href={benchmarkPath()} onClick={(e) => navigate(e, benchmarkPath())}>
+              <a data-track="select_pathway" data-track-pathway="benchmark" className="pathway" href={benchmarkPath()} onClick={(e) => navigate(e, benchmarkPath())}>
                 <span className="pathway-title">Benchmark my firm</span>
                 <span className="pathway-sub">Growth, staffing, productivity and client mix against a peer group you define.</span>
               </a>
-              <a className="pathway" href={pulsePath()} onClick={(e) => navigate(e, pulsePath())}>
+              <a data-track="select_pathway" data-track-pathway="pulse" className="pathway" href={pulsePath()} onClick={(e) => navigate(e, pulsePath())}>
                 <span className="pathway-title">Industry intelligence</span>
                 <span className="pathway-sub">Quarterly statistics on registrations, assets, private funds and disclosures.</span>
               </a>
-              <a className="pathway" href={pulsePath('growth')} onClick={(e) => navigate(e, pulsePath('growth'))}>
+              <a data-track="select_pathway" data-track-pathway="growth" className="pathway" href={pulsePath('growth')} onClick={(e) => navigate(e, pulsePath('growth'))}>
                 <span className="pathway-title">Fastest-growing firms</span>
                 <span className="pathway-sub">AUM growth leaders by business model, over 3, 5 and 10 years.</span>
               </a>

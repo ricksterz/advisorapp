@@ -12,6 +12,7 @@ import FirmSearch from './FirmSearch.jsx'
 import IndexChart from './IndexChart.jsx'
 import CopyLinkButton from './CopyLinkButton.jsx'
 import WatchButton from './WatchButton.jsx'
+import { useTrackView } from '../analytics.js'
 
 const go = (crds) => {
   window.history.pushState(null, '', comparePath(crds))
@@ -29,6 +30,7 @@ export default function ComparePage({ crds, allFirms, snapshot }) {
   )
   const extras = useCompareExtras(firms.map((f) => f.crd))
   const loaded = firms.every((f) => extras[f.crd])
+  useTrackView('compare_firms', { firm_count: firms.length }, firms.length >= 2)
 
   usePageMeta({
     title: firms.length ? `Compare ${firms.map(nameOf).join(' vs ')} · Open Disclosure` : 'Compare advisers · Open Disclosure',
@@ -71,11 +73,11 @@ export default function ComparePage({ crds, allFirms, snapshot }) {
 
       {firms.length > 0 && (
         <div className="fee-actions compare-actions">
-          <CopyLinkButton url={shareUrl} label="Copy link to this comparison" className="chip share-link" />
+          <CopyLinkButton url={shareUrl} label="Copy link to this comparison" className="chip share-link" trackAs="comparison" />
           <button
             type="button"
             className="chip share-link"
-            onClick={() => downloadCsv(compareCsvRows(firms, rows), `Compare ${firms.map(nameOf).join(' vs ')}`)}
+            onClick={() => downloadCsv(compareCsvRows(firms, rows), `Compare ${firms.map(nameOf).join(' vs ')}`, 'comparison')}
           >
             Export CSV
           </button>

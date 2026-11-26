@@ -631,6 +631,7 @@ export default function FirmDetail({ firm, crd, allFirms, snapshot }) {
             url={`${SITE_URL}/firm/${firm.crd}`}
             label="Copy link"
             className="chip share-link"
+            trackAs="firm"
             title={`Copy a shareable link to ${firm.business_name || firm.legal_name}`}
           />
           <a
@@ -673,19 +674,19 @@ export default function FirmDetail({ firm, crd, allFirms, snapshot }) {
         )}
         <CompareStrip firm={firm} allFirms={allFirms} />
         <nav className="firm-tools" aria-label={`Tools for ${firm.business_name || firm.legal_name}`}>
-          <a className="firm-tool primary" href={reportPath(firm.crd)} onClick={(e) => navigate(e, reportPath(firm.crd))}>
+          <a data-track="select_firm_tool" data-track-tool="report" data-track-location="profile" className="firm-tool primary" href={reportPath(firm.crd)} onClick={(e) => navigate(e, reportPath(firm.crd))}>
             <span className="firm-tool-title">Intelligence report</span>
             <span className="firm-tool-sub">Printable summary, peers, conflicts, sources</span>
           </a>
-          <a className="firm-tool" href={diligencePath(firm.crd)} onClick={(e) => navigate(e, diligencePath(firm.crd))}>
+          <a data-track="select_firm_tool" data-track-tool="questionnaire" data-track-location="profile" className="firm-tool" href={diligencePath(firm.crd)} onClick={(e) => navigate(e, diligencePath(firm.crd))}>
             <span className="firm-tool-title">Due-diligence questions</span>
             <span className="firm-tool-sub">Firm-specific checklist with notes</span>
           </a>
-          <a className="firm-tool" href={benchmarkPath(firm.crd)} onClick={(e) => navigate(e, benchmarkPath(firm.crd))}>
+          <a data-track="select_firm_tool" data-track-tool="benchmark" data-track-location="profile" className="firm-tool" href={benchmarkPath(firm.crd)} onClick={(e) => navigate(e, benchmarkPath(firm.crd))}>
             <span className="firm-tool-title">Benchmark</span>
             <span className="firm-tool-sub">Against a peer group you choose</span>
           </a>
-          <a className="firm-tool" href={`${BASE}fees?firm=${firm.crd}`} onClick={(e) => navigate(e, `${BASE}fees?firm=${firm.crd}`)}>
+          <a data-track="select_firm_tool" data-track-tool="fees" data-track-location="profile" className="firm-tool" href={`${BASE}fees?firm=${firm.crd}`} onClick={(e) => navigate(e, `${BASE}fees?firm=${firm.crd}`)}>
             <span className="firm-tool-title">Fee calculator</span>
             <span className="firm-tool-sub">Model this firm’s schedule from its brochure</span>
           </a>

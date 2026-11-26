@@ -9,6 +9,7 @@ import { firmSources } from '../sources.js'
 import CopyLinkButton from './CopyLinkButton.jsx'
 import { useReportMeta } from './IntelligenceReport.jsx'
 import WatchButton from './WatchButton.jsx'
+import { track, useTrackView } from '../analytics.js'
 
 const SITE_URL = 'https://open-disclosure.com'
 const nameOf = (f) => f.business_name || f.legal_name
@@ -19,6 +20,7 @@ export default function DiligencePage({ firm, crd, allFirms, snapshot }) {
   const [draft, setDraft] = useState('')
   const [saved, setSaved] = useState(true)
   useReportMeta(firm, 'Due-diligence questionnaire')
+  useTrackView('view_questionnaire', { firm_crd: crd }, !!firm)
 
   // Rendered with key={crd}, so a different firm gets a fresh component and
   // its own stored state: saving here can never write one firm's answers
@@ -34,7 +36,11 @@ export default function DiligencePage({ firm, crd, allFirms, snapshot }) {
 
   if (!firm) return <div className="state">No firm with CRD {crd} in this snapshot.</div>
 
-  const setAnswer = (id, patch) =>
+  const setAnswer = (id, patch) => {
+    if (patch.status) track('update_questionnaire', { status: patch.status })
+    setAnswerState(id, patch)
+  }
+  const setAnswerState = (id, patch) =>
     setState((s) => ({ ...s, answers: { ...s.answers, [id]: { status: 'open', note: '', ...s.answers[id], ...patch } } }))
   const toggleDoc = (id) => setState((s) => ({ ...s, docs: { ...s.docs, [id]: !s.docs[id] } }))
   const addCustom = (e) => {
@@ -73,7 +79,7 @@ export default function DiligencePage({ firm, crd, allFirms, snapshot }) {
       ])
     }
     for (const d of DOCUMENTS) rows.push([nameOf(firm), firm.crd, 'Documents', d.label, false, d.why, state.docs[d.id] ? 'Received' : 'Not received', ''])
-    downloadCsv(rows, `${nameOf(firm)} due diligence`)
+    downloadCsv(rows, `${nameOf(firm)} due diligence`, 'questionnaire')
   }
 
   const groups = [...TOPICS, { id: 'custom', label: 'Your questions' }]
@@ -85,13 +91,13 @@ export default function DiligencePage({ firm, crd, allFirms, snapshot }) {
           ← {nameOf(firm)} profile
         </a>
         <span className="spacer" />
-        <button type="button" className="chip share-link" onClick={() => window.print()}>
+        <button type="button" className="chip share-link" data-track="print" data-track-content-type="questionnaire" onClick={() => window.print()}>
           Print / save PDF
         </button>
         <button type="button" className="chip share-link" onClick={exportCsv}>
           Export CSV
         </button>
-        <CopyLinkButton url={`${SITE_URL}/firm/${firm.crd}?view=diligence`} label="Copy link" className="chip share-link" />
+        <CopyLinkButton url={`${SITE_URL}/firm/${firm.crd}?view=diligence`} label="Copy link" className="chip share-link" trackAs="questionnaire" />
         <WatchButton firm={firm} snapshotDate={snapshot} />
         <a className="chip share-link" href={reportPath(firm.crd)} onClick={(e) => navigate(e, reportPath(firm.crd))}>
           Intelligence report

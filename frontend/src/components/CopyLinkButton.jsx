@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { copyText } from '../clipboard.js'
+import { track } from '../analytics.js'
 
 const RESET_MS = 1600
 
@@ -20,6 +21,7 @@ export default function CopyLinkButton({
   className = 'chip',
   title,
   onCopy,
+  trackAs,
 }) {
   const [state, setState] = useState('idle') // idle | copied | failed
   const timer = useRef(null)
@@ -37,6 +39,7 @@ export default function CopyLinkButton({
   const handleClick = async () => {
     const ok = await copyText(url)
     onCopy?.(ok)
+    if (ok && trackAs) track('share', { method: 'copy_link', content_type: trackAs })
     clearTimeout(timer.current)
     if (!ok) {
       setState('failed')

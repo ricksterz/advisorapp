@@ -24,6 +24,7 @@ import CopyLinkButton from './CopyLinkButton.jsx'
 import { websiteHost } from './FirmDetail.jsx'
 import { TrendLine } from './PulsePage.jsx'
 import WatchButton from './WatchButton.jsx'
+import { useTrackView } from '../analytics.js'
 
 const SITE_URL = 'https://open-disclosure.com'
 const nameOf = (f) => f.business_name || f.legal_name
@@ -67,6 +68,7 @@ export default function IntelligenceReport({ firm, crd, allFirms, snapshot }) {
   const overrides = useWebsiteOverrides()
   const fundTypes = useFundTypes()
   useReportMeta(firm, 'Advisor Intelligence Report')
+  useTrackView('view_report', { firm_crd: crd }, !!firm)
 
   const analysis = useMemo(() => {
     if (!firm) return null
@@ -110,12 +112,12 @@ export default function IntelligenceReport({ firm, crd, allFirms, snapshot }) {
           ← {nameOf(firm)} profile
         </a>
         <span className="spacer" />
-        <button type="button" className="chip share-link" onClick={() => window.print()}>
+        <button type="button" className="chip share-link" data-track="print" data-track-content-type="report" onClick={() => window.print()}>
           Print / save PDF
         </button>
-        <CopyLinkButton url={`${SITE_URL}/firm/${firm.crd}?view=report`} label="Copy link" className="chip share-link" />
+        <CopyLinkButton url={`${SITE_URL}/firm/${firm.crd}?view=report`} label="Copy link" className="chip share-link" trackAs="report" />
         <WatchButton firm={firm} snapshotDate={snapshot} />
-        <a className="chip share-link" href={diligencePath(firm.crd)} onClick={(e) => navigate(e, diligencePath(firm.crd))}>
+        <a className="chip share-link" data-track="select_firm_tool" data-track-tool="questionnaire" data-track-location="report" href={diligencePath(firm.crd)} onClick={(e) => navigate(e, diligencePath(firm.crd))}>
           Due-diligence questionnaire
         </a>
       </div>
