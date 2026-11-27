@@ -66,3 +66,12 @@ variable simply skip it.
 Google Analytics 4 (measurement ID `G-GYN9JCX9QR`) is wired directly in
 `frontend/index.html` — measurement IDs are public, so no build variable is
 needed. Like the Cloudflare beacon, it loads in production builds only.
+
+To keep your own visits out of the numbers, open any page once with
+`?internal=1` in each browser you use (e.g. `https://open-disclosure.com/?internal=1`).
+That browser is remembered as internal on any network — home, mobile, VPN —
+and GA receives `traffic_type=internal`, which the property's *Internal
+Traffic* data filter (Admin → Data filters, set to Active) drops; the
+Cloudflare beacon is skipped for it. `?internal=0` undoes it. The parameter is
+removed from the address bar immediately. Automated browsers
+(`navigator.webdriver`, e.g. Playwright) load neither tag.

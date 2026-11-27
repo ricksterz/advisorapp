@@ -90,11 +90,18 @@
       document.documentElement.dataset.theme = localStorage.getItem('theme') || 'dark'
     </script>
     <script type="module">
+      import { isAutomated, resolveInternal } from './src/analytics.js'
+
+      // Always applied (even in dev) so ?internal= never lingers in the URL.
+      const internal = resolveInternal()
+
       // Analytics — production builds only; local dev never reports.
-      if (import.meta.env.PROD) {
+      // Automated browsers (navigator.webdriver) load neither tag.
+      if (import.meta.env.PROD && !isAutomated(navigator)) {
         // Cloudflare Web Analytics (privacy-friendly, no cookies), gated on
         // the token — see README "Deployment" for VITE_CF_ANALYTICS_TOKEN.
-        if (import.meta.env.VITE_CF_ANALYTICS_TOKEN) {
+        // It has no internal-traffic filter, so internal browsers skip it.
+        if (import.meta.env.VITE_CF_ANALYTICS_TOKEN && !internal) {
           const beacon = document.createElement('script')
           beacon.defer = true
           beacon.src = 'https://static.cloudflareinsights.com/beacon.min.js'
@@ -118,7 +125,9 @@
           window.dataLayer.push(arguments)
         }
         window.gtag('js', new Date())
-        window.gtag('config', GA_ID)
+        // traffic_type=internal is what GA's "Internal Traffic" data filter
+        // matches, so visits from ?internal=1 browsers are dropped.
+        window.gtag('config', GA_ID, internal ? { traffic_type: 'internal' } : {})
       }
     </script>
   </head>
