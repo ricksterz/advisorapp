@@ -90,6 +90,14 @@ def test_summarize_filer_keeps_options_out_of_the_total():
     assert s["values_reliable"] is True
 
 
+def test_summarize_filer_ranks_equal_positions_the_same_whatever_the_row_order():
+    rows = [("333", "C CORP", "COM", None, 100.0), ("111", "A CORP", "COM", None, 100.0),
+            ("222", "B CORP", "COM", None, 100.0)]
+    first = summarize_filer(rows, 1.0)["top"]
+    assert [t["cusip"] for t in first] == ["111", "222", "333"]
+    assert summarize_filer(rows[::-1], 1.0)["top"] == first
+
+
 def test_summarize_filer_publishes_no_dollars_when_the_scale_is_unknown():
     s = summarize_filer([("111", "APPLE INC", "COM", None, 600.0)], None)
     assert s["value"] is None and s["options_value"] is None

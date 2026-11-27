@@ -310,7 +310,8 @@ def summarize_filer(holdings: list[tuple], scale: float | None) -> dict:
         p = positions.setdefault(cusip, [issuer, title, 0.0])
         p[2] += v
     total = sum(p[2] for p in positions.values())
-    ranked = sorted(positions.items(), key=lambda kv: -kv[1][2])[:TOP_HOLDINGS]
+    # Ties break on CUSIP so equal-sized positions rank the same every run.
+    ranked = sorted(positions.items(), key=lambda kv: (-kv[1][2], kv[0]))[:TOP_HOLDINGS]
     reliable = scale is not None
     top = [
         {
@@ -372,6 +373,7 @@ def export(db_path: Path, out_path: Path) -> bool:
             """
             SELECT accession_number, cusip, issuer, title_of_class, put_call, value, shares
             FROM f13_holdings WHERE accession_number IN (SELECT a FROM _acc)
+            ORDER BY accession_number, cusip, issuer, title_of_class, put_call, value, shares
             """
         ).fetchall():
             holdings_by_acc.setdefault(acc, []).append((cusip, issuer, title, put_call, value, shares))
