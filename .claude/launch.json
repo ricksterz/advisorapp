@@ -4,9 +4,28 @@
     {
       "name": "frontend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "frontend"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "frontend"
+      ],
       "port": 5173,
       "autoPort": true
+    },
+    {
+      "name": "frontend-prod",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "--prefix",
+        "frontend",
+        "vite",
+        "preview",
+        "frontend",
+        "--port",
+        "4173"
+      ],
+      "port": 4173
     }
   ]
 }

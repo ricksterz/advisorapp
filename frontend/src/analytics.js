@@ -69,3 +69,74 @@ export function installClickTracking() {
     { capture: true },
   )
 }
+
+// ---------------------------------------------------------------------------
+// Keeping the owner's own visits (and automated browsers) out of the numbers.
+//
+// `?internal=1` on any URL marks this browser as internal: the flag is kept
+// in localStorage, the parameter is stripped from the address bar at once,
+// and GA is configured with traffic_type=internal so the property's
+// "Internal Traffic" data filter drops those hits. `?internal=0` clears it.
+// Works on any network (home, mobile, hotel, VPN) and stores no IP address.
+//
+// Automated browsers (Playwright, Puppeteer, Selenium, an agent driving a
+// browser pane) report navigator.webdriver === true; analytics isn't loaded
+// for them at all.
+
+export const INTERNAL_KEY = 'od.internal'
+const INTERNAL_PARAM = 'internal'
+
+/** true / false for ?internal=1 / ?internal=0, null when absent or unrecognised. */
+export function internalParam(search) {
+  const v = new URLSearchParams(search).get(INTERNAL_PARAM)
+  if (v === '1' || v === 'true') return true
+  if (v === '0' || v === 'false') return false
+  return null
+}
+
+/** The URL with the internal parameter removed, others kept in order. */
+export function stripInternalParam(href) {
+  const url = new URL(href)
+  if (!url.searchParams.has(INTERNAL_PARAM)) return href
+  url.searchParams.delete(INTERNAL_PARAM)
+  return url.pathname + url.search + url.hash
+}
+
+/** True for WebDriver-controlled browsers. */
+export function isAutomated(nav) {
+  try {
+    return nav?.webdriver === true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Apply ?internal=, strip it from the address bar, and return whether this
+ * browser is internal. Never throws: storage can be blocked (private mode),
+ * in which case the parameter still counts for this page view.
+ */
+export function resolveInternal(win = window) {
+  let stored = false
+  try {
+    stored = win.localStorage.getItem(INTERNAL_KEY) === '1'
+  } catch {
+    // storage unavailable
+  }
+  let param = null
+  try {
+    param = internalParam(win.location.search)
+    if (param !== null) {
+      try {
+        if (param) win.localStorage.setItem(INTERNAL_KEY, '1')
+        else win.localStorage.removeItem(INTERNAL_KEY)
+      } catch {
+        // storage unavailable
+      }
+      win.history.replaceState(win.history.state, '', stripInternalParam(win.location.href))
+    }
+  } catch {
+    // malformed URL or history unavailable
+  }
+  return param ?? stored
+}
