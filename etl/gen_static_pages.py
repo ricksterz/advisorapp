@@ -272,7 +272,8 @@ def generate(
             "Disclaimer and terms of use for Open Disclosure: information provided for "
             "informational purposes only, derived from public U.S. government records, without "
             "warranty. Not investment advice or a consumer report; a disclosure is not a finding "
-            "of wrongdoing."
+            "of wrongdoing. Privacy: no accounts, notes stay in your browser, aggregate usage "
+            "analytics only."
         ),
         canonical=f"{site}/legal",
     )

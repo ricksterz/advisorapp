@@ -120,8 +120,8 @@ export default function WatchlistPage({ allFirms, snapshot }) {
       <div className="page-head">
         <h1>Watchlist</h1>
         <p className="page-tagline">
-          Firms you follow, what has changed in their filings since you started, and your private notes. Saved in this browser
-          only: there is no account, and nothing is sent to a server.
+          Firms you follow, what has changed in their filings since you started, and your private notes. Your watchlist and
+          notes are saved only in this browser. There is no account.
         </p>
       </div>
 

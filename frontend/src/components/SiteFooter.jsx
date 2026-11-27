@@ -28,7 +28,7 @@ export default function SiteFooter({ snapshot }) {
       </p>
       <p>
         <a href={legal} onClick={(e) => navigate(e, legal)}>
-          Full disclaimer and terms of use
+          Disclaimer, terms of use and privacy
         </a>
       </p>
     </footer>

@@ -112,7 +112,7 @@ export default function DiligencePage({ firm, crd, allFirms, snapshot }) {
         </p>
         <p className="report-lede">
           Questions for your interview with the firm, generated from what it has disclosed. Firm-specific questions cite the
-          filing that prompted them. Statuses and notes are saved in this browser only — nothing is sent anywhere — so export
+          filing that prompted them. Your answers and notes are saved only in this browser, so export
           or print a copy to keep it.
         </p>
         <p className="diligence-progress" aria-live="polite">
