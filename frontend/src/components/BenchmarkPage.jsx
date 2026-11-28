@@ -100,8 +100,8 @@ export default function BenchmarkPage({ allFirms, crd }) {
           <h2>Pick a firm to begin</h2>
           <p>
             Search for any SEC-registered adviser. You’ll see its percentile on each measure within a peer group of the same
-            business model and size, and can narrow the group by region or high-net-worth focus. Nothing you search is stored or
-            sent anywhere.
+            business model and size, and can narrow the group by region or high-net-worth focus. Nothing you search is
+            stored.
           </p>
         </div>
       )}

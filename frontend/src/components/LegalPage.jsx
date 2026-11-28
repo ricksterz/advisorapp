@@ -6,10 +6,11 @@ import { BASE, navigate } from '../router.js'
 // and the short notices placed beside sensitive figures (disclosure flags,
 // outlier list, advisor search) summarize it. Keep LAST_UPDATED current when
 // the text changes. Mirrored for crawlers by etl/gen_static_pages.py.
-export const LAST_UPDATED = 'October 30, 2026'
+export const LAST_UPDATED = 'November 27, 2026'
 
 const IAPD = 'https://adviserinfo.sec.gov/'
 const BROKERCHECK = 'https://brokercheck.finra.org/'
+const GA_OPT_OUT = 'https://tools.google.com/dlpage/gaoptout'
 
 function Section({ id, n, title, children }) {
   return (
@@ -73,6 +74,11 @@ export default function LegalPage() {
             may not be used for any purpose governed by the Fair Credit Reporting Act.
           </li>
           <li>
+            There are no accounts. Watchlists, notes and questionnaire answers are{' '}
+            <strong>saved only in your browser</strong>, and usage is measured only in aggregate,
+            to improve the Site.
+          </li>
+          <li>
             Users are <strong>solely responsible for their interpretation and use</strong> of the
             Information, and should verify it against the official records maintained by the{' '}
             <a href={IAPD} target="_blank" rel="noreferrer">
@@ -105,8 +111,8 @@ export default function LegalPage() {
           Administrators Association, any state securities regulator, or any investment adviser,
           broker-dealer, fund or individual referenced on the Site. Open Disclosure receives no
           compensation from any firm or individual referenced on the Site, and no firm or individual
-          may pay to influence its presentation. Open Disclosure is not a registered investment
-          adviser or broker-dealer.
+          may pay to influence its presentation. The Site carries no advertising. Open Disclosure is
+          not a registered investment adviser or broker-dealer.
         </p>
       </Section>
 
@@ -142,7 +148,9 @@ export default function LegalPage() {
           regulators’ published data, or in the collection, matching, combination,
           de-duplication, summarization or labeling of that data by the Site. Associations between
           data sets, such as a firm’s 13F filing, website or an individual’s employer, are made
-          automatically and may be inaccurate.
+          automatically and may be inaccurate. Watchlist change summaries compare the data at each
+          refresh with the data when a firm was added or last reviewed; they may omit changes made
+          between refreshes and are not a complete record of a firm’s filings.
         </p>
       </Section>
 
@@ -151,12 +159,15 @@ export default function LegalPage() {
           Nothing on the Site constitutes investment, financial, legal, tax, accounting or other
           professional advice; an offer or solicitation to buy or sell any security; or a
           recommendation to engage, retain or avoid any firm or individual. Rankings, standing
-          scores, disclosure outlier lists, growth leaderboards, peer comparisons, business-model
-          segments and related tags are informational screens derived from public data under a
+          scores, disclosure outlier lists, growth leaderboards, peer comparisons and benchmark
+          percentiles, business-model segments, firm intelligence reports, diligence questionnaires,
+          watchlist change summaries and related tags are informational screens derived from public data under a
           published and adjustable methodology. They are not ratings, credit or due-diligence
           opinions, endorsements or warnings, and they omit many factors relevant to the selection
           of an adviser, including the services provided, fees actually charged, investment results
-          and suitability. Users should consult a qualified professional and conduct their own
+          and suitability. Fee calculator results are illustrations computed entirely from
+          assumptions the user enters; they are not a quote, a forecast or a statement of any
+          firm’s actual fees. Users should consult a qualified professional and conduct their own
           research before making any financial decision.
         </p>
       </Section>
@@ -209,7 +220,27 @@ export default function LegalPage() {
         </p>
       </Section>
 
-      <Section id="corrections" n={9} title="Corrections">
+      <Section id="privacy" n={9} title="Privacy and analytics">
+        <p>
+          The Site has no accounts and does not ask for names, email addresses or other personal
+          information. Watchlists, private notes, questionnaire answers and display preferences are
+          saved only in the user’s browser; they are not transmitted to Open Disclosure and can be
+          removed by clearing the browser’s site data. Searches and benchmark selections are not
+          stored.
+        </p>
+        <p>
+          To improve the Site, Open Disclosure uses Google Analytics and Cloudflare Web Analytics
+          to measure usage in aggregate, such as pages viewed and features used. This information is
+          not used for advertising and is not sold. Google Analytics uses cookies; users may block
+          them in their browser settings or with Google’s{' '}
+          <a href={GA_OPT_OUT} target="_blank" rel="noreferrer">
+            opt-out browser add-on
+          </a>
+          . Cloudflare Web Analytics does not use cookies.
+        </p>
+      </Section>
+
+      <Section id="corrections" n={10} title="Corrections">
         <p>
           The Site reflects regulatory records as published. A firm or individual who believes a
           record is inaccurate should seek correction at the source: firms by amending Form ADV, and
@@ -220,7 +251,7 @@ export default function LegalPage() {
         </p>
       </Section>
 
-      <Section id="third-parties" n={10} title="Third-party names, trademarks and links">
+      <Section id="third-parties" n={11} title="Third-party names, trademarks and links">
         <p>
           Firm names, fund names, logos and other marks are the property of their respective owners
           and are used solely to identify the subjects of public filings. Their use does not imply
@@ -232,7 +263,7 @@ export default function LegalPage() {
         </p>
       </Section>
 
-      <Section id="liability" n={11} title="Limitation of liability">
+      <Section id="liability" n={12} title="Limitation of liability">
         <p>
           To the fullest extent permitted by applicable law, Open Disclosure and its contributors
           shall not be liable for any loss or damage of any kind, whether direct, indirect,
@@ -243,7 +274,7 @@ export default function LegalPage() {
         </p>
       </Section>
 
-      <Section id="changes" n={12} title="Changes to these terms">
+      <Section id="changes" n={13} title="Changes to these terms">
         <p>
           Open Disclosure may amend these terms and the Site’s methodology at any time. The date
           shown at the top of this page indicates the most recent revision. Continued use of the
